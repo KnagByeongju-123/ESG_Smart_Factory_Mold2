@@ -1,5 +1,5 @@
 #!/bin/bash
-# iptk 저장소 정리 — Git Bash 에서 저장소 루트로 이동 후 실행: bash cleanup_repo.sh
+# tjdt 저장소 정리 — Git Bash 에서 저장소 루트로 이동 후 실행: bash cleanup_repo.sh
 set -e
 
 # 1) HTML/JS 어디에서도 참조하지 않는 JSON 80개 (초기 화면캡쳐 기반 예시 데이터)

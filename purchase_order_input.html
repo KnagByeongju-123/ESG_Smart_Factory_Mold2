@@ -304,7 +304,7 @@ const today=new Date().toISOString().slice(0,10);
 preview.classList.add('on');
 const n=a4Build(docArea,{title:'구매품 발주서',cols:8,
  head:`<h2>구매품 발주서</h2>
-<table class="info"><tr><td>발　신 : (주)일평기연</td></tr><tr><td>작성자 : ${OWNER}</td></tr><tr><td>수　신 : ${r0.vendor}</td></tr></table>
+<table class="info"><tr><td>발　신 : (주)태진다이텍</td></tr><tr><td>작성자 : ${OWNER}</td></tr><tr><td>수　신 : ${r0.vendor}</td></tr></table>
 <table class="info"><tr><th>제번</th><td>${r0.job}_${r0.proc}</td><th>품명</th><td>${j.item||''}</td><th>발주일</th><td>${today}</td></tr></table>`,
  contHead:`<table class="info"><tr><th>제번</th><td>${r0.job}_${r0.proc}</td><th>수신</th><td>${r0.vendor}</td><th>발주일</th><td>${today}</td></tr></table>`,
  colgroup:'<colgroup><col style="width:6%"><col style="width:11%"><col style="width:20%"><col style="width:10%"><col style="width:17%"><col style="width:9%"><col style="width:12%"><col style="width:15%"></colgroup>',
@@ -484,7 +484,7 @@ try{MESJOB.attach("jobQ",{onPick:()=>{try{onJobPick()}catch(e){}}})}catch(e){}
  modelQ.addEventListener(ev,()=>{try{onModelPick()}catch(e){}});
 });
 </script>
-<script src="mes_mail.js?v=174"></script>
+<script src="mes_mail.js?v=263"></script>
 <script src="mes_cycle.js?v=227"></script><script src="mes_ordctx.js?v=227"></script>
 <script>
 /* v227: 차수 관리 — 체크한 품번(없으면 전체)의 차수 취소·종료 */

@@ -99,7 +99,7 @@ function who(){try{const a=MESDB.auth();return a?.name||''}catch(e){return ''}}
 /* 부모 index 의 메뉴 구조로 모듈/화면 목록 채움 */
 function fillLists(){
   let mods=[],screens=[];
-  try{const A=window.parent.IPMES?.APP;if(A){mods=Object.keys(A).filter(m=>m!=='사용메뉴얼');for(const m of mods)for(const gs of Object.values(A[m].menus||{}))for(const g of gs)screens.push(...g.items)}}catch(e){}
+  try{const A=window.parent.TJDTMES?.APP;if(A){mods=Object.keys(A).filter(m=>m!=='사용메뉴얼');for(const m of mods)for(const gs of Object.values(A[m].menus||{}))for(const g of gs)screens.push(...g.items)}}catch(e){}
   if(!mods.length)mods=['영업관리','설계관리','구매관리','조립관리','원가관리','SQ','기준정보','공통'];
   $('module').innerHTML='<option></option>'+mods.map(m=>`<option>${esc(m)}</option>`).join('');
   $('fmod').innerHTML='<option value="">전체</option>'+mods.map(m=>`<option>${esc(m)}</option>`).join('');
@@ -134,7 +134,7 @@ function pick(id){
 function fresh(){
   selId=null;F.forEach(k=>$(k).value='');
   $('req_date').value=today();$('status').value='접수';$('category').value='수정';$('priority').value='보통';$('requester').value=who();
-  try{const I=window.parent.IPMES;let cur=I?.active;if(cur&&cur.id==='mod_request_board')cur=I.prev;if(cur&&cur.menu&&cur.menu!=='수정요청게시판'){$('screen').value=cur.menu;$('module').value=cur.mod||''}}catch(e){}
+  try{const I=window.parent.TJDTMES;let cur=I?.active;if(cur&&cur.id==='mod_request_board')cur=I.prev;if(cur&&cur.menu&&cur.menu!=='수정요청게시판'){$('screen').value=cur.menu;$('module').value=cur.mod||''}}catch(e){}
   dtitle.textContent='신규 요청';tb.querySelectorAll('tr').forEach(t=>t.classList.remove('sel'));$('title').focus();
 }
 async function save(){

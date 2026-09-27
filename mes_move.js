@@ -1,4 +1,4 @@
-/* IPMES — 외주가공 물류이동 조회 모듈 (1단계)
+/* TJDTMES — 외주가공 물류이동 조회 모듈 (1단계)
  * 읽기 전용. 화면의 저장 로직을 건드리지 않는다.
  *
  *   MESMOVE.positions({job,vendor,part})  → v_outsourcing_position

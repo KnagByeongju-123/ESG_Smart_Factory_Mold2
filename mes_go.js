@@ -1,5 +1,5 @@
 /* mes_go.js (v196) — 화면 사이 "근거 자료로 이동"
- *   보내는 화면 : MESGO.open('사내외가공 발주', {job:'26IPA020A', part:'C22A', proc:'LS'})
+ *   보내는 화면 : MESGO.open('사내외가공 발주', {job:'26TJD020A', part:'C22A', proc:'LS'})
  *                 → 메인(index.html)이 그 화면 탭을 열고, 화면이 준비되면 그 화면의 MES.go(params) 를 부른다.
  *   받는 화면   : MES.go = async p => { ... 제번 고르기 → 부품 행 찾기 → MESGO.flash(tr) }
  *   MESGO.wait(fn, ms)  fn() 이 참이 될 때까지 기다린다 (자료를 비동기로 읽는 화면용)

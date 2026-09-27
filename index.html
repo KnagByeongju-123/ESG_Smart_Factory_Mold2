@@ -246,7 +246,7 @@ const APP={
     menus:{
       '수주':[{name:'수주',items:['수주등록','수주현황','금형진척현황','제번종합현황']}],
       '제작계획':[{name:'제작계획',items:['제작계획등록','제작계획현황']}],
-      /* v73: 일평기연은 외주 발주를 영업에서 관리한다. 제작계획에서 사내/외주를 정한 뒤 여기서 발주·입고 */
+      /* v73: 태진다이텍은 외주 발주를 영업에서 관리한다. 제작계획에서 사내/외주를 정한 뒤 여기서 발주·입고 */
       '설계외주':[{name:'설계외주',items:['외주설계발주등록','외주설계발주입고','외주설계발주현황']}],
       'SET외주':[{name:'SET외주',items:['SET외주발주등록','SET외주발주입고','SET외주발주현황']}],
       '조립외주':[{name:'조립외주',items:['SET외주제작등록','SET발주입고','SET발주현황']}]
@@ -504,13 +504,13 @@ const pageRegistry={
 '조직도':{id:'org_chart',file:'org_chart.html',title:'조직도'}
 };
 const MOD_ICON={'영업관리':'▣','설계관리':'✎','구매관리':'▤','조립관리':'⚙','원가관리':'◴','조직도':'⛶','SQ':'◈','기준정보':'▦','사용메뉴얼':'📖'};
-const MOD_DESC={'영업관리':'수주 · 제작계획 · 설계외주 · SET외주','설계관리':'사내설계 · PARTLIST','구매관리':'원재료 · 구매품 · 사내가공 실적 · 외주가공','조립관리':'사내조립 · 검사','원가관리':'제조원가 · 부품별 원가내역 · 업체별 가공비 · 경비 · 매입/매출 · 재고','SQ':'품질목표 · 심사 · 부적합 · 4M · 계측기 · 문서/도면 · 추적성','기준정보':'공정 · 부품 · 자재 · 설비 · 업체 · 사용자 · 단가','사용메뉴얼':'시스템 사용 안내'};
+const MOD_DESC={'영업관리':'수주 · 제작계획 · 설계외주 · SET외주','설계관리':'사내설계 · PARTLIST','구매관리':'원재료 · 구매품 · 사내외가공 발주','조립관리':'사내조립 · 검사','원가관리':'금형원가 내역 · 업체별 가공비 · 경비 · 매입/매출 · 재고','SQ':'품질목표 · 심사 · 부적합 · 4M · 계측기 · 문서/도면 · 추적성','기준정보':'공정 · 부품 · 자재 · 설비 · 업체 · 사용자 · 단가','사용메뉴얼':'시스템 사용 안내'};
 const HOME={id:'home',title:'홈',file:null,home:true};
 
 let activeModule='', activeId='', prevId='';
 const openTabs=new Map();  /* id -> page */
 const pinned=new Set(['home']);
-let favs=JSON.parse(localStorage.getItem('ipmes.favs')||'[]');
+let favs=JSON.parse(localStorage.getItem('tjdtmes.favs')||'[]');
 const $=s=>document.querySelector(s);
 const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -604,7 +604,7 @@ function pinModule(m){setModule(m);const li=[...document.querySelectorAll('#topM
 
 /* ---------- 즐겨찾기 ---------- */
 function toggleFav(n){
-  favs=favs.includes(n)?favs.filter(x=>x!==n):[...favs,n];localStorage.setItem('ipmes.favs',JSON.stringify(favs));
+  favs=favs.includes(n)?favs.filter(x=>x!==n):[...favs,n];localStorage.setItem('tjdtmes.favs',JSON.stringify(favs));
   document.querySelectorAll(`.mega a[data-name="${n}"] .star`).forEach(s=>s.classList.toggle('on',favs.includes(n)));
   renderFav();const h=document.getElementById('view_home');if(h)h.innerHTML=homeHTML();
 }
@@ -781,7 +781,7 @@ document.addEventListener('click',e=>{
 $('#brand').onclick=()=>openPage(HOME);
 $('#btnReq').onclick=()=>openByName('수정요청게시판');
 /* 화면(iframe)에서 참조: 메뉴구조 · 현재 탭 */
-window.IPMES={APP,pageRegistry,get active(){return openTabs.get(activeId)||null},get prev(){return openTabs.get(prevId)||null}};
+window.TJDTMES={APP,pageRegistry,get active(){return openTabs.get(activeId)||null},get prev(){return openTabs.get(prevId)||null}};
 
 /* ---------- 사용자 (mes_auth.js 연동) ---------- */
 function syncUser(){
@@ -789,7 +789,7 @@ function syncUser(){
   $('#uName').textContent=name;$('#uRole').textContent=role;$('#uAv').textContent=String(name)[0].toUpperCase();$('#uHd').textContent=a?.session?.user?.email||'MOLD';
 }
 $('#btnPw').onclick=()=>{closeDd();document.getElementById('pwchg')?.click()};
-$('#btnLogout').onclick=()=>{closeDd();if(window.MES_AUTH&&typeof MES_AUTH.logout==='function')return MES_AUTH.logout();const b=document.getElementById('lgout');if(b)b.click();else{try{localStorage.removeItem('ipmes.session')}catch(e){}location.reload()}};
+$('#btnLogout').onclick=()=>{closeDd();if(window.MES_AUTH&&typeof MES_AUTH.logout==='function')return MES_AUTH.logout();const b=document.getElementById('lgout');if(b)b.click();else{try{localStorage.removeItem('tjdtmes.session')}catch(e){}location.reload()}};
 
 /* ---------- v230: 🔔 알림 (mes_alerts · sql_v230_alerts.sql) ----------
  * 20초마다 최근 알림을 읽어 안 읽은 수를 종에 표시. 받는 사람이 정해진 알림은 그 사람에게만.
@@ -853,11 +853,11 @@ function prefetch(url){if(!url||_pf.has(url))return;_pf.add(url);
 function tick(){now.textContent=new Date().toLocaleString('ko-KR',{dateStyle:'medium',timeStyle:'medium'})}
 verTxt.textContent='APP v'+APP_VER;
 /* 새로고침 시 열린 탭·현재 화면 복원 */
-const TABKEY='ipmes.tabs';
+const TABKEY='tjdtmes.tabs';
 const keyOf=p=>Object.keys(pageRegistry).find(k=>pageRegistry[k]===p);
 function saveTabs(){try{const names=[...openTabs.values()].filter(p=>!p.home&&p.file).map(keyOf).filter(Boolean);const a=openTabs.get(activeId);sessionStorage.setItem(TABKEY,JSON.stringify({names,active:a&&!a.home?keyOf(a):''}))}catch(e){}}
 function restoreTabs(raw){try{const st=JSON.parse(raw||'null');if(!st||!st.names||!st.names.length)return;st.names.forEach(n=>{if(pageRegistry[n]&&pageRegistry[n].file)openByName(n)});if(st.active&&pageRegistry[st.active])openByName(st.active);else openPage(HOME)}catch(e){}}
-const _tabs=(()=>{try{return sessionStorage.getItem('ipmes.tabs')}catch(e){return null}})();buildTop();renderFav();syncUser();openPage(HOME);restoreTabs(_tabs);tick();setInterval(tick,1000);
+const _tabs=(()=>{try{return sessionStorage.getItem('tjdtmes.tabs')}catch(e){return null}})();buildTop();renderFav();syncUser();openPage(HOME);restoreTabs(_tabs);tick();setInterval(tick,1000);
 </script>
 <script>document.write('<script src="mes_auth.js?v='+APP_VER+'"><\/script>')</script>
 <script>window.addEventListener("mes-auth-ready",()=>{try{VREADY.clear();buildTop();renderFav();syncUser();const h=document.getElementById('view_home');if(h)h.innerHTML=homeHTML();renderStage()}catch(e){}});</script>

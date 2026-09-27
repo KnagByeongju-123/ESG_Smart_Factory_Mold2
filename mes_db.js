@@ -203,7 +203,7 @@ MESDB.auth=()=>{try{return window.MES_AUTH||window.parent.MES_AUTH||null}catch(e
    kind: 'design' → order_lines(category=외주설계) 존재 여부, 'assembly' → set_order_lines 존재 여부.
    계획 행이 없으면 아무 것도 하지 않는다. 실패해도 발주 처리를 막지 않는다. */
 /* ── v120 (회의록 1-1): 관리제번 / 공정 분리 ─────────────────────────────
- * 제번(job_no) '26IPA001A' = 관리제번 '26IPA001' + 공정 'A'.
+ * 제번(job_no) '26TJD001A' = 관리제번 '26TJD001' + 공정 'A'.
  * 규칙: 마지막 한 글자가 대문자 A~Z 이고 그 앞이 숫자로 끝나면 공정으로 본다.
  *       (J26137, PT005 처럼 숫자로 끝나면 공정 없음 → 관리제번 = 제번)
  * DB 키(job_no)는 그대로 두고, 화면과 집계에서 이 두 값을 함께 쓴다.
@@ -216,7 +216,8 @@ const JOB_SEQ_RE=/^(.*\d)([A-Z])$/;
  *   MESDB.partImages(job)             → {품번: URL}
  *   MESDB.imgBox(url, size)           → 썸네일 HTML (클릭하면 새 창) */
 const IMG_BUCKET='mes-attach';
-function sbToken(){try{return (window.MES_AUTH||window.parent.MES_AUTH)?.token||null}catch(e){return null}}
+/* TJD: PIN 로그인은 토큰이 없으므로 공개키(anon)로 저장소에 접근 */
+function sbToken(){try{return (window.MES_AUTH||window.parent.MES_AUTH)?.token||CFG.key}catch(e){return CFG.key}}
 MESDB.imgUrl=p=>CFG.url+'/storage/v1/object/public/'+IMG_BUCKET+'/'+String(p).split('/').map(encodeURIComponent).join('/');
 MESDB.imgUpload=async function(file,job,part){
   if(!file)throw new Error('파일이 없습니다.');

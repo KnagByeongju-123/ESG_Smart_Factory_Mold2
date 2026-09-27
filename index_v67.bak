@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>IPTK MES</title>
+<title>TJDT MES</title>
 <link rel="preconnect" href="https://jgvikmakenpllwxwdugk.supabase.co" crossorigin>
 <link rel="dns-prefetch" href="https://jgvikmakenpllwxwdugk.supabase.co">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
@@ -156,7 +156,7 @@ input,select{font:inherit}
   <header class="top">
     <div class="brand" id="brand" title="홈">
       <div class="mark">I</div>
-      <div class="name"><span class="home-lbl">⌂ 홈</span><small>IPTK MES</small></div>
+      <div class="name"><span class="home-lbl">⌂ 홈</span><small>TJDT MES</small></div>
     </div>
 
     <ul class="top-menu" id="topMenu"></ul>
@@ -180,7 +180,7 @@ input,select{font:inherit}
           <span class="txt"><b id="uName">-</b><span id="uRole">-</span></span>
         </button>
         <div class="dd-menu">
-          <div class="hd" id="uHd">IPTK MES</div>
+          <div class="hd" id="uHd">TJDT MES</div>
           <button id="btnPw">비밀번호 변경</button>
           <hr>
           <button id="btnLogout">로그아웃</button>
@@ -206,7 +206,7 @@ input,select{font:inherit}
       <button data-act="right">오른쪽 탭 닫기</button>
       <button data-act="close">닫기</button>
     </div>
-    <div class="crumb" id="crumb"><span>IPTK MES</span></div>
+    <div class="crumb" id="crumb"><span>TJDT MES</span></div>
     <div class="stage" id="stage"><div class="vwait" id="vwait">화면을 여는 중…</div></div>
     <div class="status">
       <span><span class="dot"></span><span id="statusMsg">준비</span></span>
@@ -389,7 +389,7 @@ const pageRegistry={
 '수주등록':{id:'sale_order_input',file:'sale_order_input.html',title:'수주정보 등록'},
 '수주현황':{id:'sale_order_status',file:'sale_order_status.html',title:'수주현황'},
 '제작계획등록':{id:'sales_plan_input',file:'sales_plan_input.html',title:'제작계획등록'},
-'현황판':{id:'status_board',file:'status_board.html',title:'일평기연 현황판'},
+'현황판':{id:'status_board',file:'status_board.html',title:'태진다이텍 현황판'},
 '제작계획현황':{id:'sales_plan_status',file:'sales_plan_status.html',title:'제작계획현황'},
 'SET발주현황':{id:'set_order_status',file:'set_order_status.html',title:'SET 발주현황'},
 'SET발주입고':{id:'set_order_receipt',file:'set_order_receipt.html',title:'SET발주입고'},
@@ -477,7 +477,7 @@ const HOME={id:'home',title:'홈',file:null,home:true};
 let activeModule='', activeId='', prevId='';
 const openTabs=new Map();  /* id -> page */
 const pinned=new Set(['home']);
-let favs=JSON.parse(localStorage.getItem('ipmes.favs')||'[]');
+let favs=JSON.parse(localStorage.getItem('tjdtmes.favs')||'[]');
 const $=s=>document.querySelector(s);
 const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -545,7 +545,7 @@ function pinModule(m){setModule(m);const li=[...document.querySelectorAll('#topM
 
 /* ---------- 즐겨찾기 ---------- */
 function toggleFav(n){
-  favs=favs.includes(n)?favs.filter(x=>x!==n):[...favs,n];localStorage.setItem('ipmes.favs',JSON.stringify(favs));
+  favs=favs.includes(n)?favs.filter(x=>x!==n):[...favs,n];localStorage.setItem('tjdtmes.favs',JSON.stringify(favs));
   document.querySelectorAll(`.mega a[data-name="${n}"] .star`).forEach(s=>s.classList.toggle('on',favs.includes(n)));
   renderFav();const h=document.getElementById('view_home');if(h)h.innerHTML=homeHTML();
 }
@@ -566,8 +566,8 @@ function openPage(p){if(!openTabs.has(p.id))openTabs.set(p.id,p);if(activeId!==p
 function activate(id){if(activeId!==id)prevId=activeId;activeId=id;const p=openTabs.get(id);if(p&&p.mod)activeModule=p.mod;buildTop();renderTabs();renderStage();renderCrumb()}
 function renderCrumb(){
   const p=openTabs.get(activeId);const c=$('#crumb');
-  if(!p){c.innerHTML='<span>IPTK MES</span>';return}
-  c.innerHTML=`<span>IPTK MES</span>${p.mod?`<span>›</span><span>${esc(p.mod)}</span><span>›</span><span>${esc(p.sec)}</span>`:''}<span>›</span><b>${esc(p.title)}</b><span class="right"><span>${p.file?esc(p.file):''}</span></span>`;
+  if(!p){c.innerHTML='<span>TJDT MES</span>';return}
+  c.innerHTML=`<span>TJDT MES</span>${p.mod?`<span>›</span><span>${esc(p.mod)}</span><span>›</span><span>${esc(p.sec)}</span>`:''}<span>›</span><b>${esc(p.title)}</b><span class="right"><span>${p.file?esc(p.file):''}</span></span>`;
 }
 
 /* ---------- 탭 ---------- */
@@ -697,15 +697,15 @@ document.addEventListener('click',e=>{
 $('#brand').onclick=()=>openPage(HOME);
 $('#btnReq').onclick=()=>openByName('수정요청게시판');
 /* 화면(iframe)에서 참조: 메뉴구조 · 현재 탭 */
-window.IPMES={APP,pageRegistry,get active(){return openTabs.get(activeId)||null},get prev(){return openTabs.get(prevId)||null}};
+window.TJDTMES={APP,pageRegistry,get active(){return openTabs.get(activeId)||null},get prev(){return openTabs.get(prevId)||null}};
 
 /* ---------- 사용자 (mes_auth.js 연동) ---------- */
 function syncUser(){
   const a=window.MES_AUTH;const name=a?.name||'게스트';const role=a?.role==='master'?'마스터':a?.role==='admin'?'관리자':a?.session?'사용자':'미로그인';
-  $('#uName').textContent=name;$('#uRole').textContent=role;$('#uAv').textContent=String(name)[0].toUpperCase();$('#uHd').textContent=a?.session?.user?.email||'IPTK MES';
+  $('#uName').textContent=name;$('#uRole').textContent=role;$('#uAv').textContent=String(name)[0].toUpperCase();$('#uHd').textContent=a?.session?.user?.email||'TJDT MES';
 }
 $('#btnPw').onclick=()=>{closeDd();document.getElementById('pwchg')?.click()};
-$('#btnLogout').onclick=()=>{closeDd();const b=document.getElementById('lgout');if(b)b.click();else{try{localStorage.removeItem('ipmes.session')}catch(e){}location.reload()}};
+$('#btnLogout').onclick=()=>{closeDd();const b=document.getElementById('lgout');if(b)b.click();else{try{localStorage.removeItem('tjdtmes.session')}catch(e){}location.reload()}};
 
 /* ---------- 선반입 ---------- */
 const _pf=new Set();

@@ -109,13 +109,13 @@ button,input,select{font:inherit;color:inherit}.screen{height:100%;display:flex;
 </div>
 <script src="mes_db.js?v=171"></script>
 <script>
-const T='org_charts',CID='main',LS='ipmes.orgchart';
+const T='org_charts',CID='main',LS='tjdtmes.orgchart';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const msg=t=>message.textContent=t;
 let uid=1;const nid=()=>'n'+(uid++)+'_'+Date.now().toString(36);
 function N(dept,rank,name,children=[],drop=0,duty=''){return{id:nid(),dept,rank,name,children,drop,dx:0,dy:0,duty}}
-function DEFAULT(){return{title:'일평기연 조직도',date:'2026-08-10',root:
+function DEFAULT(){return{title:'태진다이텍 조직도',date:'2026-08-10',root:
  N('','대표','이광용',[
   N('기술영업·설계','이사','김상구',[
     N('','설계차장','정경숙',[],1),
