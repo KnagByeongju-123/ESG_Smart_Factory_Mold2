@@ -38,7 +38,7 @@ table{border-collapse:collapse;min-width:1040px;width:100%;table-layout:fixed}th
  <div class="formrow">
   <span class="fgrp"><span class="label">수주유형</span>
    <select id="otype" class="field" style="width:120px"><option selected>전체</option><option>신작</option><option>개조</option><option>수리</option><option>유상사급</option></select></span>
-  <span class="fgrp"><span class="label" title="관리제번 = 제번에서 공정 문자를 뺀 것 (26IPA001A → 26IPA001). 관리제번별로 보면 공정 전체의 수주가·원가·이윤이 합쳐집니다 (v120, 회의록 1-1)">집계단위</span>
+  <span class="fgrp"><span class="label" title="관리제번 = 제번에서 공정 문자를 뺀 것 (26TJD001A → 26TJD001). 관리제번별로 보면 공정 전체의 수주가·원가·이윤이 합쳐집니다 (v120, 회의록 1-1)">집계단위</span>
    <select id="grpq" class="field" style="width:130px" onchange="search()"><option value="job">제번(공정)별</option><option value="base">관리제번별 합계</option></select></span>
   <span class="fgrp"><span class="label">제번</span>
    <input id="jobq" class="field" style="width:170px" placeholder="제번 입력/선택" list="jobDL" autocomplete="off" onchange="jobPick()"><datalist id="jobDL"></datalist></span>

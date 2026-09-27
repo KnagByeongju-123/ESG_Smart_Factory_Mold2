@@ -22,7 +22,7 @@ end $$;
 --      npm i -g supabase
 --      supabase login
 --      supabase link --project-ref jgvikmakenpllwxwdugk
---      supabase secrets set GMAIL_USER=order@회사도메인 GMAIL_APP_PASSWORD=앱비밀번호16자리 MAIL_FROM_NAME="IPTK MES"
+--      supabase secrets set GMAIL_USER=order@회사도메인 GMAIL_APP_PASSWORD=앱비밀번호16자리 MAIL_FROM_NAME="TJDT MES"
 --      supabase functions deploy mes-mail --no-verify-jwt
 -- 함수가 없으면 화면은 자동으로 메일 앱(mailto)으로 열립니다.
 -- ────────────────────────────────────────────────────────────────

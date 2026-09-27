@@ -1,6 +1,10 @@
--- 태진다이텍(TJD) DB 보강 스크립트 — IPTK 화면 교체에 필요한 테이블·컬럼·함수만 추가
+-- 태진다이텍(TJDT) DB 보강 스크립트 — 새 화면에 필요한 테이블·컬럼·함수만 추가
 -- Supabase(jgvikmakenpllwxwdugk) SQL Editor 에서 한 번 실행. 기존 데이터는 지우지 않습니다.
--- 제외: v161_cost_view_check(조회용), v165_std01·v166_labor_rates(IPTK 기준공정·단가 데이터)
+-- TJD 는 사원 PIN 로그인(anon 키) 방식이라, 원본의 'authenticated 전용' 권한을 'anon, authenticated' 로 바꿨습니다.
+-- 제외: v161_cost_view_check(조회용), v165_std01·v166_labor_rates(기준공정·단가 예제 데이터)
+
+-- ════════ TJDT 보강: 화면이 쓰는데 DB 에 없던 기본 컬럼 ════════
+alter table public.design_results add column if not exists part_no text;
 
 -- ════════ sql_v159_shape_image.sql ════════
 -- v159 : PartList 형태(사각·환봉) + 부품 이미지
@@ -34,10 +38,10 @@ create policy "mes_attach_read" on storage.objects
   for select using (bucket_id = 'mes-attach');
 
 create policy "mes_attach_write" on storage.objects
-  for insert to authenticated with check (bucket_id = 'mes-attach');
+  for insert to anon, authenticated with check (bucket_id = 'mes-attach');
 
 create policy "mes_attach_update" on storage.objects
-  for update to authenticated using (bucket_id = 'mes-attach');
+  for update to anon, authenticated using (bucket_id = 'mes-attach');
 
 -- ════════ sql_v160_drawing_bucket.sql ════════
 -- v160 : 도면 파일을 Supabase 에 보관 (비공개 버킷 + 서명 URL)
@@ -57,19 +61,19 @@ drop policy if exists "mes_drawing_delete" on storage.objects;
 
 -- 읽기(서명 URL 발급에 필요)
 create policy "mes_drawing_read" on storage.objects
-  for select to authenticated using (bucket_id = 'mes-drawing');
+  for select to anon, authenticated using (bucket_id = 'mes-drawing');
 
 -- 올리기
 create policy "mes_drawing_write" on storage.objects
-  for insert to authenticated with check (bucket_id = 'mes-drawing');
+  for insert to anon, authenticated with check (bucket_id = 'mes-drawing');
 
 -- 덮어쓰기(같은 도면 재업로드)
 create policy "mes_drawing_update" on storage.objects
-  for update to authenticated using (bucket_id = 'mes-drawing');
+  for update to anon, authenticated using (bucket_id = 'mes-drawing');
 
 -- 삭제는 막아 둡니다. 필요하면 아래 주석을 푸세요.
 -- create policy "mes_drawing_delete" on storage.objects
---   for delete to authenticated using (bucket_id = 'mes-drawing');
+--   for delete to anon, authenticated using (bucket_id = 'mes-drawing');
 
 -- 3) 확인
 -- select id, public, file_size_limit from storage.buckets where id = 'mes-drawing';
@@ -167,10 +171,10 @@ alter table public.labor_rates enable row level security;
 drop policy if exists labor_rates_read  on public.labor_rates;
 drop policy if exists labor_rates_write on public.labor_rates;
 create policy labor_rates_read  on public.labor_rates for select using (true);
-create policy labor_rates_write on public.labor_rates for all to authenticated
+create policy labor_rates_write on public.labor_rates for all to anon, authenticated
   using (true) with check (true);
 grant select on public.labor_rates to anon, authenticated;
-grant insert, update, delete on public.labor_rates to authenticated;
+grant insert, update, delete on public.labor_rates to anon, authenticated;
 
 -- 4) 가공 단가 등록 — 모두 30,000원/h
 insert into public.labor_rates (rate_code, rate_name, rate_type, rate_per_hour) values
@@ -292,7 +296,7 @@ create table if not exists public.mail_log (
 alter table public.mail_log enable row level security;
 do $$ begin
   if not exists (select 1 from pg_policies where tablename='mail_log' and policyname='mail_log_all') then
-    create policy mail_log_all on public.mail_log for all to authenticated using (true) with check (true);
+    create policy mail_log_all on public.mail_log for all to anon, authenticated using (true) with check (true);
   end if;
 end $$;
 
@@ -303,7 +307,7 @@ end $$;
 --      npm i -g supabase
 --      supabase login
 --      supabase link --project-ref jgvikmakenpllwxwdugk
---      supabase secrets set GMAIL_USER=order@회사도메인 GMAIL_APP_PASSWORD=앱비밀번호16자리 MAIL_FROM_NAME="IPTK MES"
+--      supabase secrets set GMAIL_USER=order@회사도메인 GMAIL_APP_PASSWORD=앱비밀번호16자리 MAIL_FROM_NAME="TJDT MES"
 --      supabase functions deploy mes-mail --no-verify-jwt
 -- 함수가 없으면 화면은 자동으로 메일 앱(mailto)으로 열립니다.
 -- ────────────────────────────────────────────────────────────────
@@ -405,9 +409,9 @@ begin
 end $$;
 
 grant execute on function public.fn_osp_receive_cancel(bigint, bigint)
-  to authenticated, service_role;
+  to anon, authenticated, service_role;
 grant execute on function public.fn_osp_receive_cancel_all(bigint)
-  to authenticated, service_role;
+  to anon, authenticated, service_role;
 
 /* ── 3. 확인 ─────────────────────────────────────────────────────── */
 -- select proname from pg_proc where proname like 'fn_osp_receive%';
@@ -616,13 +620,13 @@ create policy "mes_attach_read" on storage.objects
   for select using (bucket_id = 'mes-attach');
 
 create policy "mes_attach_write" on storage.objects
-  for insert to authenticated with check (bucket_id = 'mes-attach');
+  for insert to anon, authenticated with check (bucket_id = 'mes-attach');
 
 create policy "mes_attach_update" on storage.objects
-  for update to authenticated using (bucket_id = 'mes-attach') with check (bucket_id = 'mes-attach');
+  for update to anon, authenticated using (bucket_id = 'mes-attach') with check (bucket_id = 'mes-attach');
 
 create policy "mes_attach_delete" on storage.objects
-  for delete to authenticated using (bucket_id = 'mes-attach');
+  for delete to anon, authenticated using (bucket_id = 'mes-attach');
 
 -- 3) 확인 : 버킷 설정과 정책 목록
 select id, public, file_size_limit, allowed_mime_types from storage.buckets where id = 'mes-attach';

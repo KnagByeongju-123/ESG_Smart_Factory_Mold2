@@ -1,6 +1,6 @@
 /* 기준정보 화면 버튼 전수 테스트 하네스 (jsdom + 가짜 PostgREST) */
 const fs=require('fs'),path=require('path'),{JSDOM,VirtualConsole}=require('jsdom');
-const DIR=path.join(__dirname,'iptk-main');
+const DIR=path.join(__dirname,'tjdt-main');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const SKIP=/닫\s*기|로그아웃|인쇄|print/i;
 async function run(name,file){

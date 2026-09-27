@@ -385,7 +385,7 @@ SCENE['user_information']=function(){
     tip:'로그인 아이디. <b>등록 후에는 바꾸지 않는 것</b>이 좋습니다. 권한·이력이 이 값으로 묶입니다.'},
    {id:'d_name', value:'김민수', label:'성명',
     tip:'실적등록·발주·검사 화면의 담당자 목록에 이 이름으로 나옵니다.'},
-   {id:'d_auth_email', value:'kim.ms@ipmes.demo', label:'로그인메일',
+   {id:'d_auth_email', value:'kim.ms@tjdtmes.demo', label:'로그인메일',
     tip:'<b>실제 로그인에 쓰는 계정</b>입니다. 회사 메일이 없으면 사내 규칙대로 임의 주소를 부여해도 됩니다.'},
    {id:'d_email', value:'kim.ms@donggu.co.kr', label:'이메일',
     tip:'연락용 메일. 로그인메일과 달라도 됩니다.'},

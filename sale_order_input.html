@@ -91,7 +91,7 @@ html[data-mw="xs"] .formgrid{grid-template-columns:84px minmax(0,1fr)}
 </style></head><body><div class="screen">
 <div class="title"><h1>수주등록</h1><small>영업관리 · 수주</small></div>
 <section class="formgrid">
- <div class="label" title="관리제번. 공정수가 2 이상이면 저장할 때 관리제번 뒤에 A·B·C… 를 붙인 제번이 공정 수만큼 생깁니다 (v179)">관리제번</div><div><input id="base_job" class="field" placeholder="예) 26IPA001" style="text-transform:uppercase"></div>
+ <div class="label" title="관리제번. 공정수가 2 이상이면 저장할 때 관리제번 뒤에 A·B·C… 를 붙인 제번이 공정 수만큼 생깁니다 (v179)">관리제번</div><div><input id="base_job" class="field" placeholder="예) 26TJD001" style="text-transform:uppercase"></div>
  <div class="label" title="공정(SET) 수. 2 이상이면 저장 시 관리제번+A·B·C… 제번이 공정 수만큼 만들어집니다. 원가 배부 단위가 됩니다.">공정수</div><div><input id="proc_cnt" class="field num" placeholder="1" inputmode="numeric"></div>
  <div class="label" title="저장하면 만들어지는(또는 이미 있는) 제번">생성 제번</div><div class="span2"><input id="job_preview" class="field" readonly style="background:#f4f7f9;color:#2f5f8a;font-weight:700" title="관리제번 + 공정수로 정해집니다"></div>
  <div class="label" title="공정 성격 (기준정보 › 공정카테고리). 회의록 1-4. 공정별로 다르게 두려면 [⚙ 공정 자동생성]">카테고리</div><div><select id="proc_cat" class="field"><option value=""></option></select></div>
@@ -292,7 +292,8 @@ async function save(mode){
 const ATT=[];   /* {name,path,size,ext,note} */
 const SB_URL='https://jgvikmakenpllwxwdugk.supabase.co';
 const SB_KEY='sb_publishable_sKp-6nz2PQ9LxQ5pF-nYkg_YwoEJN6S';
-function sbTok(){try{return (window.MES_AUTH||window.parent.MES_AUTH)?.token||null}catch(e){return null}}
+/* TJD: PIN 로그인은 토큰이 없으므로 공개키(anon)로 저장소에 접근 */
+function sbTok(){try{return (window.MES_AUTH||window.parent.MES_AUTH)?.token||SB_KEY}catch(e){return SB_KEY}}
 function attUrl(p){return SB_URL+'/storage/v1/object/public/mes-attach/'+p.split('/').map(encodeURIComponent).join('/')}
 function fmtSize(n){return n>=1048576?(n/1048576).toFixed(1)+'MB':n>=1024?(n/1024).toFixed(1)+'KB':n+'B'}
 function renderAtt(){
