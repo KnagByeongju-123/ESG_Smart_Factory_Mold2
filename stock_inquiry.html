@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>재고조회</title>
+<style>
+:root{--line:#9daab6;--line2:#c5ced6;--ink:#344758}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{font-family:"Malgun Gothic","맑은 고딕",Arial,sans-serif;font-size:12px;color:var(--ink);background:#fff;overflow:hidden}button,input,select{font:inherit;color:inherit}
+.screen{height:100%;display:flex;flex-direction:column}.title{height:46px;padding:9px 14px 4px;border-bottom:2px solid #3977ad;display:flex;align-items:center;gap:14px}.title h1{margin:0;font-size:21px;font-weight:500;color:#4b5b69}.title h1:before{content:'◯';margin-right:6px;color:#8795a1}.title .plant{margin-left:auto;display:flex;align-items:center;gap:6px;color:#6b7885}
+.filters{padding:7px 14px;border-bottom:1px solid var(--line2);background:#fafbfc;display:flex;gap:6px;align-items:center;flex-wrap:wrap}.label{font-weight:700}.field{height:27px;border:1px solid #b7c2cb;background:#fff;padding:0 7px;outline:none}.field:focus{border-color:#4e88bb}
+.gridbox{flex:1;min-height:0;margin:7px 14px;border:1px solid var(--line);display:flex;flex-direction:column;background:#fff}
+.tablewrap{flex:1;min-height:0;overflow:auto}table{border-collapse:collapse;min-width:1080px;width:100%;table-layout:fixed}th,td{height:25px;padding:0 6px;border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}th{position:sticky;top:0;z-index:2;text-align:center;background:linear-gradient(#dbe9f4,#c7d9e8);color:#405266;font-weight:700}tbody tr:nth-child(even) td{background:#fafcfd}tbody tr:hover td{background:#edf6fd}tbody tr.sel td{background:#2e78bd;color:#fff}.c{text-align:center}.r{text-align:right}
+tfoot th{position:sticky;bottom:0;background:linear-gradient(#e6eef5,#d3e0ea)}
+.btn{height:28px;min-width:70px;border:1px solid #9ca9b5;background:linear-gradient(#fff,#dfe6eb)}.btn:hover{background:#fff}.btn.primary{background:linear-gradient(#f9ffff,#d2e7f6);color:#1e5e91}
+.foot{height:42px;display:flex;align-items:center;padding:5px 14px;border-top:1px solid var(--line);background:#eef2f5;gap:5px}.msg{margin-left:10px;color:#687784}.foot .right{margin-left:auto;color:#7c8993}
+@media(max-width:900px){.title h1{font-size:18px}}
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="title"><h1>재고조회</h1></div>
+  <section class="filters">
+    <span class="label">기준일</span><input id="baseDate" class="field" type="date">
+    <span class="label">관리제번</span><input id="baseQ" class="field" style="width:170px" list="baseDL" autocomplete="off" placeholder="관리제번 선택/입력"><datalist id="baseDL"></datalist>
+    <span class="label">제번</span><input id="jobQ" class="field" style="width:150px">
+    <span class="label">품명</span><input id="itemQ" class="field" style="width:190px">
+    <span class="label">고객사</span><input id="custQ" class="field" style="width:170px" list="custDL" autocomplete="off" placeholder="고객사 선택/입력"><datalist id="custDL"></datalist>
+    <span class="label">구분</span><select id="typeQ" class="field" style="width:110px;max-width:110px"><option value="">전체</option><option>신작</option><option>개조</option><option>수리</option><option>유상사급</option></select>
+    <button class="btn" onclick="search()">⌕ 조회</button>
+  </section>
+  <div class="gridbox"><div class="tablewrap"><table>
+    <colgroup><col style="width:46px"><col style="width:130px"><col style="width:80px"><col style="width:180px"><col style="width:100px"><col style="width:190px"><col style="width:80px"><col style="width:130px"><col style="width:130px"></colgroup>
+    <thead><tr><th>No</th><th>제번</th><th>구분</th><th>품명</th><th>수주일</th><th>고객사</th><th>개발유형</th><th>수주가</th><th>매입금액</th></tr></thead>
+    <tbody id="body"></tbody>
+    <tfoot><tr><th colspan="7" class="r">합계</th><th class="r" id="sumOrder">0</th><th class="r" id="sumBuy">0</th></tr></tfoot>
+  </table></div></div>
+  <footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn primary" onclick="exportCsv()">▤ EXCEL</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫 기</button><span class="msg" id="message">기준일 기준 재고(제번별 매입/수주) 현황을 조회했습니다.</span><span class="right" id="countText"></span></footer>
+</div>
+<script>
+const rows=[];
+let view=[...rows];
+const money=v=>Number(v||0).toLocaleString('ko-KR');
+function render(){body.innerHTML=view.map((r,i)=>`<tr onclick="sel(this)"><td class="c">${i+1}</td><td>${r.job}</td><td class="c">${r.type}</td><td>${r.item}</td><td class="c">${r.odate}</td><td>${r.cust}</td><td class="c">${r.dev}</td><td class="r">${money(r.amount)}</td><td class="r">${money(r.buy)}</td></tr>`).join('');
+sumOrder.textContent=money(view.reduce((a,r)=>a+(Number(r.amount)||0),0));sumBuy.textContent=money(view.reduce((a,r)=>a+(Number(r.buy)||0),0));countText.textContent=`${view.length}건`}
+function sel(tr){document.querySelectorAll('#body tr').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel')}
+/* v196: 관리제번 · 고객사 드롭다운(목록에서 고르거나 직접 입력) — 조회된 자료에서 목록을 만든다 */
+const esc=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const baseOf=j=>{const m=/^(.*\d)([A-Z])$/.exec(String(j||'').trim());return m?m[1]:String(j||'').trim()};
+function fillDL(){const G=new Map(),C=new Map();
+ rows.forEach(r=>{const j=String(r.job||'');if(j){const m=/^(.*\d)([A-Z])$/.exec(j),b=m?m[1]:j;let g=G.get(b);if(!g){g={seq:[],item:''};G.set(b,g)}if(m&&!g.seq.includes(m[2]))g.seq.push(m[2]);if(!g.item&&r.item)g.item=r.item}
+  const c=String(r.cust||'').trim();if(c)C.set(c,(C.get(c)||0)+1)});
+ const rng=a=>{a.sort();return !a.length?'':a.length>2?`${a[0]}~${a[a.length-1]}`:a.join('·')};
+ baseDL.innerHTML=[...G.keys()].sort((a,b)=>b.localeCompare(a)).map(b=>{const g=G.get(b);return `<option value="${esc(b)}">${esc([rng(g.seq),g.item].filter(Boolean).join(' · '))}</option>`}).join('');
+ custDL.innerHTML=[...C].sort((a,b)=>a[0].localeCompare(b[0],'ko')).map(([c,n])=>`<option value="${esc(c)}">${n}건</option>`).join('')}
+function search(){const bq=baseQ.value.trim().toUpperCase(),j=jobQ.value.trim().toLowerCase(),it=itemQ.value.trim().toLowerCase(),c=custQ.value.trim().toLowerCase(),t=typeQ.value,b=baseDate.value;
+view=rows.filter(r=>(!bq||(rows.some(x=>baseOf(x.job).toUpperCase()===bq)?baseOf(r.job).toUpperCase()===bq:baseOf(r.job).toUpperCase().includes(bq)))&&(!j||r.job.toLowerCase().includes(j))&&(!it||r.item.toLowerCase().includes(it))&&(!c||r.cust.toLowerCase().includes(c))&&(!t||r.type===t)&&(!b||!r.odate||r.odate<=b));
+render();msg(`기준일 ${b||'전체'} 기준 ${view.length}건을 조회했습니다.`)}
+function exportCsv(){const out=[['제번','구분','품명','수주일','고객사','개발유형','수주가','매입금액'],...view.map(r=>[r.job,r.type,r.item,r.odate,r.cust,r.dev,r.amount,r.buy])];const csv='\ufeff'+out.map(a=>a.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='stock_inquiry.csv';a.click();URL.revokeObjectURL(a.href);msg('EXCEL(CSV) 파일을 생성했습니다.')}
+function msg(t){message.textContent=t}
+baseDate.value=new Date().toISOString().slice(0,10);  /* v32: 고정 기준일 → 오늘 */render();
+/* v32: 스냅샷 테이블 → stock_inquiry_view 실집계 조회 */
+const _online=()=>!!(window.MESDB&&MESDB.online);
+async function loadLive(){
+ for(let i=0;i<60&&!window.MESDB;i++)await new Promise(r=>setTimeout(r,50));
+ if(window.MESDB&&MESDB.ready){try{await MESDB.ready}catch(e){}}
+ if(!_online())return;
+ try{
+  const rs=await MESDB.table('stock_inquiry_view').select('select=*');
+  rows.length=0;
+  /* v140: stock_inquiry_view 컬럼명 → 화면 필드명 매핑 (전부 undefined 로 보이던 문제) */
+  rs.forEach(r=>rows.push({job:r.job_no||r.job||'',type:r.order_type||r.type||'',item:r.item_name||r.item||'',odate:r.order_date||r.odate||'',
+   cust:r.customer_name||r.cust||'',dev:r.develop_type||r.development_type||r.dev||'',amount:Number(r.order_amount??r.amount??0),buy:Number(r.purchase_amount??r.buy??0)}));
+  if(typeof view!=='undefined'&&Array.isArray(view))view=[...rows];
+  fillDL();
+  (window.MES&&window.MES.search||window.search||window.render||function(){})();
+  const m=document.getElementById('message');
+  if(m)m.textContent=`실데이터 ${rows.length}건을 조회했습니다.`;
+ }catch(e){const m=document.getElementById('message');
+  if(m)m.textContent='조회 실패: '+String(e.message||e).slice(0,110)}
+}
+window.MES={search,exportCsv,setMessage:msg};loadLive();
+/* 고르거나 Enter 치면 바로 조회, 칸을 비우면 전체 */
+[baseQ,jobQ,itemQ,custQ].forEach(el=>{el.addEventListener('change',search);el.addEventListener('keydown',e=>{if(e.key==='Enter')search()});el.addEventListener('input',()=>{if(!el.value.trim())search()})});
+[typeQ,baseDate].forEach(el=>el.addEventListener('change',search));
+</script>
+<script src="mes_db.js?v=171"></script>
+
+<script src="mes_ctx.js?v=169"></script>
+</body>
+</html>

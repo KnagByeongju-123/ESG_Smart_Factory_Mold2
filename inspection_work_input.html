@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>검사실적등록</title>
+<style>
+:root{--line:#9daab6;--line2:#c5ced6;--ink:#344758}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{font-family:"Malgun Gothic","맑은 고딕",Arial,sans-serif;font-size:12px;color:var(--ink);background:#fff;overflow:hidden}button,input,select{font:inherit;color:inherit}
+.screen{height:100%;display:flex;flex-direction:column}.title{height:46px;padding:9px 14px 4px;border-bottom:2px solid #3977ad;display:flex;align-items:center;gap:14px}.title h1{margin:0;font-size:21px;font-weight:500;color:#4b5b69}.title h1:before{content:'◯';margin-right:6px;color:#8795a1}.title small{color:#6b7885}
+.filters{padding:7px 14px;border-bottom:1px solid var(--line2);background:#fafbfc;display:flex;gap:6px;align-items:center;flex-wrap:wrap}.label{font-weight:700}.field{height:27px;border:1px solid #b7c2cb;background:#fff;padding:0 7px;outline:none}.field:focus{border-color:#4e88bb}
+.btn{height:27px;padding:0 10px;border:1px solid #8b9ba9;background:linear-gradient(#fff,#e9eef2);cursor:pointer;border-radius:2px}.btn:hover{background:#e3ebf2}.btn.go{background:linear-gradient(#e9f3fc,#c9def0);border-color:#6f9cc4;font-weight:700}.btn.warn{color:#b3261e;border-color:#d9a19b;background:#fff4f2}
+.hint{margin-left:6px;padding:3px 9px;border:1px solid #c9d6e2;background:#eef4fa;border-radius:12px;color:#3d5163;font-size:11px}.hint b{color:#1d5da3}
+.panes{display:grid;grid-template-columns:.9fr 1.9fr;gap:6px;padding:7px 14px 0;flex:1;min-height:0}
+.pane{border:1px solid var(--line);display:flex;flex-direction:column;min-height:0;min-width:0}.pane .ph{height:26px;line-height:26px;text-align:center;font-weight:700;background:linear-gradient(#e9f1f8,#d3e1ee);border-bottom:1px solid var(--line2);display:flex;align-items:center;justify-content:center;gap:12px}
+.pane .ph .lg{font-weight:400;font-size:11px;color:#55677a;display:flex;align-items:center;gap:4px;line-height:1}.lg i{display:inline-block;flex:0 0 auto;width:10px;height:10px;margin:0 0 0 10px;border:1px solid #9aa}.lg i:first-child{margin-left:0}
+.pane .pb{flex:1;overflow:auto;min-height:0}
+table{border-collapse:collapse;width:100%}th,td{border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);height:27px;padding:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}th{position:sticky;top:0;z-index:2;background:linear-gradient(#e9f1f8,#d3e1ee);color:#405266;text-align:center;font-weight:700}
+.c{text-align:center}.r{text-align:right}
+#jobBody tr{cursor:pointer}#jobBody tr:nth-child(even) td{background:#f7fafc}#jobBody tr:hover td{background:#edf6fd}#jobBody tr.sel td{background:#2d75b7!important;color:#fff}#jobBody tr.done td{color:#8a97a2}
+td.asm{cursor:pointer;height:44px;line-height:1.25;text-align:center;background:#efe0bf;color:#5a4118;white-space:normal;padding:2px 4px}
+td.asm .st{display:block;font-size:10.5px;padding:1px 5px;margin-top:2px;border-radius:2px;background:#8a6d3b;color:#fff;font-weight:700}
+td.asm.d{background:#cbb894;color:#3d2f16;box-shadow:inset 5px 0 0 #6b5327}td.asm.d .st{background:#6b5327}
+td.asm .sub{display:block;font-size:10.5px;color:#7a6034}td.asm.d .sub{color:#4a3a1c}
+tr.all td{background:#fff9ea;font-weight:700}tr.all td.asm{background:#f3e3b8}tr.all td.asm.d{background:#c9b485}
+#partBody tr[data-part]{cursor:context-menu}#partBody tr:hover td:not(.asm){background:#edf6fd}
+.foot{height:40px;display:flex;align-items:center;gap:6px;padding:0 14px;border-top:1px solid var(--line2);background:#f5f7f8}.msg{margin-left:6px;color:#1d5da3;font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 실적 창 */
+#hxMask{position:fixed;inset:0;z-index:9000;display:none}#hxMask.on{display:block}
+#hxPop{position:fixed;z-index:9001;width:540px;max-width:96vw;max-height:92vh;overflow:auto;background:#fff;border:1px solid #6f8090;box-shadow:0 8px 26px rgba(0,0,0,.28);display:none}#hxPop.on{display:block}
+#hxPop .ch{display:flex;align-items:center;gap:8px;padding:0 8px 0 11px;height:31px;color:#fff;font-weight:700;background:linear-gradient(#8a6d3b,#6b5327);cursor:move;user-select:none}
+#hxPop .ch .x{margin-left:auto;border:0;background:transparent;color:#fff;cursor:pointer;font-size:14px}
+#hxPop .cb{padding:9px 11px 6px}#hxPop .sub{color:#4d5c69;margin-bottom:7px;line-height:1.5}
+#hxPop .g{display:grid;grid-template-columns:76px 1fr 76px 1fr;gap:5px 6px;align-items:center}#hxPop .g label{font-weight:700;text-align:right;color:#4d5c69}
+#hxPop .g input,#hxPop .g select{height:26px;border:1px solid #b5c0c9;padding:0 5px;width:100%;min-width:0}#hxPop .g input[readonly]{background:#f3f6f8}
+#hxPop .note{margin-top:7px;padding:5px 8px;border:1px solid #e1e7ec;background:#f7f9fb;border-radius:3px;color:#5d6d7b;font-size:11px;line-height:1.5}
+#hxPop .note.ok{border-color:#7fb07f;background:#eef8ee;color:#245c24}#hxPop .note.warn{border-color:#e5ad62;background:#fff7ea;color:#8a4f08}
+#hxPop table.ln{margin-top:6px}#hxPop table.ln th,#hxPop table.ln td{height:24px;font-size:11px;position:static}#hxPop table.ln td button{border:0;background:transparent;color:#b3261e;cursor:pointer;font-weight:700}
+#hxPop .cf{display:flex;gap:6px;justify-content:flex-end;padding:8px 11px 10px;flex-wrap:wrap}
+#hxPop .cf .go{background:linear-gradient(#e08a2b,#b8681a);color:#fff;border-color:#8a4f08}
+@media(max-width:1000px){.panes{grid-template-columns:1fr;grid-template-rows:200px 1fr}}
+</style>
+</head>
+<body>
+<div class="screen">
+ <div class="title"><h1>검사실적등록</h1><small>조립관리 · 검사</small></div>
+ <div class="filters">
+  <span class="label">관리제번</span><select id="baseQ" class="field" style="width:220px" onchange="search()"><option value="">전체</option></select>
+  <span class="label">제번</span><input id="jobQ" class="field" style="width:190px" placeholder="제번 입력/선택">
+  <span class="label">품번</span><input id="modelQ" class="field" style="width:170px" placeholder="품번 입력/선택">
+  <label style="display:flex;gap:4px;align-items:center;margin-left:8px"><input type="radio" name="mode" value="진행" checked onchange="search()"> 진행</label>
+  <label style="display:flex;gap:4px;align-items:center"><input type="radio" name="mode" value="완료" onchange="search()"> 완료</label>
+  <button class="btn" onclick="search()">⌕ 조회</button><button class="btn" id="btnRefresh" onclick="refreshAll()">⟳ 새로고침</button>
+  <span class="hint">※ 부품 <b>행</b> <b>우클릭</b> → 검사시간 등록(검사자·인원·시간) · <b>☑ 체크</b>한 부품은 함께 등록 · 「금형 전체」 행은 완성품·초품 검사시간</span>
+ </div>
+ <div class="panes">
+  <div class="pane"><div class="ph">제번리스트</div><div class="pb"><table><thead><tr><th style="width:110px">제번</th><th>품번</th><th style="width:84px">조립완료예정</th><th style="width:84px">T/O 예정</th><th style="width:60px">누적 h</th><th style="width:84px">검사비</th><th style="width:44px">검사</th></tr></thead><tbody id="jobBody"></tbody></table></div></div>
+  <div class="pane"><div class="ph">부품별 검사실적 <span class="lg"><i style="background:#efe0bf"></i>미등록 <i style="background:#cbb894"></i>실적 있음(누적 시간·검사비)</span></div>
+   <div class="pb"><table><thead><tr><th style="width:30px"><input type="checkbox" id="chkAll" onclick="checkAll(this.checked)" title="전체선택/해제"></th><th style="width:34px">조</th><th style="width:100px">부품코드</th><th>부품명</th><th style="width:60px">소요수</th><th style="width:210px" id="thProc">검사</th><th style="width:130px">최근 작업</th></tr></thead><tbody id="partBody"></tbody></table></div></div>
+ </div>
+ <footer class="foot"><button class="btn go" onclick="inspectionSheet()">검사시트 작성/수정</button><button class="btn" onclick="exportCsv()">▤ EXCEL</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">제번을 선택하면 부품별 검사실적이 조회됩니다.</span></footer>
+</div>
+<div id="hxMask" onclick="hxClose()"></div>
+<div id="hxPop"><div class="ch" id="hxHead"><span id="hxTitle">실적 등록</span><button class="x" onclick="hxClose()">×</button></div><div class="cb" id="hxBody"></div><div class="cf" id="hxFoot"></div></div>
+
+<script src="mes_sample.js?v=169"></script><script src="mes_scene.js?v=92"></script><script src="mes_demo.js?v=92"></script><script src="mes_db.js?v=171"></script>
+<script>
+/* ── v169 검사실적등록 — 조립실적등록과 같은 격자 구조 (검사시간 → 검사비) ─────────────────────
+ * 행 = 선택 제번의 부품(PartList 원재료) + 「금형 전체」 행, 칸 = 랩핑,조립 한 공정.
+ * 칸 우클릭 → 실적 창(작업일·작업자·인원·시간·단가) → design_results(work_type=조립) 에 한 줄씩 누적.
+ * 체크한 부품이 있으면 같은 실적을 함께 등록(시간을 나누거나 같은 시간). 조립비 = 분/60 × 인원 × 단가. */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const N=v=>{const n=Number(String(v??'').replace(/[^0-9.\-]/g,''));return isFinite(n)?n:0};
+const W=v=>Math.round(N(v)).toLocaleString('ko-KR');
+const H=m=>{const h=N(m)/60;return h?(h>=10?h.toFixed(0):h.toFixed(1))+'h':''};
+const T0=()=>new Date().toLocaleDateString('sv-SE');
+const msg=t=>{$('message').textContent=t};
+const online=()=>!!(window.MESDB&&MESDB.online);
+const ALL='★';                           /* 「금형 전체」 행의 part 키 */
+/* 작업 종류 설정 — 검사실적등록은 이 블록만 다르다 */
+const WORK={type:'검사',cost:'검사비',src:'검사실적등록',procRe:/^검사$|검사\(|품질검사|최종검사/,procRe2:/검사/,def:{code:'IN',name:'검사'},rateKeys:['INS','QC'],allName:'금형 전체 (완성품·초품 검사 등 부품에 매지 않는 검사시간)'};
+let PROC={...WORK.def};   /* 기준정보 가공공정에서 이름으로 찾는다 */
+const JOBS=[];let jobView=[],jobIdx=-1;
+const PARTS=[];                          /* {jo,part,name,qty} */
+const RES={};                            /* part → [design_results row] */
+let WORKERS=[];
+const me=()=>{try{const a=window.MES_AUTH||window.parent.MES_AUTH;return (a&&a.session&&(a.session.user_name||a.session.name))||''}catch(e){return ''}};
+async function waitDB(){for(let i=0;i<60&&!window.MESDB;i++)await new Promise(r=>setTimeout(r,50));if(window.MESDB&&MESDB.ready){try{await MESDB.ready}catch(e){}}}
+const curJob=()=>jobView[jobIdx]||null;
+const joNum=v=>{try{return window.MESJO?MESJO.norm(v):String(v??'').trim()}catch(e){return String(v??'').trim()}};
+
+/* ── 제번 ── */
+async function loadJobs(keep){
+ await waitDB();if(!online()){msg('DB 미연결 - 제번리스트를 불러올 수 없습니다.');return}
+ try{
+  const [ap,pool,ps,us]=await Promise.all([
+   MESDB.table('assembly_job_pool').select('select=*&order=row_no',{fresh:true}).catch(()=>[]),
+   MESDB.table('job_pool').select('select=job_no,model,item_name,set_qty&order=row_no').catch(()=>[]),
+   MESDB.table('processes').select('select=process_code,process_name,sort_order&order=sort_order,process_code').catch(()=>[]),
+   MESDB.table('users').select('select=user_name,name,is_active&limit=500').catch(()=>[])]);
+  const hit=(ps||[]).find(p=>WORK.procRe.test(String(p.process_name||'')))||(ps||[]).find(p=>WORK.procRe2.test(String(p.process_name||'')));
+  if(hit){PROC={code:String(hit.process_code).toUpperCase(),name:hit.process_name}}
+  $('thProc').textContent=PROC.name;
+  WORKERS=(us||[]).filter(u=>u.is_active!==false).map(u=>u.user_name||u.name).filter(Boolean);
+  const M={};(pool||[]).forEach(r=>M[r.job_no]=r);
+  JOBS.length=0;
+  (ap&&ap.length?ap:(pool||[]).map(r=>({job_no:r.job_no}))).forEach(r=>{const p=M[r.job_no]||{};
+   JOBS.push({job:r.job_no,model:p.model||'',item:r.item_name||p.item_name||'',due:r.completion_date||'',s1:r.s1_date||'',
+    insp:Number(r.inspection_count||0),done:!!r.assembly_completed,min:0,cost:0})});
+  await loadSums();
+  fillBase();
+  search(keep);
+ }catch(e){msg('제번 조회 실패: '+String(e.message||e).slice(0,110))}
+}
+/* 제번별 누적 시간·조립비 (제번리스트 열) */
+async function loadSums(){
+ try{const rs=await MESDB.table('design_results').select(`select=job_no,work_minutes,labor_cost&work_type=eq.${encodeURIComponent(WORK.type)}`,{fresh:true});
+  const S={};(rs||[]).forEach(r=>{const s=S[r.job_no]||(S[r.job_no]={m:0,c:0});s.m+=N(r.work_minutes);s.c+=N(r.labor_cost)});
+  JOBS.forEach(j=>{const s=S[j.job]||{m:0,c:0};j.min=s.m;j.cost=s.c})}catch(e){}
+}
+/* v196: 관리제번 드롭필터 — 제번리스트를 관리제번(A~F 공정 제번 묶음)으로 거른다 */
+const baseOf=j=>{const m=/^(.*\d)([A-Z])$/.exec(String(j||'').trim());return m?m[1]:String(j||'').trim()};
+const seqOf=j=>{const m=/^(.*\d)([A-Z])$/.exec(String(j||'').trim());return m?m[2]:''};
+function fillBase(){
+ const sel=$('baseQ');if(!sel)return;const cur=sel.value,G=new Map();
+ JOBS.forEach(x=>{const b=baseOf(x.job);let g=G.get(b);if(!g){g={item:x.model||x.item||'',seq:[]};G.set(b,g)}const q=seqOf(x.job);if(q&&!g.seq.includes(q))g.seq.push(q);if(!g.item)g.item=x.model||x.item||''});
+ const bs=[...G.keys()].sort((a,b)=>b.localeCompare(a));
+ const rng=a=>{a.sort();return !a.length?'':a.length>2?` (${a[0]}~${a[a.length-1]})`:` (${a.join('·')})`};
+ sel.innerHTML=`<option value="">전체 (${bs.length})</option>`+bs.map(b=>{const g=G.get(b);return `<option value="${esc(b)}">${esc(b)}${rng(g.seq)}${g.item?' · '+esc(g.item):''}</option>`}).join('');
+ sel.value=G.has(cur)?cur:'';
+}
+function search(keep){
+ const mode=(document.querySelector('input[name=mode]:checked')||{}).value||'진행';
+ const j=$('jobQ').value.trim().toLowerCase(),m=$('modelQ').value.trim().toLowerCase(),bq=($('baseQ')||{}).value||'';
+ jobView=JOBS.filter(x=>(mode==='완료'?x.done:!x.done)&&(!bq||baseOf(x.job)===bq)&&(!j||x.job.toLowerCase().includes(j))&&(!m||(x.model||'').toLowerCase().includes(m)||(x.item||'').toLowerCase().includes(m)));
+ let i=keep?jobView.findIndex(x=>x.job===keep):-1;
+ if(i<0&&j)i=jobView.findIndex(x=>x.job.toLowerCase()===j);
+ jobIdx=i>=0?i:(jobView.length?0:-1);
+ renderJobs();loadParts();
+}
+window.MES=window.MES||{};MES.search=()=>search();
+function renderJobs(){
+ $('jobBody').innerHTML=jobView.length?jobView.map((x,i)=>`<tr class="${i===jobIdx?'sel':''}${x.done?' done':''}" onclick="pickJob(${i})"><td>${esc(x.job)}</td><td title="${esc(x.item)}">${esc(x.model||x.item)}</td><td class="c">${esc(x.due)}</td><td class="c">${esc(x.s1)}</td><td class="r">${H(x.min)}</td><td class="r">${x.cost?W(x.cost):''}</td><td class="c">${x.insp||''}</td></tr>`).join('')
+  :'<tr><td colspan="7" class="c" style="height:60px;color:#8a97a2">조회된 제번이 없습니다.</td></tr>';
+}
+function pickJob(i){jobIdx=i;renderJobs();loadParts()}
+
+/* ── 부품 · 실적 ── */
+let _seq=0;
+async function loadParts(){
+ const my=++_seq,j=curJob();PARTS.length=0;for(const k in RES)delete RES[k];
+ if(!j||!online()){renderParts();return}
+ try{
+  const [pm,rs]=await Promise.all([
+   MESDB.table('partlist_materials').select(`select=part_no,part_name,process_code,qty&job_no=eq.${encodeURIComponent(j.job)}&order=row_no`,{fresh:true}).catch(()=>[]),
+   MESDB.table('design_results').select(`select=*&job_no=eq.${encodeURIComponent(j.job)}&work_type=eq.${encodeURIComponent(WORK.type)}&order=work_date,row_no`,{fresh:true}).catch(()=>[])]);
+  if(my!==_seq)return;
+  PARTS.push({jo:'',part:ALL,name:WORK.allName,qty:''});
+  const seen=new Set();(pm||[]).forEach(r=>{const k=r.part_no;if(seen.has(k))return;seen.add(k);PARTS.push({jo:joNum(r.process_code),part:r.part_no,name:r.part_name||'',qty:r.qty!=null?Number(r.qty):''})});
+  (rs||[]).forEach(r=>{const k=r.part_no||ALL;(RES[k]=RES[k]||[]).push(r)});
+  /* 실적은 있는데 PartList 에 없는 부품(삭제된 부품 등)도 행으로 */
+  Object.keys(RES).forEach(k=>{if(k!==ALL&&!seen.has(k))PARTS.push({jo:'',part:k,name:'(PartList 에 없음)',qty:''})});
+  renderParts();
+  const tot=(rs||[]).reduce((a,r)=>a+N(r.work_minutes),0),cost=(rs||[]).reduce((a,r)=>a+N(r.labor_cost),0);
+  msg(`${j.job} 부품 ${PARTS.length-1}건 · ${WORK.type}실적 ${(rs||[]).length}건 · 누적 ${H(tot)||'0h'} · ${WORK.cost} ${W(cost)}원`);
+ }catch(e){renderParts();msg(WORK.type+'실적 조회 실패: '+String(e.message||e).slice(0,110))}
+}
+function cell(p){
+ const a=RES[p.part]||[];if(!a.length)return `<td class="asm" title="우클릭 → 실적 등록"><b>${esc(PROC.name)}</b><span class="sub">미등록</span><span class="st">▶ 실적등록</span></td>`;
+ const m=a.reduce((s,r)=>s+N(r.work_minutes),0),c=a.reduce((s,r)=>s+N(r.labor_cost),0);
+ return `<td class="asm d" title="${a.length}건 · 우클릭 → 추가 등록 / 삭제"><b>${esc(PROC.name)}</b><span class="sub">${H(m)} · ${W(c)}원 · ${a.length}건</span><span class="st">✔ 실적 ${a.length}건</span></td>`;
+}
+function renderParts(){
+ const j=curJob();
+ $('partBody').innerHTML=!j?'<tr><td colspan="7" class="c" style="height:80px;color:#8a97a2">제번을 선택하세요.</td></tr>':
+  PARTS.map(p=>{const a=RES[p.part]||[],last=a.length?a[a.length-1]:null;
+   return `<tr class="${p.part===ALL?'all':''}" data-part="${esc(p.part)}" oncontextmenu="return rowOpen(event,this)" ondblclick="rowOpen(event,this)" title="우클릭 → ${esc(PROC.name)} 실적 등록"><td class="c"><input type="checkbox" data-p="${esc(p.part)}" onclick="event.stopPropagation()"></td><td class="c">${esc(p.jo)}</td><td>${p.part===ALL?'★':esc(p.part)}</td><td title="${esc(p.name)}">${esc(p.name)}</td><td class="c">${esc(p.qty)}</td>${cell(p)}<td style="font-size:11px;color:#55677a">${last?`${esc(last.work_date||'')} ${esc(last.worker_name||'')}`:''}</td></tr>`}).join('')
+  +(PARTS.length<=1?'<tr><td colspan="7" class="c" style="height:60px;color:#8a4f08;background:#fff8ec;white-space:normal">이 제번에 PartList(원재료) 부품이 없습니다. 「금형 전체」 행에 등록하거나 설계관리 › PartList 등록을 먼저 하세요.</td></tr>':'');
+ try{$('chkAll').checked=false}catch(e){}
+}
+/* v197 행 전체(부품코드·부품명·소요수·최근작업 포함) 우클릭/더블클릭 → 실적 창 */
+function rowOpen(ev,tr){if(ev.type==='dblclick'&&ev.target.closest('input'))return;return hxOpen(ev,tr.dataset.part)}
+function checkAll(on){document.querySelectorAll('#partBody input[data-p]').forEach(c=>c.checked=on)}
+const checkedParts=()=>[...document.querySelectorAll('#partBody input[data-p]:checked')].map(c=>c.dataset.p);
+
+/* ── 실적 창 ── */
+let HX=null,SELF_AT=0;
+function hxClose(){$('hxMask').classList.remove('on');$('hxPop').classList.remove('on');HX=null}
+function hxOpen(ev,part){
+ if(ev){ev.preventDefault();ev.stopPropagation()}
+ const j=curJob();if(!j){msg('제번을 먼저 선택하세요.');return false}
+ const p=PARTS.find(x=>x.part===part);if(!p)return false;
+ const others=checkedParts().filter(x=>x!==part);
+ HX={job:j,p,others};
+ const a=RES[part]||[];
+ const rows=a.map(r=>`<tr><td class="c">${esc(r.work_date||'')}</td><td>${esc(r.worker_name||'')}</td><td class="c">${N(r.headcount)||1}</td><td class="r">${N(r.work_minutes)}분</td><td class="r">${W(r.hourly_rate)}</td><td class="r">${W(r.labor_cost)}</td><td class="c"><button onclick="hxDel(${Number(r.row_no)})" title="이 실적 삭제">✕</button></td></tr>`).join('');
+ const wl=WORKERS.map(w=>`<option value="${esc(w)}">`).join('');
+ $('hxTitle').textContent=`${part===ALL?'금형 전체':part} — ${PROC.name} 실적`;
+ $('hxBody').innerHTML=`<div class="sub"><b>${esc(j.job)}</b> · ${part===ALL?'★ 금형 전체':esc(part)+' '+esc(p.name)}${p.qty!==''?` · 소요수 ${p.qty}`:''} · 누적 ${H(a.reduce((s,r)=>s+N(r.work_minutes),0))||'0h'} · ${W(a.reduce((s,r)=>s+N(r.labor_cost),0))}원</div>
+  <div class="g">
+   <label>작업일</label><input id="hxDate" type="date" value="${T0()}">
+   <label>작업자</label><input id="hxWorker" list="hxWL" value="${esc(me())}" placeholder="사용자정보에서 선택"><datalist id="hxWL">${wl}</datalist>
+   <label>인원</label><input id="hxHc" class="r" value="1" inputmode="numeric">
+   <label>시간(분)</label><input id="hxMin" class="r" placeholder="예: 90" inputmode="numeric">
+   <label>단가(원/h)</label><input id="hxRate" class="r" inputmode="numeric">
+   <label>${WORK.cost}</label><input id="hxCost" class="r" readonly>
+   <label>비고</label><input id="hxRemark" placeholder="선택" style="grid-column:2/5">
+  </div>
+  <div class="note" id="hxRateSrc">단가를 조회하는 중…</div>
+  ${others.length?`<div class="note ok"><b>☑ 체크한 ${others.length}개 부품에도 함께 등록</b> (${esc(others.map(x=>x===ALL?'★':x).slice(0,8).join(', '))}${others.length>8?' …':''})<br>
+   <label style="margin-right:10px"><input type="radio" name="hxSplit" value="split" checked> 넣은 시간을 ${others.length+1}개 부품에 나눠 등록</label><label><input type="radio" name="hxSplit" value="same"> 각 부품에 같은 시간으로 등록</label></div>`:''}
+  ${a.length?`<table class="ln"><thead><tr><th style="width:78px">작업일</th><th>작업자</th><th style="width:36px">인원</th><th style="width:56px">시간</th><th style="width:64px">단가</th><th style="width:74px">${WORK.cost}</th><th style="width:28px"></th></tr></thead><tbody>${rows}</tbody></table>`:'<div class="note">아직 등록된 실적이 없습니다.</div>'}
+  <div class="note">${WORK.cost} = 시간(분) ÷ 60 × 인원 × 단가. 단가는 기준정보 › 작업단가(${esc([PROC.code,...WORK.rateKeys].join(' → '))} 순)에서 가져오며 직접 고칠 수 있습니다.</div>`;
+ $('hxFoot').innerHTML=`<button class="btn go" id="hxGo" onclick="hxSave()">✔ 실적 등록${others.length?` (+${others.length}개 부품)`:''}</button>${a.length?`<button class="btn warn" onclick="hxUndo()">↺ 전체 취소 (${a.length}건)</button>`:''}<button class="btn" onclick="hxClose()">닫기</button>`;
+ $('hxMask').classList.add('on');const pop=$('hxPop');pop.classList.add('on');
+ pop.style.left='0px';pop.style.top='0px';const Wd=pop.offsetWidth||540,Ht=pop.offsetHeight||300;
+ let x=(ev&&ev.clientX!=null?ev.clientX:60)+6,y=(ev&&ev.clientY!=null?ev.clientY:60)+6;
+ if(x+Wd>innerWidth-8)x=Math.max(8,innerWidth-Wd-8);if(y+Ht>innerHeight-8)y=Math.max(8,innerHeight-Ht-8);
+ pop.style.left=x+'px';pop.style.top=y+'px';
+ ['hxHc','hxMin','hxRate'].forEach(id=>$(id).addEventListener('input',hxCalc));
+ hxRate();setTimeout(()=>$('hxMin').focus(),30);
+ return false;
+}
+async function hxRate(){
+ const n=$('hxRateSrc');
+ try{if(window.MESDB&&MESDB.laborRateInfo){const r=await MESDB.laborRateInfo(WORK.type,[PROC.code,...WORK.rateKeys]);$('hxRate').value=W(r.rate);n.textContent=`단가 ${W(r.rate)}원/h — ${r.source||''}`;n.className='note'+(/미등록/.test(r.source||'')?' warn':'')}
+  else{const r=await MESDB.laborRate(WORK.type,WORK.rateKeys[0]);$('hxRate').value=W(r);n.textContent=`단가 ${W(r)}원/h`}}
+ catch(e){$('hxRate').value=$('hxRate').value||'30,000';n.textContent='단가 조회 실패 — 기본 30,000원/h';n.className='note warn'}
+ hxCalc();
+}
+function hxCalc(){const m=N($('hxMin').value),hc=Math.max(1,N($('hxHc').value)||1),rt=N($('hxRate').value);$('hxCost').value=m&&rt?W(Math.round(m/60*hc*rt)):''}
+async function hxSave(){
+ if(!HX)return;const {job,p,others}=HX;
+ const m=Math.round(N($('hxMin').value));if(!(m>0))return msg('시간(분)을 입력하세요.');
+ const hc=Math.max(1,Math.round(N($('hxHc').value))||1),rt=N($('hxRate').value),wk=$('hxWorker').value.trim(),d=$('hxDate').value||T0(),rm=$('hxRemark').value.trim();
+ if(!wk)return msg('작업자를 입력하세요.');
+ if(WORKERS.length&&!WORKERS.includes(wk)&&!confirm(`'${wk}' 은(는) 사용자정보에 없는 작업자입니다. 그대로 등록할까요?`))return;
+ if(!online())return msg('DB 미연결 - 실적을 등록할 수 없습니다.');
+ const targets=[p.part,...others],split=(document.querySelector('input[name=hxSplit]:checked')||{}).value!=='same';
+ const each=split&&targets.length>1?Math.max(1,Math.round(m/targets.length)):m;
+ const rows=targets.map(pt=>({work_type:WORK.type,job_no:job.job,process_code:(PARTS.find(x=>x.part===pt)||{}).jo||null,
+   part_no:pt===ALL?null:pt,machining_process_code:PROC.code,machining_process_name:PROC.name,
+   work_date:d,worker_name:wk,headcount:hc,work_minutes:each,hourly_rate:rt,labor_cost:Math.round(each/60*hc*rt),
+   remark:rm||null,source:WORK.src,...(WORK.extra||{})}));
+ const b=$('hxGo');if(b){b.disabled=true;b.textContent='등록 중…'}
+ try{
+  SELF_AT=Date.now();await MESDB.table('design_results').upsert(rows,'row_no');
+  try{MESDB.notify&&MESDB.notify(['design_results'])}catch(e){}
+  hxClose();await loadSums();renderJobs();await loadParts();
+  msg(`${job.job} ${p.part===ALL?'금형 전체':p.part} ${PROC.name} 실적 ${each}분 × ${hc}명 × ${W(rt)}원/h = ${W(Math.round(each/60*hc*rt))}원 등록`+(others.length?` · 함께 ${others.length}개 부품 (${split?'나눠서':'같은 시간'})`:''));
+ }catch(e){msg('등록 실패: '+String(e.message||e).slice(0,120));if(b){b.disabled=false;b.textContent='✔ 실적 등록'}}
+}
+async function hxDel(row){
+ if(!HX||!online())return;
+ if(!confirm('이 실적 한 건을 삭제합니다. 계속할까요?'))return;
+ try{SELF_AT=Date.now();await MESDB.table('design_results').delete({row_no:row});const part=HX.p.part;await loadSums();renderJobs();await loadParts();hxOpen(null,part);msg('실적 1건을 삭제했습니다.')}
+ catch(e){msg('삭제 실패: '+String(e.message||e).slice(0,110))}
+}
+async function hxUndo(){
+ if(!HX||!online())return;const a=RES[HX.p.part]||[];
+ if(!confirm(`${HX.p.part===ALL?'금형 전체':HX.p.part} 의 ${PROC.name} 실적 ${a.length}건을 모두 삭제합니다. 되돌릴 수 없습니다. 계속할까요?`))return;
+ try{SELF_AT=Date.now();for(const r of a){SELF_AT=Date.now();await MESDB.table('design_results').delete({row_no:r.row_no})}hxClose();await loadSums();renderJobs();await loadParts();msg(`실적 ${a.length}건을 삭제했습니다.`)}
+ catch(e){msg('삭제 실패: '+String(e.message||e).slice(0,110))}
+}
+/* 창 드래그 — 화면 밖으로 일부 나가도 자연스럽게 (사내외가공 발주와 동일) */
+(function(){const h=$('hxHead'),p=$('hxPop');let d=null;const KEEP=60;
+ h.addEventListener('mousedown',e=>{if(e.target.closest('button'))return;d={x:e.clientX,y:e.clientY,l:p.offsetLeft,t:p.offsetTop,w:p.offsetWidth};e.preventDefault()});
+ addEventListener('mousemove',e=>{if(!d)return;const nx=Math.max(KEEP-d.w,Math.min(innerWidth-KEEP,d.l+e.clientX-d.x)),ny=Math.max(0,Math.min(innerHeight-36,d.t+e.clientY-d.y));p.style.left=nx+'px';p.style.top=ny+'px'});
+ addEventListener('mouseup',()=>{d=null});})();
+
+/* ── 조립 완료 · 검사시트 (기존과 동일) ── */
+async function completeAssembly(){
+ const j=curJob();if(!j)return msg('제번을 선택하세요.');
+ if(!online())return msg('DB 미연결 상태에서는 완료 처리할 수 없습니다.');
+ const n=Object.values(RES).reduce((a,l)=>a+l.length,0);
+ if(!confirm(`${j.job} 조립을 완료 처리합니다. (등록된 조립실적 ${n}건 · 누적 ${H(j.min)||'0h'})\n계속할까요?`))return;
+ try{SELF_AT=Date.now();await MESDB.table('assembly_jobs').upsert({job_no:j.job,assembly_completed:true,completed_date:T0(),updated_at:new Date().toISOString()},'job_no');
+  try{MESDB.notify&&MESDB.notify(['assembly_jobs'])}catch(e){}
+  await loadJobs();msg(`${j.job} 조립을 완료 처리했습니다.`)}
+ catch(e){msg('완료 처리 실패: '+String(e.message||e).slice(0,110))}
+}
+async function inspectionSheet(){
+ const j=curJob();if(!j)return msg('제번을 선택하세요.');
+ if(!online())return msg('DB 미연결 상태에서는 검사시트를 작성할 수 없습니다.');
+ try{
+  const cur=await MESDB.table('assembly_jobs').select(`select=inspection_count&job_no=eq.${encodeURIComponent(j.job)}&limit=1`);
+  const cnt=(cur&&cur[0]?Number(cur[0].inspection_count||0):0)+1;
+  await MESDB.table('assembly_jobs').upsert({job_no:j.job,inspection_count:cnt,updated_at:new Date().toISOString()},'job_no');
+  const ex=await MESDB.table('order_lines').select(`select=line_id&category=eq.조립&job_no=eq.${encodeURIComponent(j.job)}&status=eq.입고`);
+  if(!ex.length){await MESDB.table('order_lines').upsert([{category:'조립',status:'입고',job_no:j.job,item_name:j.item||null,part_name:'조립완성품',order_qty:1,receipt_qty:1,receipt_date:T0(),order_date:T0(),updated_at:new Date().toISOString()}])}
+  j.insp=cnt;renderJobs();
+  msg(`${j.job} 검사시트를 작성했습니다. (검사횟수 ${cnt} · 검사실적등록의 조립검사 대상에 등록)`);
+ }catch(e){msg('작성 실패: '+String(e.message||e).slice(0,110))}
+}
+function exportCsv(){
+ const j=curJob();if(!j)return msg('제번을 선택하세요.');
+ const out=[['제번','조','부품코드','부품명','공정','작업일','작업자','인원','시간(분)','단가',WORK.cost,'비고']];
+ PARTS.forEach(p=>(RES[p.part]||[]).forEach(r=>out.push([j.job,p.jo,p.part===ALL?'(금형 전체)':p.part,p.name,PROC.name,r.work_date,r.worker_name,r.headcount,r.work_minutes,r.hourly_rate,r.labor_cost,r.remark||''])));
+ const csv='﻿'+out.map(a=>a.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`${WORK.type}실적_${j.job}.csv`;a.click();URL.revokeObjectURL(a.href);
+}
+async function refreshAll(){const b=$('btnRefresh');const keep=(curJob()||{}).job;if(b){b.disabled=true;b.textContent='⟳ 조회중…'}
+ try{MESDB.dropCache&&['design_results','assembly_job_pool','partlist_materials','assembly_jobs'].forEach(t=>MESDB.dropCache(t))}catch(e){}
+ try{await loadJobs(keep)}finally{if(b){b.disabled=false;b.textContent='⟳ 새로고침'}}}
+(function(){const bind=()=>{if(window.MESDB&&MESDB.onChange){MESDB.onChange(['design_results','assembly_jobs','partlist_materials'],()=>{if(Date.now()-SELF_AT<1500)return;const keep=(curJob()||{}).job;loadJobs(keep)});return true}return false};
+ if(!bind()){let n=0;const iv=setInterval(()=>{if(bind()||++n>40)clearInterval(iv)},150)}})();
+$('jobQ').addEventListener('change',()=>search());$('modelQ').addEventListener('change',()=>search());
+loadJobs();
+</script>
+<script src="mes_ctx.js?v=169"></script>
+<script src="mes_lookup.js?v=92"></script>
+<script src="mes_jobpick.js?v=162"></script>
+<script src="mes_go.js?v=196"></script>
+<script>/* v196: 금형원가내역 더블클릭으로 들어왔을 때 — 제번 고르고 부품 행 표시 */
+MES.go=async function(p){p=p||{};const job=String(p.job||'');if(!job)return;
+ if(!await MESGO.wait(()=>JOBS.length))return msg('제번 목록을 불러오지 못했습니다.');
+ const x=JOBS.find(r=>r.job===job);if(!x)return msg(job+' 제번이 목록에 없습니다.');
+ const b=document.getElementById('baseQ');if(b)b.value='';
+ const rd=document.querySelector('input[name=mode][value="'+(x.done?'완료':'진행')+'"]');if(rd)rd.checked=true;
+ $('jobQ').value=job;search(job);
+ if(!p.part)return;
+ const k=await MESGO.wait(()=>{const c=curJob();if(!c||c.job!==job)return 0;const n=PARTS.findIndex(q=>q.part===p.part);return n>=0&&$('partBody').children[n]?n+1:0});
+ if(!k)return msg(job+' 에서 부품 '+p.part+' 을(를) 찾지 못했습니다.');
+ MESGO.hold(()=>{const n=PARTS.findIndex(q=>q.part===p.part);return n>=0?$('partBody').children[n]:null});msg(`${job} · ${p.part} — 금형원가내역에서 이동했습니다.`)};
+</script>
+</body>
+</html>

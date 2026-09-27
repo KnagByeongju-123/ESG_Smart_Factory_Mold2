@@ -1,0 +1,371 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>제작계획현황</title><style>
+:root{--line:#98a6b2;--line2:#c5d0d8;--blue:#2f75b5;--ink:#344757;--head1:#e8f1f8;--head2:#c8dbe9}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{font-family:"Malgun Gothic","맑은 고딕",Arial,sans-serif;font-size:12px;color:var(--ink);background:#fff;overflow:hidden}
+button,input,select{font:inherit;color:inherit}.screen{height:100%;display:flex;flex-direction:column;background:#fff}
+.title{height:48px;padding:8px 14px 5px;border-bottom:2px solid #3978ae;display:flex;align-items:center}.title h1{margin:0;font-size:22px;font-weight:500;color:#4b5c6a}.title h1:before{content:'◯';margin-right:6px;color:#8796a1}.title small{font-size:11px;color:#9ca7af;margin-left:12px}
+.form{padding:7px 14px;background:#fafbfc;border-bottom:1px solid var(--line2)}.formrow{display:grid;grid-template-columns:78px 140px 78px 150px 90px 150px 90px minmax(160px,1fr);gap:5px;align-items:center}.formrow+.formrow{margin-top:5px}.label{font-weight:700}.field{height:27px;border:1px solid #b5c0c9;background:#fff;padding:0 6px;min-width:0}
+.entrybox,.gridbox{margin:0 14px;border:1px solid var(--line);overflow:auto;background:#fff}.entrybox{height:190px}.gridbox{flex:1;min-height:0}
+.searchline{height:39px;margin:0 14px;display:flex;align-items:center;gap:5px;border-left:1px solid var(--line);border-right:1px solid var(--line);padding:4px 8px;background:#f6f8fa}.searchline input{width:min(430px,48vw);height:27px;border:1px solid #aeb9c3;padding:0 7px}
+.btn{height:29px;min-width:62px;border:1px solid #9ba8b4;background:linear-gradient(#fff,#dfe6eb);cursor:pointer}.btn:hover{background:#fff}
+table{border-collapse:collapse;min-width:1040px;width:100%;table-layout:fixed}th,td{height:27px;border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);padding:0 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}th{position:sticky;top:0;z-index:2;text-align:center;background:linear-gradient(var(--head1),var(--head2));color:#405266}tbody tr:nth-child(even) td{background:#fafcfd}tbody tr:hover td{background:#edf6fd}tbody tr.sel td{background:#2d75b7;color:#fff}.c{text-align:center}.num{text-align:right}.toolbar{height:40px;display:flex;align-items:center;gap:5px;padding:4px 14px;background:#f5f7f8;border-bottom:1px solid var(--line2)}
+.foot{height:42px;display:flex;align-items:center;padding:5px 14px;border-top:1px solid var(--line);background:#eef2f5;gap:5px}.msg{margin-left:8px;color:#687784}.right{margin-left:auto;color:#7c8993}
+.split{flex:1;min-height:0;display:grid;grid-template-rows:1fr 1fr;gap:10px;padding:0 14px 8px}.split .gridbox{margin:0}
+@media(max-width:900px){.formrow{grid-template-columns:78px 1fr 78px 1fr}.entrybox,.gridbox,.searchline{margin-left:6px;margin-right:6px}}
+
+.filt{padding:7px 14px;background:#fafbfc;border-bottom:1px solid var(--line2)}
+.fr{display:grid;gap:5px;align-items:center}
+.lb{font-weight:700;text-align:right;padding-right:3px}
+.opts{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.opts label{display:flex;align-items:center;gap:3px;cursor:pointer}
+.gtot td{background:#dfe9f2;font-weight:700}
+.grp th{background:linear-gradient(#dbe9f5,#b9d2e6)}
+/* v68 사내/외주 구분 뱃지 */
+.tag{display:inline-block;min-width:34px;padding:0 5px;margin-right:3px;border-radius:3px;font-size:11px;line-height:17px;text-align:center;border:1px solid}
+.tag.in{background:#eef3f7;border-color:#b9c8d5;color:#4a5c6b}
+.tag.out{background:#fdefe2;border-color:#e0a86a;color:#9a5410;font-weight:700}
+tbody tr.sel .tag{background:transparent;border-color:#cfe2f4;color:#fff}
+.panes{flex:1;min-height:0;display:grid;gap:8px;padding:0 14px 8px}
+.pane{border:1px solid var(--line);background:#fff;display:flex;flex-direction:column;min-height:0}
+.ph{padding:5px 9px;font-weight:700;background:linear-gradient(var(--head1),var(--head2));color:#405266;border-bottom:1px solid var(--line2)}
+.pb{flex:1;min-height:0;overflow:auto}
+.f2{display:grid;grid-template-columns:repeat(4,72px minmax(110px,1fr));gap:5px;align-items:center}
+.mask{position:fixed;inset:0;background:rgba(40,50,60,.3);display:none;align-items:flex-start;justify-content:center;z-index:50}
+.mask.on{display:flex}
+.dlg{margin-top:40px;width:min(1000px,96vw);max-height:90vh;overflow:auto;background:#f3f6f8;border:1px solid #7d8d99;box-shadow:0 8px 26px rgba(0,0,0,.25)}
+.dh{display:flex;align-items:center;height:30px;padding:0 6px 0 10px;background:linear-gradient(#eef4f9,#dbe6ef);border-bottom:1px solid #b9c6d0;font-weight:700}
+.dh button{margin-left:auto;width:26px;height:20px;border:1px solid #b04a4a;background:#c9484a;color:#fff;cursor:pointer}
+.db{padding:10px}
+/* v68 상세 팝업: 라벨은 .k (mes_ctx 의 .lb 자동정렬 대상에서 제외), 표 형태로 고정 */
+.sec{margin-bottom:8px;border:1px solid #c3ccd4;background:#fff}
+.sec .st{padding:4px 8px;font-weight:700;background:linear-gradient(var(--head1),var(--head2));color:#405266;border-bottom:1px solid var(--line2)}
+.kv{display:grid;grid-template-columns:repeat(4,92px minmax(0,1fr));gap:4px 6px;align-items:center;padding:8px}
+.kv .k{font-weight:700;text-align:right;white-space:nowrap;color:#4d5c69}
+.kv .v{border:1px solid #c3ccd4;background:#fafcfd;height:26px;line-height:24px;padding:0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.kv .v.num{text-align:right}.kv .v.neg{color:#c62828;font-weight:700}
+.sec table{min-width:0}.sec th{position:static}
+.sec td.pct{font-size:11px;color:#5d6d7b}
+@media(max-width:820px){.kv{grid-template-columns:repeat(2,92px minmax(0,1fr))}}
+.bar{height:14px;background:#3f7fbf;border-radius:2px}
+
+/* v21 입력란 배치 보정: 좁은 폭에서 필드를 숨기지 않고 단계적으로 줄바꿈 */
+.field,.formrow input,.formrow select,.formgrid input,.formgrid select,.detail-grid input,.detail-grid select{min-width:0;max-width:100%}
+.lab,.label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:1400px){.formrow{grid-template-columns:78px minmax(0,1fr) 78px minmax(0,1fr)}}
+@media(max-width:880px){.formrow{grid-template-columns:78px minmax(0,1fr)}}
+.formrow>*{min-width:0}
+
+/* v167 엑셀 시트 보기 */
+table.sheet th.grp{background:linear-gradient(#dbe9f5,#b9d2e6)}
+table.sheet thead tr:nth-child(2) th{top:27px}
+table.sheet td{white-space:normal;vertical-align:middle;line-height:1.35}
+table.sheet tr.g1 td,table.sheet tr.g1 th{border-top:2px solid #9fb0bf}
+table.sheet th.rl{background:#f3f6f9;font-weight:700;font-size:11px;color:#4b5c6a;text-align:center;position:static}
+table.sheet th.rl.goal{background:#e3eef8;color:#1d5da3}
+table.sheet td.ev{font-size:11.5px}
+table.sheet tr.g2 td.ev{background:#f7fbff;font-weight:700}
+table.sheet td.ev.late{background:#ffe45c!important;color:#5a4400;font-weight:700}
+table.sheet td.ev.early{background:#e6f6e6!important}
+table.sheet .idn .l1{font-weight:700}table.sheet .idn .l2{color:#5d6d7b;font-size:11px}table.sheet .idn .l3{font-size:11.5px}table.sheet .idn .l4{color:#7c8a96;font-size:10.5px}
+table.sheet .thumb{width:64px;height:48px;object-fit:contain;border:1px solid #d3dbe2;background:#fff;cursor:zoom-in}
+table.sheet .plog{font-size:11px;line-height:1.4;max-height:78px;overflow:hidden}table.sheet .plog b{color:#1d5da3}
+table.sheet .notes{font-size:11px;line-height:1.4;color:#4d5c69;max-height:66px;overflow:hidden}
+table.sheet .latebadge{display:inline-block;margin-top:3px;padding:0 6px;border-radius:8px;background:#ffe45c;color:#5a4400;font-size:10.5px;font-weight:700}
+table.sheet tbody tr.sel td,table.sheet tbody tr.sel th.rl{background:#d6e7f8!important}
+table.sheet tbody tr.sel td.ev.late{background:#ffd34d!important}
+.sw{display:inline-block;width:10px;height:10px;border:1px solid #9aa7b1;vertical-align:-1px;margin:0 2px 0 4px}.sw.late{background:#ffe45c}.sw.early{background:#e6f6e6}
+.sheet small.wd{font-size:10px;color:#6b7a87;margin-left:1px}.sheet small.wd.sat{color:#1d5da3}.sheet small.wd.sun{color:#c0392b}
+
+/* v190/v192: 열 고정 — NO · 관리제번 · 도번·품명·품번 · 제품형상 · 제작구분 · 조수 (가로 스크롤해도 남는다) */
+.sheet thead tr:first-child th:nth-child(-n+6),.sheet tbody tr.g1>td:nth-child(-n+6){position:sticky;z-index:3;background-clip:padding-box}
+.sheet tbody tr.g1>td:nth-child(-n+6){background:#fff;z-index:2}
+.sheet thead tr:first-child th:nth-child(-n+6){top:0;z-index:5;background:linear-gradient(#dbe9f5,#b9d2e6)}
+.sheet tbody tr.g1.sel>td:nth-child(-n+6){background:#2d75b7}
+.sheet .frz-last{box-shadow:3px 0 4px -2px rgba(0,0,0,.22)}
+/* 고정 열 사이로 뒤 칸 글자가 비치지 않게 — 테두리를 칸마다 따로 그린다 */
+table.sheet{border-collapse:separate;border-spacing:0}
+
+/* v191: 열폭은 글자에 맞춘다 — 고정폭 대신 내용 크기로. 진척현황·특기사항만 줄바꿈 허용 */
+table.sheet{table-layout:auto;width:auto;min-width:100%}
+.sheet th,.sheet td{white-space:nowrap;overflow:visible;text-overflow:clip}
+.sheet td.idn,.sheet td.idn *{white-space:nowrap}
+.sheet .plog,.sheet .notes{white-space:normal;min-width:180px;max-width:360px}
+.sheet td.ev{padding-left:6px;padding-right:6px}
+</style></head><body><div class="screen"><div class="title"><h1>제작진행현황</h1><small>영업관리 · 제작계획</small></div><section class="filt"><div class="f2"><div class="lb" title="관리제번 또는 공정 제번(A·B·C) 일부">관리제번</div><div><input id="q_job" class="field" list="dl_base" autocomplete="off" oninput="search()" placeholder="관리제번 입력/선택"><datalist id="dl_base"></datalist></div><div class="lb">품번</div><div><input id="q_model" class="field" oninput="search()" placeholder="품번 입력/선택"></div><div></div><div style="display:flex;gap:12px;align-items:center;white-space:nowrap"><label style="display:flex;gap:4px;align-items:center" title="가능일정이 목표보다 늦은 제번만"><input type="checkbox" id="q_late" onchange="search()"> 지연만</label><label style="display:flex;gap:4px;align-items:center" title="완료 목표일이 지난 제번은 숨깁니다"><input type="checkbox" id="q_hideDone" onchange="search()"> 완료 숨김</label><span style="color:#6b7a86;font-size:11px">칸 색: <i class="sw late"></i>목표보다 늦음 <i class="sw early"></i>앞당김 · 행 더블클릭 → 상세</span></div></div></section><div class="gridbox"><table class="sheet">
+<thead>
+ <tr><th rowspan="2">NO</th><th rowspan="2">관리제번</th><th rowspan="2">도번 · 품명 · 품번</th><th rowspan="2">제품형상</th><th rowspan="2">제작<br>구분</th><th rowspan="2">조수</th>
+  <th colspan="7" class="grp">금형제작 EVENT</th><th rowspan="2">진척현황</th><th rowspan="2">특기사항</th><th rowspan="2">수주가</th><th rowspan="2">목표가</th><th rowspan="2">이익률</th></tr>
+ <tr><th>구분</th><th>접수</th><th>설계</th><th>가공</th><th>조립</th><th>초품</th><th>완료</th></tr>
+</thead><tbody id="body"></tbody><tfoot><tr class="gtot"><td colspan="18" class="c" id="totline">조회 0건</td></tr></tfoot></table></div><footer class="foot"><button class="btn" onclick="detail()">⌕ 상세보기</button><button class="btn" onclick="search()">⌕ 검색</button><button class="btn" onclick="csv()">▤ EXCEL</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">행을 선택하고 상세보기를 누르면 계획등록 창이 열립니다.</span><span class="right" id="countText"></span></footer><div class="mask" id="mask" onmousedown="mask._d=(event.target===mask)" onclick="if(event.target===mask&&mask._d)closePlan()"><div class="dlg"><div class="dh"><span id="planTitle">제작계획</span><button onclick="closePlan()">×</button></div><div class="db" id="planBody"></div><div style="display:flex;justify-content:center;gap:10px;padding:8px"><button class="btn" onclick="editPlan()">▤ 수정</button><button class="btn" onclick="delPlan()">✕ 삭제</button><button class="btn" onclick="closePlan()">⊠ 닫기</button></div></div></div></div><script>
+/* v68: 화면 하드코딩 초기 데이터 제거 — 전부 DB(sales_plan_status_rows / sales_plans) 에서 */
+const data=[];const plans=[];
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const n=v=>v==null||v===''?'':Number(v).toLocaleString();const p=v=>v==null?'':Number(v).toFixed(2)+'%';
+const msg=t=>message.textContent=t;
+let view=[...data],sel=-1;
+
+function renderTotal(){
+  const money=v=>Number(v||0).toLocaleString('ko-KR');
+  const src=(typeof view!=='undefined'&&view)||[];
+  const sum=k=>src.reduce((a,r)=>a+(Number(r[k])||0),0);
+  const el=document.getElementById('totline'); if(!el)return;
+  el.textContent = src.length ? `관리제번 ${src.length}건 · ` + ['수주가 '+money(sum('order_price')),'목표가 '+money(sum('target_price')),'가공 '+money(sum('machining_amount')),'조립 '+money(sum('assembly_amount')),'기타 '+money(sum('etc_amount'))].join(' / ') : '조회된 자료가 없습니다.';
+}
+/* v68: 계획의 외주 체크(sales_plans)를 제번으로 찾아 사내/외주를 표시한다 */
+/* v189: 화면 동기화(MESDB.master)는 지정한 컬럼만 싣기 때문에 제작구분·제품형상·도번·요구/가능일정·진척현황 등이
+   빠졌다 → 계획 전체 컬럼을 따로 읽어 덮어 쓴다 (읽기 전용, 저장 경로는 그대로) */
+const FULL=new Map();let _fullAt=0;
+async function loadFull(){
+ try{for(let i=0;i<80&&!(window.MESDB&&MESDB.online);i++)await new Promise(r=>setTimeout(r,100));
+  if(!(window.MESDB&&MESDB.online))return;
+  const rs=await MESDB.table('sales_plans').select('select=*',{fresh:true});
+  FULL.clear();(rs||[]).forEach(r=>FULL.set(r.job_no,r));_fullAt=Date.now();
+  if(typeof search==='function')search();
+ }catch(e){console.warn('sales_plans full',e.message)}
+}
+function planOf(job){const a=plans.find(x=>x.job_no===job),b=FULL.get(job);if(!a&&!b)return null;return {...(a||{}),...(b||{})}}
+function tags(job){
+ const pl=planOf(job);if(!pl)return '<span style="color:#9aa7b1">-</span>';
+ const t=(lab,v)=>`<span class="tag ${v===true?'out':'in'}" title="${lab} ${v===true?'외주':'사내'}">${lab}${v===true?'외':'사'}</span>`;
+ return t('설',pl.design_outsourced)+t('가',pl.machining_outsourced)+t('조',pl.assembly_outsourced);
+}
+/* v167: 엑셀(제번관리) 시트처럼 — 제번마다 요구/목표/가능 3줄, 가능일정이 목표보다 늦으면 노랑 */
+const EV=[['receipt','receipt_date'],['design','design_end_date'],['machining','machining_end_date'],['assembly','assembly_end_date'],['tryout','s1_planned_date'],['complete','delivery_planned_date']];
+const WDN=['일','월','화','수','목','금','토'];
+const MDT=v=>MD(v).replace(/<[^>]+>/g,'');
+const MD=v=>{const t=String(v||'').slice(0,10);if(!/^\d{4}-\d{2}-\d{2}$/.test(t))return '';const d=new Date(t+'T00:00:00');const w=isNaN(d)?'':WDN[d.getDay()];
+ return `${Number(t.slice(5,7))}/${Number(t.slice(8,10))}<small class="wd${w==='토'?' sat':w==='일'?' sun':''}">(${w})</small>`};
+const dd=(a,b)=>Math.round((new Date(b)-new Date(a))/86400000);
+function lateOf(pl){ /* 지연 일수 최대값 (없으면 0) */
+ if(!pl)return 0;let m=0;EV.forEach(([k,g])=>{const c=pl['can_'+k+'_date'],t=k==='receipt'?(pl[g]||pl.order_date):pl[g];if(c&&t&&c>t)m=Math.max(m,dd(t,c))});return m}
+function plog(pl){
+ let L=pl&&pl.progress_log;if(typeof L==='string'){try{L=JSON.parse(L)}catch(e){L=[]}}
+ if(!Array.isArray(L)||!L.length)return '<span style="color:#9aa7b1">-</span>';
+ const last=L.slice(-3);
+ return `<div class="plog" title="${esc(L.map(e=>MDT(e.d)+' '+e.t).join('\n'))}">${last.map(e=>`<div>● <b>${MD(e.d)}</b> ${esc(e.t)}</div>`).join('')}${L.length>3?`<div style="color:#8b98a3">… 외 ${L.length-3}건 (더블클릭 → 상세)</div>`:''}</div>`;
+}
+function notes(pl){
+ if(!pl)return '';
+ const a=[];if(pl.design_partner)a.push('설계처 : '+pl.design_partner);if(pl.maker_name)a.push('제작처 : '+pl.maker_name);a.push('양산처 : '+(pl.mass_vendor||'미확정'));
+ if(pl.remark)a.push(String(pl.remark).split('\n')[0]);
+ return `<div class="notes" title="${esc((pl.remark||''))}">${a.map(x=>`<div>${esc(x)}</div>`).join('')}</div>`;
+}
+/* ── v187: 관리제번 단위 표시 — 공정 제번(A·B·C…)을 한 줄로 묶는다.
+ *  제작계획은 관리제번으로 저장되어 공정마다 같은 일정이므로 계획이 있는 첫 공정의 계획을 보여주고,
+ *  수주가·목표가는 공정 합계, 이익률은 합계로 다시 계산한다. */
+const JSPL=j=>{const m=/^(.*\d)([A-Z])$/.exec(String(j||'').trim());return m?{base:m[1],seq:m[2]}:{base:String(j||'').trim(),seq:''}};
+function seqRange(q){q=q.filter(Boolean);if(!q.length)return '';const c=q.map(x=>x.charCodeAt(0));
+ const run=c.every((v,i)=>!i||v===c[i-1]+1);return q.length===1?`(${q[0]})`:run?`(${q[0]}~${q[q.length-1]})`:`(${q.join('·')})`}
+function groupView(list){
+ const mp=new Map();
+ list.forEach(r=>{const b=JSPL(r.job_no).base;let g=mp.get(b);if(!g){g=[];mp.set(b,g)}g.push(r)});
+ return [...mp.entries()].map(([b,rs])=>{
+  rs.sort((x,y)=>String(x.job_no).localeCompare(String(y.job_no)));
+  const rep=rs.find(r=>planOf(r.job_no))||rs[0];
+  const sum=k=>{const v=rs.reduce((a,r)=>a+(Number(r[k])||0),0);return v||null};
+  const op=sum('order_price'),tp=sum('target_price');
+  const seqs=rs.map(r=>JSPL(r.job_no).seq);
+  return {...rep,base:b,jobs:rs.map(r=>r.job_no),label:b+(seqs.some(Boolean)?' '+seqRange(seqs):''),
+   order_price:op,target_price:tp,profit_rate_pct:op?Math.round((op-(tp||0))/op*1000)/10:null,
+   machining_amount:sum('machining_amount'),assembly_amount:sum('assembly_amount'),etc_amount:sum('etc_amount')};
+ });
+}
+/* v188: 관리제번 드롭다운 — 공정 제번을 관리제번으로 묶어 「26DSA057 (A~F) · 품명」 */
+let _dlKey='';
+function fillBaseDL(){
+ const dl=document.getElementById('dl_base');if(!dl)return;
+ const mp=new Map();data.forEach(r=>{const s=JSPL(r.job_no);let g=mp.get(s.base);if(!g){g={seqs:[],item:''};mp.set(s.base,g)}if(s.seq)g.seqs.push(s.seq);
+  const pl=planOf(r.job_no);if(!g.item)g.item=(pl&&(pl.model||pl.product_name))||r.item_name||''});
+ const key=[...mp.keys()].join(',')+'|'+[...mp.values()].map(g=>g.seqs.join('')).join(',');if(key===_dlKey)return;_dlKey=key;
+ dl.innerHTML=[...mp.keys()].sort((a,b)=>b.localeCompare(a)).map(b=>{const g=mp.get(b);g.seqs.sort();
+  return `<option value="${esc(b)}">${esc([seqRange(g.seqs),g.item].filter(Boolean).join(' · '))}</option>`}).join('');
+}
+/* v190: 고정 열 위치 — 실제 머리글 폭을 재서 left 를 맞춘다 */
+function freezeCols(){
+ const ths=[...document.querySelectorAll('.sheet thead tr:first-child th')].slice(0,6);if(ths.length<6)return;
+ const cells=[...ths];document.querySelectorAll('.sheet tbody tr.g1').forEach(tr=>cells.push(...[...tr.children].slice(0,6)));
+ cells.forEach(el=>el.style.left='');   /* 먼저 풀고 재야 자연 위치가 나온다 (열폭이 바뀐 뒤에도 정확) */
+ const x0=ths[0].offsetLeft,L=ths.map(t=>t.offsetLeft-x0);
+ const set=(el,k)=>{el.style.left=L[k]+'px';el.classList.toggle('frz-last',k===5)};
+ ths.forEach(set);
+ document.querySelectorAll('.sheet tbody tr.g1').forEach(tr=>[...tr.children].slice(0,6).forEach(set));
+}
+window.addEventListener('resize',()=>{try{freezeCols()}catch(e){}});
+function render(){
+ try{fillBaseDL()}catch(e){}
+ body.innerHTML=view.length?view.map((r,i)=>{
+  const pl=planOf(r.job_no)||{},lt=lateOf(pl);
+  const idCell=`<td rowspan="3" class="c">${i+1}</td>
+   <td rowspan="3" title="${esc((r.jobs||[r.job_no]).join(', '))}"><b>${esc(r.base||r.job_no)}</b>${r.label&&r.label!==r.base?`<div style="color:#2a6191;font-weight:700">${esc(r.label.slice(r.base.length).trim())}</div>`:''}${lt?`<div class="latebadge" title="가능일정이 목표보다 최대 ${lt}일 늦음">지연 +${lt}일</div>`:''}</td>
+   <td rowspan="3" class="idn"><div class="l1">${esc(pl.drawing_no||'')}</div><div class="l2">${esc(pl.product_name||r.item_name||'')}</div><div class="l3">${esc(pl.model||'')}</div>${pl.customer_contact?`<div class="l4">${esc(pl.customer_contact)}</div>`:''}${pl.material_spec||pl.size_spec?`<div class="l4">${esc([pl.material_spec,pl.size_spec].filter(Boolean).join(' · '))}</div>`:''}</td>
+   <td rowspan="3" class="c">${pl.image_url?`<img class="thumb" src="${esc(window.MESDB&&MESDB.thumbUrl?MESDB.thumbUrl(pl.image_url):pl.image_url)}" data-full="${esc(pl.image_url)}" onerror="window.MESDB&&MESDB.thumbFallback&&MESDB.thumbFallback(this)" data-u="${esc(pl.image_url)}" onclick="event.stopPropagation();window.open(this.dataset.u,'_blank')" title="클릭하면 크게">`:''}</td>
+   <td rowspan="3" class="c">${esc(pl.make_type||'')}</td>
+   <td rowspan="3" class="c">${esc(pl.process_set_qty??r.process_set_qty??'')}</td>`;
+  const evRow=(lab,cls,get)=>`<th class="rl ${cls}">${lab}</th>`+EV.map(([k,g])=>{
+    const v=get(k,g);let c='';
+    const gv=k==='receipt'?(pl[g]||pl.order_date):pl[g];if(cls==='can'&&v&&gv){c=v>gv?' late':(v<gv?' early':'')}
+    return `<td class="c ev${c}" title="${esc(v||'')}">${MD(v)}</td>`}).join('');
+  const tail=`<td rowspan="3">${plog(pl)}</td><td rowspan="3">${notes(pl)}</td>
+   <td rowspan="3" class="num">${n(r.order_price)}</td><td rowspan="3" class="num">${n(r.target_price)}</td>
+   <td rowspan="3" class="num">${r.profit_rate_pct==null||r.profit_rate_pct===''?'':Number(r.profit_rate_pct).toFixed(1)}</td>`;
+  const on=`onclick="pick(${i},this)" ondblclick="pick(${i},this);detail()"`;
+  return `<tr class="g1${lt?' haslate':''}" data-i="${i}" ${on}>${idCell}${evRow('요구일정','req',(k)=>pl['req_'+k+'_date'])}${tail}</tr>`
+   +`<tr class="g2" data-i="${i}" ${on}>${evRow('목표일정','goal',(k,g)=>k==='receipt'?(pl[g]||pl.order_date):pl[g])}</tr>`
+   +`<tr class="g3" data-i="${i}" ${on}>${evRow('가능일정','can',(k)=>pl['can_'+k+'_date'])}</tr>`;
+ }).join('')
+ :'<tr><td colspan="18" class="c" style="height:100px;color:#8a97a2">등록된 제작계획이 없습니다.</td></tr>';
+ countText.textContent=`관리제번 ${view.length}건`;try{freezeCols()}catch(e){}sel=-1;renderTotal();
+}
+function pick(i,tr){sel=i;document.querySelectorAll('#body tr').forEach(x=>x.classList.toggle('sel',Number(x.dataset.i)===i));}
+/* v169: 표 밖(다른 곳)을 클릭하면 행 선택 해제 */
+document.addEventListener('mousedown',e=>{if(sel<0)return;if(e.target.closest('#body tr')||e.target.closest('.foot,.mask,.toolbar'))return;pick(-1)},true);
+function search(){const j=(q_job.value||'').trim().toLowerCase(),it=(q_model.value||'').trim().toLowerCase();
+ const onlyLate=!!(document.getElementById('q_late')||{}).checked,hide=!!(document.getElementById('q_hideDone')||{}).checked,today=new Date().toLocaleDateString('sv-SE');
+ view=data.filter(r=>{const pl=planOf(r.job_no);
+  if(j&&!String(r.job_no??'').toLowerCase().includes(j)&&!JSPL(r.job_no).base.toLowerCase().includes(j))return false;
+  if(it&&!(String(r.item_name??'').toLowerCase().includes(it)||String(pl&&(pl.product_name||'')).toLowerCase().includes(it)||String(pl&&(pl.model||'')).toLowerCase().includes(it)))return false;
+  if(onlyLate&&!lateOf(pl))return false;
+  if(hide&&pl&&pl.delivery_planned_date&&pl.delivery_planned_date<today)return false;
+  return true});
+ view=groupView(view);
+ sel=-1;render();msg(j||it?`조회결과 관리제번 ${view.length}건입니다. (관리제번 "${q_job.value.trim()}"${it?` · 품번 "${q_model.value.trim()}"`:''})`:`전체 관리제번 ${view.length}건입니다.`);}
+function detail(){
+ if(sel<0){msg('목록에서 행을 선택하세요.');return}
+ const r=view[sel];curGrp=r;const pl=planOf(r.job_no);   /* v62: 다른 제번 폴백 제거 */
+ openPlan(pl,r);}
+function fld(l,v,cls){return `<div class="k">${l}</div><div class="v${cls?' '+cls:''}">${esc(v??'')}</div>`}
+/* v68 상세 팝업 재작성: 기본정보 / 금액(이익금 포함) / 기간 / 구성비 4개 섹션 */
+function openPlan(pl,r){
+ curJob=(pl&&pl.job_no)||(r&&r.job_no)||null;
+ planTitle.textContent=`제작계획 - ${(r&&r.label)||(pl?pl.job_no:r.job_no)}`;
+ if(!pl){planBody.innerHTML='<div style="padding:24px;color:#8a97a2">해당 제번의 제작계획 상세가 없습니다. 제작계획등록에서 제번을 조회해 등록하세요.</div>';mask.classList.add('on');return}
+ const A=[['설계 사내','design_internal_amount','design_internal_pct'],['설계 사외','design_external_amount','design_external_pct'],
+  ['원재료','raw_material_amount','raw_material_pct'],['구매','purchase_amount','purchase_pct'],
+  ['가공 사내','machining_internal_amount','machining_internal_pct'],['가공 사외','machining_external_amount','machining_external_pct'],
+  ['조립 사내','assembly_internal_amount','assembly_internal_pct'],['조립 사외','assembly_external_amount','assembly_external_pct']];
+ const N=v=>Number(v)||0;
+ const sumA=A.reduce((a,x)=>a+N(pl[x[1]]),0);
+ const target=N(pl.target_price)||sumA;            /* 목표가 = 구성비 합계 */
+ const op=N(pl.order_price);
+ const profit=op-target, rate=op?profit/op*100:null;
+ const days=(s,e,d)=>d!=null&&d!==''?d:(s&&e?Math.round((new Date(e)-new Date(s))/86400000)+1:'');
+ const per=(lab,k)=>{const s=pl[k+'_start_date'],e=pl[k+'_end_date'],d=pl[k+'_days'],o=pl[k+'_outsourced'],m=pl[k+'_manager'];
+  return `<tr><td class="c">${lab}</td><td class="c">${esc(s||'')}</td><td class="c">${esc(e||'')}</td><td class="c">${days(s,e,d)}${days(s,e,d)!==''?'일':''}</td><td class="c"><span class="tag ${o===true?'out':'in'}">${o===true?'외주':'사내'}</span></td><td>${esc(m||'')}</td><td class="c">${pl[k+'_set_outsourced']===true?'●':''}</td><td>${esc(o===true?(pl[k+'_vendor']||''):'')}</td></tr>`};
+ const evTbl=`<div class="sec"><div class="st">금형제작 EVENT</div><table><thead><tr><th style="width:70px">구분</th><th>접수</th><th>설계</th><th>가공</th><th>조립</th><th>초품</th><th>완료</th></tr></thead><tbody>
+   <tr><td class="c">요구일정</td>${EV.map(([k])=>`<td class="c">${esc(pl['req_'+k+'_date']||'')}</td>`).join('')}</tr>
+   <tr><td class="c" style="color:#1d5da3;font-weight:700">목표일정</td>${EV.map(([k,g])=>`<td class="c" style="font-weight:700">${esc(pl[g]||'')}</td>`).join('')}</tr>
+   <tr><td class="c">가능일정</td>${EV.map(([k,g])=>{const v=pl['can_'+k+'_date']||'',t=pl[g]||'';const st=v&&t?(v>t?' style="background:#ffe45c;font-weight:700"':(v<t?' style="background:#e6f6e6"':'')):'';return `<td class="c"${st}>${esc(v)}</td>`}).join('')}</tr>
+  </tbody></table></div>`;
+ let LG=pl.progress_log;if(typeof LG==='string'){try{LG=JSON.parse(LG)}catch(e){LG=[]}}
+ const logTbl=`<div class="sec"><div class="st">진척현황</div>${Array.isArray(LG)&&LG.length?`<div style="padding:6px 8px;font-size:11.5px;line-height:1.6">${LG.map(e=>`● <b style="color:#1d5da3">${esc(e.d)}</b> ${esc(e.t)}`).join('<br>')}</div>`:'<div style="padding:8px;color:#8a97a2">기록 없음</div>'}</div>`;
+ planBody.innerHTML=
+  `<div class="sec"><div class="st">기본정보</div><div class="kv mes-grid-fit">`
+  +fld('관리제번',(r&&r.label)||pl.job_no)+fld('품명',pl.product_name)+fld('고객사',pl.customer_name)+fld('아이템',pl.item_name)
+  +fld('금형타입',pl.mold_type_name)+fld('품번',pl.model)+fld('공정(조)수',pl.process_set_qty)+fld('수주일',pl.order_date)
+  +fld('T/O 예정일',pl.s1_planned_date)+fld('납기 예정일',pl.delivery_planned_date)
+  +fld('도번',pl.drawing_no)+fld('제작구분',pl.make_type)+fld('재질·두께',pl.material_spec)+fld('사이즈',pl.size_spec)
+  +fld('고객담당',pl.customer_contact)+fld('설계처',pl.design_partner)+fld('제작처',pl.maker_name)+fld('양산처',pl.mass_vendor||'미확정')+`</div></div>`+evTbl+logTbl
+  +(pl.remark?`<div class="sec"><div class="st">특기사항</div><div style="padding:6px 8px;white-space:pre-wrap;font-size:11.5px">${esc(pl.remark)}</div></div>`:'')
+  +`<div class="sec"><div class="st">금액</div><div class="kv mes-grid-fit">`
+  +fld('수주가',n(op),'num')+fld('목표가',n(target),'num')+fld('이익금',n(profit),'num'+(profit<0?' neg':''))+fld('이익률(%)',rate==null?'':rate.toFixed(1),'num'+(profit<0?' neg':''))
+  +`</div></div>`
+  +`<div class="sec"><div class="st">기간</div><table><thead><tr><th style="width:70px">구분</th><th>시작일</th><th>완료예정일</th><th style="width:70px">일수</th><th style="width:64px">구분</th><th>담당자</th><th style="width:44px" title="세트(조수 전체) 외주">세트</th><th>외주업체</th></tr></thead><tbody>`
+  +per('설계','design')+per('가공','machining')+per('조립','assembly')
+  +`</tbody></table></div>`
+  +`<div class="sec"><div class="st">구성비 (목표가 ${n(target)})</div><table><thead><tr><th style="width:60px"></th>`+A.map(a=>`<th>${a[0]}</th>`).join('')+`</tr></thead><tbody>`
+  +`<tr><td class="c">금액</td>`+A.map(a=>`<td class="num">${n(pl[a[1]])}</td>`).join('')+`</tr>`
+  +`<tr><td class="c">구성비</td>`+A.map(a=>`<td class="num pct">${target?(N(pl[a[1]])/target*100).toFixed(1)+'%':''}</td>`).join('')+`</tr>`
+  +`</tbody></table></div>`;
+ mask.classList.add('on');}
+function closePlan(){mask.classList.remove('on');curGrp=null}
+/* ── v46 수정/삭제 실동작 ────────────────────────────────
+ * 수정: 제작계획등록 화면을 해당 제번으로 열어 편집 (부모 탭 전환)
+ * 삭제: sales_plans + sales_plan_status_rows 에서 제거 */
+let curJob=null,curGrp=null;
+function editPlan(){
+ const g=curGrp||(sel>=0?view[sel]:null);
+ const job=(g&&g.base)||curJob;   /* v187: 관리제번으로 넘긴다 (등록 화면이 A~ 공정을 묶어 연다) */
+ if(!job)return msg('수정할 계획을 선택하세요.');
+ closePlan();
+ try{
+  const P=window.parent;
+  if(P&&P.openByName){P.openByName('제작계획등록');
+   /* v68: 제작계획등록의 loadJob(job) 에 제번을 직접 넘긴다. 화면이 뜰 때까지 재시도 */
+   let n=0;const iv=setInterval(()=>{try{
+    const f=[...P.document.querySelectorAll('iframe')].find(x=>String(x.src||'').includes('sales_plan_input.html'));
+    const w=f&&f.contentWindow,d=f&&f.contentDocument;
+    const el=d&&d.getElementById('job_no');
+    if(el&&w&&typeof w.loadJob==='function'){clearInterval(iv);w.loadJob(job)}
+    else if(++n>30)clearInterval(iv);
+   }catch(e){if(++n>30)clearInterval(iv)}},300);
+   msg(`${job} 제작계획등록 화면을 열었습니다.`);return;
+  }
+ }catch(e){}
+ msg('제작계획등록 화면에서 제번 '+job+' 을(를) 조회해 수정하세요.');
+}
+async function delPlan(){
+ const g=curGrp||(sel>=0?view[sel]:null);
+ const jobs=(g&&g.jobs)||(curJob?[curJob]:[]);const lab=(g&&g.label)||jobs[0];
+ if(!jobs.length)return msg('삭제할 계획을 선택하세요.');
+ if(!confirm(`${lab} 제작계획을 삭제할까요?\n(공정 제번 ${jobs.length}건: ${jobs.join(', ')})\n수주정보는 유지되고 계획 자료만 삭제됩니다.`))return;
+ if(!(window.MESDB&&MESDB.online))return msg('DB 미연결 상태에서는 삭제할 수 없습니다.');
+ try{
+  for(const job of jobs){
+   await MESDB.table('sales_plans').delete({job_no:job});
+   const rows=data.filter(r=>r.job_no===job);
+   for(const r of rows)await MESDB.table('sales_plan_status_rows').delete({row_no:Number(r.row_no)});
+   for(let i=data.length-1;i>=0;i--)if(data[i].job_no===job)data.splice(i,1);
+   for(let i=plans.length-1;i>=0;i--)if(plans[i].job_no===job)plans.splice(i,1);
+  }
+  try{MESDB.notify&&MESDB.notify(['sales_plans','sales_plan_status_rows'])}catch(e){}
+  closePlan();search();msg(`${lab} 제작계획(${jobs.length}건)을 삭제했습니다.`);
+ }catch(e){msg('삭제 실패: '+String(e.message||e).slice(0,140))}
+}
+
+function csv(){
+ /* v167: 엑셀 시트와 같은 열 — 제번당 요구/목표/가능 3줄 */
+ const h=['NO','관리제번','구분','도번','품명','품번','제작구분','조수','접수','설계','가공','조립','초품','완료','진척현황','설계처','제작처','양산처','특기사항','수주가','목표가','이익률'];
+ const rows=[];
+ view.forEach((r,i)=>{const pl=planOf(r.job_no)||{};
+  let L=pl.progress_log;if(typeof L==='string'){try{L=JSON.parse(L)}catch(e){L=[]}}
+  const log=(Array.isArray(L)?L:[]).map(e=>`${e.d} ${e.t}`).join(' | ');
+  const base=[i+1,r.label||r.job_no];
+  const id=[pl.drawing_no||'',pl.product_name||r.item_name||'',pl.model||'',pl.make_type||'',pl.process_set_qty??''];
+  const tail=[log,pl.design_partner||'',pl.maker_name||'',pl.mass_vendor||'',pl.remark||'',r.order_price,r.target_price,r.profit_rate_pct];
+  rows.push([...base,'요구',...id,...EV.map(([k])=>pl['req_'+k+'_date']||''),...tail]);
+  rows.push([...base,'목표',...id,...EV.map(([k,g])=>pl[g]||''),...tail]);
+  rows.push([...base,'가능',...id,...EV.map(([k])=>pl['can_'+k+'_date']||''),...tail]);
+ });
+ const t='\ufeff'+[h,...rows].map(a=>a.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv;charset=utf-8'}));
+ a.download='sales_plan_status.csv';a.click();URL.revokeObjectURL(a.href);msg(`${view.length}건을 엑셀로 내보냈습니다.`)}
+window.MES={search,csv,editPlan,delPlan,setMessage:msg};render();</script><script src="mes_db.js?v=196"></script>
+<script>
+
+/* v60: 제작계획등록에서 저장하면 자동으로 다시 불러온다 */
+async function reload(){
+  if(!window.MESDB||!MESDB.online)return;
+  try{
+    const [rows,pl]=await Promise.all([
+      MESDB.table('sales_plan_status_rows').select('select=*&order=row_no.asc'),
+      MESDB.table('sales_plans').select('select=*&order=row_no.asc')]);
+    data.length=0; data.push(...rows.map(r=>({...r,row_no:Number(r.row_no),order_price:Number(r.order_price??0)||null,
+      target_price:Number(r.target_price??0)||null,profit_rate_pct:r.profit_rate_pct==null?null:Number(r.profit_rate_pct),
+      design_days:r.design_days==null?null:Number(r.design_days),machining_amount:Number(r.machining_amount??0)||null,
+      assembly_amount:Number(r.assembly_amount??0)||null,etc_amount:Number(r.etc_amount??0)||null})));
+    plans.length=0; plans.push(...pl);FULL.clear();pl.forEach(r=>FULL.set(r.job_no,r));
+    search(); msg(`제작계획이 갱신되었습니다. (${new Date().toLocaleTimeString('ko-KR')})`);
+  }catch(e){console.warn('sales_plan_status reload',e.message)}
+}
+(function(){let t=null;const go=()=>{clearTimeout(t);t=setTimeout(reload,300)};
+  const bind=()=>{if(window.MESDB&&MESDB.onChange){MESDB.onChange(['sales_plans','sales_plan_status_rows'],go);return true}return false};
+  if(!bind()){let n=0;const iv=setInterval(()=>{if(bind()||++n>40)clearInterval(iv)},100)}})();
+window.MES=Object.assign(window.MES||{},{search,reload,setMessage:msg});
+loadFull();
+MESDB.master({page:"sales_plan_status:data",table:"sales_plan_status_rows",pk:"row_no",map:{"row_no": {"col": "row_no", "type": "num"}, "job_no": "job_no", "item_name": "item_name", "order_price": {"col": "order_price", "type": "num"}, "target_price": {"col": "target_price", "type": "num"}, "profit_rate_pct": {"col": "profit_rate_pct", "type": "num"}, "design_start_date": {"col": "design_start_date", "type": "date"}, "design_end_date": {"col": "design_end_date", "type": "date"}, "design_days": {"col": "design_days", "type": "num"}, "design_manager": "design_manager", "machining_amount": {"col": "machining_amount", "type": "num"}, "assembly_amount": {"col": "assembly_amount", "type": "num"}, "etc_amount": {"col": "etc_amount", "type": "num"}, "delivery_planned_date": {"col": "delivery_planned_date", "type": "date"}},get:()=>data,render:()=>{search()}});
+MESDB.master({page:"sales_plan_status:plans",table:"sales_plans",pk:"row_no",map:{"row_no": {"col": "row_no", "type": "num"}, "job_no": "job_no", "plant_name": "plant_name", "product_name": "product_name", "customer_name": "customer_name", "process_set_qty": "process_set_qty", "item_name": "item_name", "order_date": {"col": "order_date", "type": "date"}, "mold_type_name": "mold_type_name", "s1_planned_date": {"col": "s1_planned_date", "type": "date"}, "model": "model", "delivery_planned_date": {"col": "delivery_planned_date", "type": "date"}, "design_start_date": {"col": "design_start_date", "type": "date"}, "design_end_date": {"col": "design_end_date", "type": "date"}, "design_days": {"col": "design_days", "type": "num"}, "design_outsourced": {"col": "design_outsourced", "type": "bool"}, "design_set_outsourced": {"col": "design_set_outsourced", "type": "bool"}, "design_vendor": "design_vendor", "design_manager": "design_manager", "machining_start_date": {"col": "machining_start_date", "type": "date"}, "machining_end_date": {"col": "machining_end_date", "type": "date"}, "machining_outsourced": {"col": "machining_outsourced", "type": "bool"}, "machining_set_outsourced": {"col": "machining_set_outsourced", "type": "bool"}, "machining_vendor": "machining_vendor", "machining_manager": "machining_manager", "assembly_start_date": {"col": "assembly_start_date", "type": "date"}, "assembly_end_date": {"col": "assembly_end_date", "type": "date"}, "assembly_outsourced": {"col": "assembly_outsourced", "type": "bool"}, "assembly_set_outsourced": {"col": "assembly_set_outsourced", "type": "bool"}, "assembly_vendor": "assembly_vendor", "assembly_manager": "assembly_manager", "order_price": {"col": "order_price", "type": "num"}, "target_price": {"col": "target_price", "type": "num"}, "profit_rate_pct": {"col": "profit_rate_pct", "type": "num"}, "design_internal_amount": "design_internal_amount", "design_internal_pct": "design_internal_pct", "design_external_amount": "design_external_amount", "design_external_pct": "design_external_pct", "raw_material_amount": "raw_material_amount", "raw_material_pct": "raw_material_pct", "purchase_amount": {"col": "purchase_amount", "type": "num"}, "purchase_pct": "purchase_pct", "machining_internal_amount": "machining_internal_amount", "machining_internal_pct": "machining_internal_pct", "machining_external_amount": "machining_external_amount", "machining_external_pct": "machining_external_pct", "assembly_internal_amount": "assembly_internal_amount", "assembly_internal_pct": "assembly_internal_pct", "assembly_external_amount": "assembly_external_amount", "assembly_external_pct": "assembly_external_pct"},get:()=>plans,render:()=>{search()}});
+
+/* 표가 다시 그려질 때마다 합계 갱신 */
+(function(){const tb=document.querySelector('tbody');if(!tb||typeof renderTotal!=='function')return;new MutationObserver(()=>renderTotal()).observe(tb,{childList:true});renderTotal()})();
+</script>
+<script src="mes_ctx.js?v=169"></script>
+</body></html>

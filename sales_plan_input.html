@@ -1,0 +1,653 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>제작계획등록</title><style>
+:root{--line:#98a6b2;--line2:#c5d0d8;--blue:#2f75b5;--ink:#344757;--head1:#e8f1f8;--head2:#c8dbe9}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{font-family:"Malgun Gothic","맑은 고딕",Arial,sans-serif;font-size:12px;color:var(--ink);background:#fff;overflow:hidden}
+button,input,select{font:inherit;color:inherit}.screen{height:100%;display:flex;flex-direction:column;background:#fff}
+.title{height:48px;padding:8px 14px 5px;border-bottom:2px solid #3978ae;display:flex;align-items:center}.title h1{margin:0;font-size:22px;font-weight:500;color:#4b5c6a}.title h1:before{content:'◯';margin-right:6px;color:#8796a1}.title small{font-size:11px;color:#9ca7af;margin-left:12px}
+.form{padding:7px 14px;background:#fafbfc;border-bottom:1px solid var(--line2)}.formrow{display:grid;grid-template-columns:78px 140px 78px 150px 90px 150px 90px minmax(160px,1fr);gap:5px;align-items:center}.formrow+.formrow{margin-top:5px}.label{font-weight:700}.field{height:27px;border:1px solid #b5c0c9;background:#fff;padding:0 6px;min-width:0}
+select.field{padding:0 2px}
+/* v68 콤보: 직접 입력 + 목록 선택 둘 다 되는 칸 (input + datalist) */
+.cbo{background:#fff url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0h10L5 6z' fill='%23708090'/%3E%3C/svg%3E") no-repeat right 6px center;padding-right:18px}
+.cbo::-webkit-calendar-picker-indicator{opacity:0;width:16px;margin-right:-16px;cursor:pointer}
+.entrybox,.gridbox{margin:0 14px;border:1px solid var(--line);overflow:auto;background:#fff}.entrybox{height:190px}.gridbox{flex:1;min-height:0}
+.searchline{height:39px;margin:0 14px;display:flex;align-items:center;gap:5px;border-left:1px solid var(--line);border-right:1px solid var(--line);padding:4px 8px;background:#f6f8fa}.searchline input{width:min(430px,48vw);height:27px;border:1px solid #aeb9c3;padding:0 7px}
+.btn{height:29px;min-width:62px;border:1px solid #9ba8b4;background:linear-gradient(#fff,#dfe6eb);cursor:pointer}.btn:hover{background:#fff}
+table{border-collapse:collapse;min-width:1040px;width:100%;table-layout:fixed}th,td{height:27px;border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);padding:0 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}th{position:sticky;top:0;z-index:2;text-align:center;background:linear-gradient(var(--head1),var(--head2));color:#405266}tbody tr:nth-child(even) td{background:#fafcfd}tbody tr:hover td{background:#edf6fd}tbody tr.sel td{background:#2d75b7;color:#fff}.c{text-align:center}.num{text-align:right}.toolbar{height:40px;display:flex;align-items:center;gap:5px;padding:4px 14px;background:#f5f7f8;border-bottom:1px solid var(--line2)}
+.foot{height:42px;display:flex;align-items:center;padding:5px 14px;border-top:1px solid var(--line);background:#eef2f5;gap:5px}.msg{margin-left:8px;color:#687784}.right{margin-left:auto;color:#7c8993}
+.split{flex:1;min-height:0;display:grid;grid-template-rows:1fr 1fr;gap:10px;padding:0 14px 8px}.split .gridbox{margin:0}
+@media(max-width:900px){.formrow{grid-template-columns:78px 1fr 78px 1fr}.entrybox,.gridbox,.searchline{margin-left:6px;margin-right:6px}}
+
+.blk{margin:0 14px 8px;border:1px solid var(--line);background:#fff}
+.bt{padding:5px 9px;font-weight:700;background:linear-gradient(var(--head1),var(--head2));color:#405266;border-bottom:1px solid var(--line2)}
+.gg{display:grid;gap:5px;padding:8px 9px;align-items:center}
+.g4{grid-template-columns:repeat(4,74px minmax(110px,1fr))}
+.g3{grid-template-columns:64px repeat(3,1fr)}
+.lb{font-weight:700;text-align:right;padding-right:3px}
+/* v169: 금액 블록 — 위 4칸·비율·금액을 같은 8열에 세로 정렬 */
+.amt{display:grid;grid-template-columns:[lb] 74px [c1] minmax(0,1fr) [c2] minmax(0,1fr) [c3] minmax(0,1fr) [c4] minmax(0,1fr) [c5] minmax(0,1fr) [c6] minmax(0,1fr) [c7] minmax(0,1fr) [c8] minmax(0,1fr) [end];gap:4px 6px;padding:8px 9px;align-items:center}
+.amt .hd{text-align:center;font-weight:700;font-size:11px;color:#4b5c6a;padding:6px 0 0;border-top:1px dashed #d5dde4;margin-top:4px}
+.amt input{width:100%;height:26px;border:1px solid #b5c0c9;text-align:right;padding:0 5px;min-width:0;box-sizing:border-box}
+.amt .lb.r1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.amt .field.num{margin:0}
+.amt>div>input{margin-bottom:1px}
+.amt .lb.ad{color:#2f5f8a}
+.pct{font-size:11px;color:#5d6d7b;text-align:right;line-height:1}
+.amt>*{min-width:0}
+.adtop{grid-column:2/-1;min-width:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:#f4f8fb;border:1px solid #c5d3de;border-radius:3px;padding:4px 8px}
+.adtop .lb{font-size:12px}
+.adin{width:130px!important;height:26px;border:1px solid #b5c0c9;text-align:right;padding:0 5px}
+.adsum{font-size:11px;color:#5d6d7b;min-width:88px}.adsum.bad{color:#c62828;font-weight:700}.adsum.ok{color:#2e7d32;font-weight:700}
+.adbtn{background:linear-gradient(#e9f3fc,#c9def0)!important;border-color:#6f9cc4!important;font-weight:700}
+.adnote{font-size:10.5px;color:#7a8894;margin-left:auto}
+.amt input.adr,.adr{height:24px;border:1px solid #b5c0c9;text-align:right;padding:0 16px 0 3px;background:#f4f8fb url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12'><text x='1' y='10' font-size='10' fill='%238796a1'>%</text></svg>") no-repeat right 2px center}
+@media(max-width:1000px){.amt{grid-template-columns:[lb] 74px [c1] minmax(84px,1fr) [c2] minmax(84px,1fr) [c3] minmax(84px,1fr) [c4] minmax(84px,1fr) [c5] minmax(84px,1fr) [c6] minmax(84px,1fr) [c7] minmax(84px,1fr) [c8] minmax(84px,1fr) [end];overflow-x:auto}.amt .lb.r1{font-size:11px}}
+.note{font-size:11px;color:#6b7a87;line-height:1.5}.note b{color:#3d5163}
+.chk{display:flex;align-items:center;gap:3px;white-space:nowrap}
+.chk.src{gap:8px}.chk.src label{display:flex;align-items:center;gap:2px;cursor:pointer}
+
+/* v21 입력란 배치 보정: 좁은 폭에서 필드를 숨기지 않고 단계적으로 줄바꿈 */
+.field,.formrow input,.formrow select,.formgrid input,.formgrid select,.detail-grid input,.detail-grid select{min-width:0;max-width:100%}
+.lab,.label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:1400px){.formrow{grid-template-columns:78px minmax(0,1fr) 78px minmax(0,1fr)}}
+@media(max-width:880px){.formrow{grid-template-columns:78px minmax(0,1fr)}}
+.formrow>*{min-width:0}
+.gg .hd{font-size:11px;color:#7c8a96;text-align:center;align-self:end;padding-bottom:1px}
+
+/* v167: 내용이 길어져 세로 스크롤 허용 (이전엔 overflow:hidden 으로 아래가 잘렸다) */
+html,body{overflow:auto!important}.screen{height:auto;min-height:100%}
+.foot{position:sticky;bottom:0;z-index:5}
+/* v167 엑셀(제번관리) 식 배치 */
+.blk.two{display:flex!important;align-items:stretch;gap:0;border:0;background:transparent;width:auto!important}
+.blk.two>div{border:1px solid var(--line);background:#fff;min-width:0}
+.blk.two>div:first-child{flex:1 1 auto!important;width:auto!important;min-width:560px}
+.blk.two>div:last-child{flex:0 0 250px!important;width:250px!important}
+.blk.two>div+div{border-left:0}
+/* 배치편집기가 저장해 둔 옛 폭(132px 등)이 표 안 입력칸에 들어와도 표 칸을 꽉 채운다 */
+table.ev{width:100%!important;max-width:none!important}
+table.ev td input,table.ev td .mescb{width:100%!important;max-width:none!important;position:static!important;left:auto!important;top:auto!important}
+.bthint{font-weight:400;color:#7c8993;font-size:11px;margin-left:8px}
+.late-sw{display:inline-block;width:10px;height:10px;background:#ffe45c;border:1px solid #d8b400;vertical-align:-1px;margin:0 2px}
+table.ev{width:100%;min-width:0;table-layout:fixed;border-collapse:collapse}
+table.ev th,table.ev td{height:28px;border:1px solid var(--line2);padding:1px 3px;white-space:nowrap;overflow:visible}
+table.ev thead th{background:linear-gradient(var(--head1),var(--head2));color:#405266;text-align:center;font-size:11.5px}
+table.ev tbody th{background:#f3f6f9;text-align:center;font-weight:700;font-size:11.5px;color:#4b5c6a}
+table.ev tr.goal td{background:#f4f9ff}
+table.ev tr.goal th{background:#e3eef8;color:#1d5da3}
+table.ev tr.sub th{background:#fafbfc;font-weight:400;color:#6b7a87}
+table.ev td input{width:100%;height:24px;border:1px solid transparent;background:transparent;padding:0 3px;font:inherit;font-size:11.5px;min-width:0}
+table.ev td input:hover{border-color:#cfd8df}
+table.ev td input:focus{border-color:#2f75b5;background:#fff;outline:none}
+table.ev td input.keepcolor.late{background:#ffe45c!important;font-weight:700;color:#5a4400!important;-webkit-text-fill-color:#5a4400}
+table.ev td input.keepcolor.early{background:#e6f6e6!important}
+table.ev td input.keepcolor{color:#22303a;background:transparent}
+table.ev td input.bump{outline:2px solid #2f75b5;outline-offset:-2px}
+table.ev .mrow{display:flex;gap:3px;align-items:center}
+/* v169: 날짜 옆 요일 표시 (수) — 토·일은 빨강 */
+table.ev td .dcell{display:flex;align-items:center;gap:2px;min-width:0}
+table.ev td .dcell input{flex:1 1 auto;min-width:0}
+table.ev td .dcell .wd{flex:0 0 auto;font-size:11px;color:#5b6c7a;width:26px;text-align:center;border-radius:3px;line-height:20px}
+table.ev td .dcell .wd.sat{color:#1d5da3}table.ev td .dcell .wd.sun{color:#c0392b;font-weight:700}
+table.ev td .dcell .wd.late{background:#ffe45c;color:#5a4400;font-weight:700}
+.shape{display:flex;flex-direction:column}
+.shapebox{flex:1;min-height:150px;margin:8px;border:1px dashed #b5c0c9;border-radius:4px;display:flex;align-items:center;justify-content:center;text-align:center;color:#8b98a3;cursor:pointer;background:#fafbfc;overflow:hidden}
+.shapebox:hover{border-color:#2f75b5;color:#2f75b5}
+.shapebox img{max-width:100%;max-height:190px;object-fit:contain}
+.shapebtn{display:flex;gap:4px;padding:0 8px 8px;justify-content:center}
+.shapebtn .btn{min-width:0;height:26px;padding:0 9px}
+.plog{padding:6px 8px}
+.pladd{display:flex;gap:4px;margin-bottom:5px}
+.pladd input[type=date]{width:128px;height:26px;border:1px solid #b5c0c9;padding:0 4px}
+.pladd input:not([type=date]){flex:1;height:26px;border:1px solid #b5c0c9;padding:0 6px;min-width:0}
+.pladd .btn{min-width:0;height:26px;padding:0 9px}
+.pllist{list-style:none;margin:0;padding:0;max-height:118px;overflow:auto;border:1px solid var(--line2);background:#fff}
+.pllist li{display:flex;gap:6px;align-items:center;padding:2px 6px;border-bottom:1px dotted #dfe5ea;font-size:11.5px}
+.pllist li:before{content:'●';color:#2f5f8a;font-size:9px}
+.pllist li b{color:#1d5da3;min-width:42px}
+.pllist li span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.pllist li button{border:0;background:transparent;color:#b3261e;cursor:pointer;padding:0 3px}
+.pllist li.empty{color:#9aa5ad;justify-content:center}.pllist li.empty:before{content:''}
+.remark{width:calc(100% - 16px);height:150px;margin:8px;border:1px solid #b5c0c9;padding:5px 6px;font:inherit;resize:vertical}
+@media(max-width:1100px){.blk.two{flex-wrap:wrap}.blk.two>div:first-child{min-width:0;flex-basis:100%!important}.blk.two>div:last-child{flex:1 1 100%!important;width:auto!important;border-left:1px solid var(--line);border-top:0}}
+</style></head><body><div class="screen">
+<div class="title"><h1>제작계획등록</h1><small>영업관리 · 제작계획</small></div>
+<div class="blk"><div class="bt">기본정보</div><div class="gg g4">
+ <div class="lb" title="관리제번을 고르면 공정 제번(A~D 등) 전체에 같은 계획이 저장됩니다 (v183)">관리제번</div><div><input id="job_no" class="field cbo" list="dl_job" autocomplete="off" placeholder="입력 또는 선택"></div>
+ <div class="lb">고객사</div><div><input id="customer_name" class="field cbo" list="dl_cust" autocomplete="off" placeholder="입력 또는 선택"></div>
+ <div class="lb">아이템</div><div><input id="item_name" class="field cbo" list="dl_item" autocomplete="off" placeholder="입력 또는 선택"></div>
+ <div class="lb">금형타입</div><div><input id="mold_type_name" class="field cbo" list="dl_mold" autocomplete="off" placeholder="입력 또는 선택"></div>
+ <div class="lb">도번</div><div><input id="drawing_no" class="field" placeholder="예) MAZ30224301"></div>
+ <div class="lb">품명</div><div><input id="product_name" class="field" placeholder="예) BRACKET,MOTOR"></div>
+ <div class="lb">품번</div><div><input id="model" class="field" placeholder="예) Sliding door IDX27"></div>
+ <div class="lb">제작구분</div><div><input id="make_type" class="field cbo" list="dl_make" autocomplete="off" placeholder="신규제작 / 수정 / 추가"></div>
+ <div class="lb">조수</div><div><input id="process_set_qty" class="field" placeholder="예) 1"></div>
+ <div class="lb">수주일</div><div><input id="order_date" type="date" class="field"></div>
+ <div class="lb" title="재질과 두께 (예: GI 2.0T)">재질·두께</div><div><input id="material_spec" class="field" placeholder="예) GI 2.0T"></div>
+ <div class="lb" title="제품 크기 (예: W150 · P46)">사이즈</div><div><input id="size_spec" class="field" placeholder="예) W150 · P46"></div>
+ <div class="lb" title="고객사 담당자와 연락처">고객담당</div><div><input id="customer_contact" class="field" placeholder="예) 김정호 책임 010-0000-0000"></div>
+ <div class="lb">설계처</div><div><input id="design_partner" class="field cbo" list="dl_vd_design" autocomplete="off" placeholder="예) 베스텍(김기구 대표)"></div>
+ <div class="lb">제작처</div><div><input id="maker_name" class="field cbo" list="dl_vd_mach" autocomplete="off" placeholder="예) 일평기연"></div>
+ <div class="lb">양산처</div><div><input id="mass_vendor" class="field cbo" list="dl_vd_mass" autocomplete="off" placeholder="입력 또는 선택 (수주등록 양산처)" title="수주등록의 양산처를 가져오고, 기준정보 업체관리(양산처)에서 고를 수도 있습니다"></div>
+</div></div>
+
+<div class="blk two">
+ <div>
+  <div class="bt">금형제작 EVENT <span class="bthint">요구 = 고객 요구일 · 목표 = 우리 계획 · 가능 = 현재 예상 (목표보다 늦으면 <i class="late-sw"></i>노랑) &nbsp;|&nbsp; 날짜 칸 위에서 <b>휠</b> = ±1일 (같은 줄 오른쪽 일정도 같이 밀림) · <b>Shift+휠</b> = ±7일 · <b>Alt+휠</b> = 그 칸만</span></div>
+  <table class="ev"><thead><tr>
+   <th style="width:70px">구분</th><th>접수</th><th>설계</th><th>가공</th><th>조립</th><th>초품</th><th>완료</th><th style="width:196px">담당·비고</th></tr></thead>
+  <tbody>
+   <tr><th>요구일정</th>
+    <td><input type="date" id="req_receipt_date"></td><td><input type="date" id="req_design_date"></td><td><input type="date" id="req_machining_date"></td>
+    <td><input type="date" id="req_assembly_date"></td><td><input type="date" id="req_tryout_date"></td><td><input type="date" id="req_complete_date"></td>
+    <td class="c" style="color:#8b98a3">고객 요구 <button type="button" class="btn" style="height:20px;min-width:0;padding:0 6px;font-size:11px;margin-left:4px" onclick="const n=fillTodayAll();markLate();msg(n?`빈 날짜 ${n}칸을 오늘로 채웠습니다 — 휠로 조절하세요.`:`빈 날짜 칸이 없습니다.`)" title="비어 있는 날짜 칸을 전부 오늘로 채웁니다">오늘로</button></td></tr>
+   <tr class="goal"><th>목표일정</th>
+    <td><input type="date" id="receipt_date"></td><td><input type="date" id="design_end_date"></td><td><input type="date" id="machining_end_date"></td>
+    <td><input type="date" id="assembly_end_date"></td><td><input type="date" id="s1_planned_date"></td><td><input type="date" id="delivery_planned_date"></td>
+    <td class="c" style="color:#8b98a3">현황·진척에 쓰는 기준</td></tr>
+   <tr><th>가능일정</th>
+    <td><input type="date" id="can_receipt_date" class="keepcolor"></td><td><input type="date" id="can_design_date" class="keepcolor"></td><td><input type="date" id="can_machining_date" class="keepcolor"></td>
+    <td><input type="date" id="can_assembly_date" class="keepcolor"></td><td><input type="date" id="can_tryout_date" class="keepcolor"></td><td><input type="date" id="can_complete_date" class="keepcolor"></td>
+    <td class="c" style="color:#8b98a3">지금 예상</td></tr>
+   <tr class="sub"><th>시작일</th>
+    <td></td><td><input type="date" id="design_start_date"></td><td><input type="date" id="machining_start_date"></td><td><input type="date" id="assembly_start_date"></td><td><input type="date" id="tryout_start_date" title="초품 시작일 (v185)"></td><td><input type="date" id="complete_start_date" title="완료 시작일 (v185)"></td>
+    <td class="c" style="color:#8b98a3" title="설계 / 가공 / 조립 / 초품 / 완료 — 목표일 − 시작일 + 1">일수 <span id="design_days_v">-</span> / <span id="machining_days_v">-</span> / <span id="assembly_days_v">-</span> / <span id="tryout_days_v">-</span> / <span id="complete_days_v">-</span></td></tr>
+   <tr class="sub"><th>담당자</th>
+    <td><input id="receipt_manager" class="cbo" list="dl_emp" autocomplete="off" placeholder="접수" title="접수(영업) 담당자 (v185)"></td><td><input id="design_manager" class="cbo" list="dl_emp" autocomplete="off" placeholder="설계"></td>
+    <td><div class="mrow"><input id="machining_manager" class="cbo" list="dl_emp" autocomplete="off" placeholder="가공"></div></td>
+    <td><input id="assembly_manager" class="cbo" list="dl_emp" autocomplete="off" placeholder="조립"></td>
+    <td><input id="tryout_manager" class="cbo" list="dl_emp" autocomplete="off" placeholder="초품" title="초품 담당자 (v186)"></td>
+    <td><input id="complete_manager" class="cbo" list="dl_emp" autocomplete="off" placeholder="완료" title="완료(납품) 담당자 (v186)"></td>
+    <td><div class="chk src" title="가공을 사내에서 할지 외주(협력업체)에 맡길지"><label><input type="radio" name="machining_src" value="사내" checked>사내</label><label><input type="radio" name="machining_src" value="외주">외주</label>
+     <label title="세트(조수 전체) 외주"><input type="checkbox" id="machining_set_outsourced">세트</label></div></td></tr>
+   <tr class="sub"><th>외주업체</th><td></td><td></td><td colspan="4"><input id="machining_vendor" class="cbo" list="dl_vd_mach" autocomplete="off" placeholder="가공 외주 선택 시" disabled style="width:100%"></td>
+    <td class="c" style="color:#8b98a3">설계·조립 외주는 각 발주 화면</td></tr>
+  </tbody></table>
+  <input id="design_days" type="hidden"><input id="machining_days" type="hidden"><input id="assembly_days" type="hidden">
+ </div>
+ <div class="shape">
+  <div class="bt">제품 형상</div>
+  <div class="shapebox" id="shapeBox" onclick="shapePick()" title="클릭하면 그림을 올립니다"><span id="shapeHint">클릭해서 제품 그림 올리기<br><small>PNG·JPG · 8MB 이하</small></span><img id="shapeImg" style="display:none"></div>
+  <div class="shapebtn"><button class="btn" type="button" onclick="shapePick()">📷 올리기</button><button class="btn" type="button" onclick="shapeClear()">지우기</button></div>
+  <input type="file" id="shapeFile" accept="image/*" style="display:none" onchange="shapeUp(this)"><input type="hidden" id="image_url">
+ </div>
+</div>
+
+<div class="blk two">
+ <div>
+  <div class="bt">진척현황 <span class="bthint">날짜와 내용을 넣고 [＋ 추가] — 엑셀의 ● 메모와 같습니다</span></div>
+  <div class="plog">
+   <div class="pladd"><input type="date" id="pl_date"><input id="pl_text" placeholder="예) 제작접수/도면협의" onkeydown="if(event.key==='Enter'){plAdd();return false}"><button class="btn" type="button" onclick="plAdd()">＋ 추가</button></div>
+   <ul id="plList" class="pllist"></ul>
+  </div>
+ </div>
+ <div>
+  <div class="bt">특기사항</div>
+  <textarea id="remark" class="remark" placeholder="예) 양산처 미확정 · 도면 REV.B 재접수 예정"></textarea>
+ </div>
+</div>
+<div class="blk"><div class="bt">금액</div>
+ <div class="amt" id="amtGrid">
+  <div></div><div class="lb r1">수주가</div><input id="order_price" class="field num" oninput="recalc()"><div class="lb r1">목표가</div><input id="target_price" class="field num" readonly title="아래 8개 금액의 합계 (자동)"><div class="lb r1">이익금</div><input id="profit_amount" class="field num" readonly title="수주가 − 목표가 (자동)"><div class="lb r1">이익률(%)</div><input id="profit_rate_pct" class="field num" readonly title="이익금 ÷ 수주가 (자동)">
+  <div class="lb ad">자동배분</div>
+  <div class="adtop ad" id="adist"><span class="lb">목표 이익금</span><input id="ad_profit" class="adin" placeholder="원" title="수주가 − 목표 이익금 = 배분할 총액">
+    <span class="adsum" id="ad_sum">비율 합계 0%</span><button class="btn adbtn" type="button" onclick="autoDist()">⇩ 자동배분</button>
+    <span class="adnote">배분총액 = 수주가 − 목표 이익금, 항목금액 = 배분총액 × 비율 (10만원 미만 절사, 절사분은 이익금으로)</span></div>
+  <div></div><div class="hd">설계 사내</div><div class="hd">설계 사외</div><div class="hd">원재료</div><div class="hd">구매</div><div class="hd">가공 사내</div><div class="hd">가공 사외</div><div class="hd">조립 사내</div><div class="hd">조립 사외</div>
+  <div class="lb ad">비율(%)</div>
+  <input id="r1" class="adr"><input id="r2" class="adr"><input id="r3" class="adr"><input id="r4" class="adr"><input id="r5" class="adr"><input id="r6" class="adr"><input id="r7" class="adr"><input id="r8" class="adr">
+  <div class="lb">금액</div>
+  <div><input id="a1" oninput="recalc()"><div class="pct" id="p1">0%</div></div>
+  <div><input id="a2" oninput="recalc()"><div class="pct" id="p2">0%</div></div>
+  <div><input id="a3" oninput="recalc()"><div class="pct" id="p3">0%</div></div>
+  <div><input id="a4" oninput="recalc()"><div class="pct" id="p4">0%</div></div>
+  <div><input id="a5" oninput="recalc()"><div class="pct" id="p5">0%</div></div>
+  <div><input id="a6" oninput="recalc()"><div class="pct" id="p6">0%</div></div>
+  <div><input id="a7" oninput="recalc()"><div class="pct" id="p7">0%</div></div>
+  <div><input id="a8" oninput="recalc()"><div class="pct" id="p8">0%</div></div>
+ </div>
+</div>
+<footer class="foot"><button class="btn" onclick="save()">▤ 저장</button><button class="btn" onclick="clearForm()">✕ 삭제</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">관리제번을 고르면 수주정보가 채워지고, 저장하면 공정 제번(A~D 등) 모두에 같은 계획이 들어갑니다.</span></footer>
+</div>
+<datalist id="dl_job"></datalist><datalist id="dl_make"><option value="신규제작"><option value="수정"><option value="추가"><option value="보완"><option value="양산이관"></datalist><datalist id="dl_cust"></datalist><datalist id="dl_vd_mass"></datalist><datalist id="dl_item"></datalist><datalist id="dl_mold"></datalist><datalist id="dl_emp"></datalist><datalist id="dl_vd_design"></datalist><datalist id="dl_vd_mach"></datalist><datalist id="dl_vd_asm"></datalist>
+<script src="mes_lookup.js?v=71"></script><script>
+/* v68: 제번·고객사·아이템·금형타입·담당자를 기준정보 드롭다운으로 (하드코딩 seed 제거) */
+const AK=['design_internal_amount','design_external_amount','raw_material_amount','purchase_amount','machining_internal_amount','machining_external_amount','assembly_internal_amount','assembly_external_amount'];
+const num=v=>Number(String(v??'').replace(/[^0-9.-]/g,''))||0;
+const fmt=v=>{const n=Number(v);return isFinite(n)&&n!==0?n.toLocaleString('ko-KR'):(n===0?'0':'')};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+/* select 에 값을 넣는다. 목록에 없는 값(옛 자료·수주정보 텍스트)이면 옵션을 추가해 유지한다 */
+/* v68 사내/외주 라디오 */
+const isOut=k=>(document.querySelector(`input[name="${k}_src"]:checked`)||{}).value==='외주';
+const setOut=(k,v)=>{const r=document.querySelector(`input[name="${k}_src"][value="${v===true?'외주':'사내'}"]`);if(r)r.checked=true;vendorGate(k)};
+/* 외주일 때만 외주업체 입력 가능. 사내로 바꾸면 업체는 비운다 */
+function vendorGate(k){const out=isOut(k),v=document.getElementById(k+'_vendor');if(!v)return;
+ v.disabled=!out;if(!out)v.value='';v.setAttribute('placeholder',out?'입력 또는 선택':'외주 선택 시');
+ const box=v.__mescbBox;
+ if(box){box.inp.disabled=!out;box.inp.placeholder=v.getAttribute('placeholder');if(!out)box.inp.value=''}
+ else setTimeout(()=>{const b=v.__mescbBox;if(b){b.inp.disabled=!isOut(k);b.inp.placeholder=v.getAttribute('placeholder');if(!isOut(k))b.inp.value=''}},600);}
+['machining'].forEach(k=>document.querySelectorAll(`input[name="${k}_src"]`).forEach(r=>r.addEventListener('change',()=>vendorGate(k))));
+/* 모든 입력칸이 input(+datalist) 이라 목록에 없는 값도 그대로 유지된다 */
+function setSel(id,v){const el=typeof id==='string'?document.getElementById(id):id;if(el)el.value=v==null?'':String(v)}
+function recalc(){
+ let s=0;for(let i=1;i<=8;i++)s+=num(document.getElementById('a'+i).value);
+ target_price.value=s?fmt(s):'';
+ for(let i=1;i<=8;i++){const a=num(document.getElementById('a'+i).value);
+  document.getElementById('p'+i).textContent=(s?(a/s*100):0).toFixed(0)+'%';}
+ const op=num(order_price.value);
+ profit_amount.value=op||s?fmt(op-s):'';
+ profit_rate_pct.value=op?((op-s)/op*100).toFixed(1):'';
+ profit_amount.style.color=profit_rate_pct.style.color=(op&&op-s<0)?'#c62828':'';
+}
+order_price.addEventListener('blur',()=>{const v=num(order_price.value);order_price.value=v?fmt(v):''});
+for(let i=1;i<=8;i++){const n=document.getElementById('a'+i);
+ n.addEventListener('blur',()=>{const v=num(n.value);n.value=v?fmt(v):''});
+ n.addEventListener('focus',()=>{const v=num(n.value);n.value=v?String(v):''})}
+/* v116 자동배분: 수주가 − 목표 이익금 을 항목 비율로 나누고 10만원 미만 절사 */
+const AD_KEY='mes_sp_autodist';
+function adSum(){let t=0;for(let i=1;i<=8;i++)t+=num(document.getElementById('r'+i).value);t=Math.round(t*100)/100;
+ const e=document.getElementById('ad_sum');e.textContent='비율 합계 '+t+'%';e.className='adsum '+(t===100?'ok':t?'bad':'');return t}
+function adSave(){try{const o={p:ad_profit.value,r:[]};for(let i=1;i<=8;i++)o.r.push(document.getElementById('r'+i).value);localStorage.setItem(AD_KEY,JSON.stringify(o))}catch(e){}}
+/* v116: 기본 배분율은 DB(page_state, page='cfg:sales_plan_autodist')에 공용 저장 — 저장 시 비율 합계 100%면 갱신 */
+const AD_PAGE='cfg:sales_plan_autodist';
+function adGet(){const r=[];for(let i=1;i<=8;i++)r.push(num(document.getElementById('r'+i).value));return r}
+function adPut(r){(r||[]).forEach((v,i)=>{const n=document.getElementById('r'+(i+1));if(n)n.value=v?String(v):''});adSum()}
+async function adStore(){
+ const r=adGet();if(adSum()!==100)return '';
+ try{localStorage.setItem(AD_KEY,JSON.stringify({r}))}catch(e){}
+ try{await waitDB();if(!window.MESDB)return '';
+  await MESDB.table('page_state').upsert({page:AD_PAGE,data:{ratios:r,updated_at:new Date().toISOString()}},'page');
+  return ' / 기본 배분율 저장'}catch(e){return ' / 기본 배분율 저장 실패'}}
+async function adLoad(){
+ try{const o=JSON.parse(localStorage.getItem(AD_KEY)||'null');if(o&&o.r)adPut(o.r)}catch(e){}
+ await waitDB();if(!window.MESDB)return;
+ for(let i=0;i<5;i++){   /* 로그인 토큰 준비 전이면 RLS 로 실패 → 잠시 뒤 재시도 */
+  try{const rs=await MESDB.table('page_state').select(`select=data&page=eq.${encodeURIComponent(AD_PAGE)}&limit=1`,{fresh:true});
+   if(rs&&rs[0]&&rs[0].data&&Array.isArray(rs[0].data.ratios)){adPut(rs[0].data.ratios);return}
+   /* 저장된 기본값이 없으면 최근 제작계획의 구성비(%)를 기본값으로 */
+   const sp=await MESDB.table('sales_plans').select('select=design_internal_pct,design_external_pct,raw_material_pct,purchase_pct,machining_internal_pct,machining_external_pct,assembly_internal_pct,assembly_external_pct&target_price=gt.0&order=row_no.desc&limit=1',{fresh:true});
+   if(sp&&sp[0]&&!adGet().some(v=>v)){const k=['design_internal_pct','design_external_pct','raw_material_pct','purchase_pct','machining_internal_pct','machining_external_pct','assembly_internal_pct','assembly_external_pct'];
+    const r=k.map(x=>Math.round(Number(sp[0][x]||0)));const t=r.reduce((a,b)=>a+b,0);
+    if(t>0){const mx=r.indexOf(Math.max(...r));r[mx]+=100-t;adPut(r)}}
+   return}catch(e){await new Promise(r=>setTimeout(r,600*(i+1)))}}}
+(function(){
+ for(let i=1;i<=8;i++)document.getElementById('r'+i).addEventListener('input',adSum);
+ ad_profit.addEventListener('focus',()=>{const v=num(ad_profit.value);ad_profit.value=v?String(v):''});
+ ad_profit.addEventListener('blur',()=>{const v=num(ad_profit.value);ad_profit.value=v?fmt(v):''});
+ adSum();setTimeout(adLoad,0)})();
+function autoDist(){
+ const op=num(order_price.value);if(!op){msg('수주가를 먼저 입력하세요.');order_price.focus();return}
+ const pf=num(ad_profit.value);if(pf<0){msg('목표 이익금은 0 이상이어야 합니다.');return}
+ const base=op-pf;if(base<=0){msg(`목표 이익금(${fmt(pf)})이 수주가(${fmt(op)}) 이상입니다.`);ad_profit.focus();return}
+ const tot=adSum();if(tot!==100){msg(`항목별 비율 합계가 ${tot}% 입니다. 100%가 되도록 맞추세요.`);return}
+ let has=false;for(let i=1;i<=8;i++)if(num(document.getElementById('a'+i).value))has=true;
+ if(has&&!confirm('입력된 금액을 자동배분 금액으로 덮어씁니다. 계속할까요?'))return;
+ const U=100000;let sum=0;
+ for(let i=1;i<=8;i++){const r=num(document.getElementById('r'+i).value);
+  const a=Math.floor(base*r/100/U)*U;sum+=a;document.getElementById('a'+i).value=a?fmt(a):''}
+ recalc();adSave();adStore();try{document.dispatchEvent(new Event('change'))}catch(e){}
+ msg(`자동배분 완료: 배분총액 ${fmt(base)}원 → 목표가 ${fmt(sum)}원 (절사분 ${fmt(base-sum)}원) / 이익금 ${fmt(op-sum)}원`);
+}
+/* 일수 = 종료일 − 시작일 + 1 */
+function calcDays(p){
+ const s=document.getElementById(p+'_start_date').value,e=document.getElementById(p+'_end_date').value,d=document.getElementById(p+'_days');
+ if(s&&e){const n=Math.round((new Date(e)-new Date(s))/86400000)+1;d.value=n>0?n:''}else d.value='';
+ const v=document.getElementById(p+'_days_v');if(v)v.textContent=d.value?d.value+'일':'-';
+}
+/* v185: 초품·완료 일수 = 목표일(초품=T/O 예정, 완료=납기 예정) − 시작일 + 1 (표시만) */
+const XEND={tryout:'s1_planned_date',complete:'delivery_planned_date'};
+function calcDaysX(p){const s=document.getElementById(p+'_start_date').value,e=document.getElementById(XEND[p]).value,v=document.getElementById(p+'_days_v');
+ let n=0;if(s&&e)n=Math.round((new Date(e)-new Date(s))/86400000)+1;if(v)v.textContent=n>0?n+'일':'-'}
+{const _cd=calcDays;calcDays=function(p){_cd(p);try{calcDaysX('tryout');calcDaysX('complete')}catch(e){}}}
+['tryout','complete'].forEach(p=>[p+'_start_date',XEND[p]].forEach(id=>document.getElementById(id).addEventListener('change',()=>calcDaysX(p))));
+/* v167: 가능일정이 목표보다 늦으면 노랑(late), 빠르면 연두(early) — 엑셀에서 손으로 칠하던 표시 */
+const EV=['receipt','design','machining','assembly','tryout','complete'];
+const GOAL={receipt:'receipt_date',design:'design_end_date',machining:'machining_end_date',assembly:'assembly_end_date',tryout:'s1_planned_date',complete:'delivery_planned_date'};
+function markLate(){
+ EV.forEach(k=>{const g=document.getElementById(GOAL[k]).value,c=document.getElementById('can_'+k+'_date');
+  c.classList.remove('late','early');
+  if(g&&c.value){if(c.value>g)c.classList.add('late');else if(c.value<g)c.classList.add('early')}});
+}
+EV.forEach(k=>{document.getElementById(GOAL[k]).addEventListener('change',markLate);document.getElementById('can_'+k+'_date').addEventListener('change',markLate)});
+
+/* v168: 날짜 칸 위에서 휠 → ±1일. 같은 줄의 오른쪽(이후 공정) 날짜도 같은 만큼 밀린다.
+   Shift = ±7일, Alt = 그 칸만. 빈 칸은 오늘부터 시작한다. */
+function fillTodayAll(){
+ const t=new Date().toLocaleDateString('sv-SE');let n=0;
+ document.querySelectorAll('table.ev input[type=date]').forEach(i=>{if(!i.value){i.value=t;n++}});
+ ['design','machining','assembly'].forEach(calcDays);if(typeof wdAll==='function')wdAll();
+ return n;
+}
+const addDays=(ymd,n)=>{const d=new Date(ymd+'T00:00:00');if(isNaN(d))return '';d.setDate(d.getDate()+n);return d.toLocaleDateString('sv-SE')};
+function wheelDate(e){
+ const inp=e.target.closest&&e.target.closest('table.ev input[type=date]');if(!inp)return;
+ e.preventDefault();
+ const n=(e.deltaY>0?1:-1)*(e.shiftKey?7:1);
+ const tr=inp.closest('tr'),cells=[...tr.querySelectorAll('input[type=date]')],i=cells.indexOf(inp);
+ const targets=e.altKey?[inp]:cells.slice(i);
+ if(!inp.value)inp.value=new Date().toLocaleDateString('sv-SE');
+ let moved=0;
+ targets.forEach((c,idx)=>{if(idx>0&&!c.value)return;c.value=addDays(c.value,n);c.dispatchEvent(new Event('change',{bubbles:true}));moved++});
+ inp.classList.add('bump');setTimeout(()=>inp.classList.remove('bump'),160);
+ msg(`${tr.querySelector('th')?.textContent||''} ${n>0?'+':''}${n}일 → ${inp.value}${moved>1?` (오른쪽 ${moved-1}칸도 함께)`:''}`);
+}
+/* v169: 날짜 칸 옆에 요일 (수) 표시 */
+const WDN=['일','월','화','수','목','금','토'];
+function wdOf(ymd){if(!ymd)return '';const d=new Date(ymd+'T00:00:00');return isNaN(d)?'':WDN[d.getDay()]}
+function wdSet(inp){const b=inp.parentElement&&inp.parentElement.querySelector('.wd');if(!b)return;const w=wdOf(inp.value);
+ b.textContent=w?`(${w})`:'';b.className='wd'+(w==='토'?' sat':w==='일'?' sun':'')+(inp.classList.contains('late')?' late':'');b.title=w?`${inp.value} (${w}요일)`:''}
+function wdAll(){document.querySelectorAll('table.ev input[type=date]').forEach(wdSet)}
+document.querySelectorAll('table.ev input[type=date]').forEach(inp=>{
+ if(inp.parentElement.classList.contains('dcell'))return;
+ const w=document.createElement('span');w.className='dcell';inp.parentNode.insertBefore(w,inp);w.appendChild(inp);
+ const b=document.createElement('b');b.className='wd';w.appendChild(b);
+ inp.addEventListener('change',()=>wdSet(inp));inp.addEventListener('input',()=>wdSet(inp));wdSet(inp)});
+const _markLate=markLate;markLate=function(){_markLate();wdAll()};
+document.querySelector('table.ev').addEventListener('wheel',wheelDate,{passive:false});
+/* v169: 목표 접수일이 비어 있으면 수주일로 채운다 (직접 입력한 값은 유지) */
+document.getElementById('order_date').addEventListener('change',()=>{const r=document.getElementById('receipt_date');if(order_date.value&&(!r.value||r.value===r.__fromOrder)){r.value=order_date.value;r.__fromOrder=r.value;r.dispatchEvent(new Event('change',{bubbles:true}))}});
+/* 시작일 줄은 일수 재계산 */
+['design','machining','assembly'].forEach(p=>['_start_date','_end_date'].forEach(k=>{const el=document.getElementById(p+k);if(el&&!el.__cd){el.__cd=1;el.addEventListener('change',()=>calcDays(p))}}));
+
+/* v167 진척현황 — [{d:'2026-07-31',t:'제작접수/도면협의'}] */
+let PLOG=[];
+function plRender(){
+ const ul=document.getElementById('plList');
+ ul.innerHTML=PLOG.length?PLOG.map((e,i)=>`<li><b>${esc(String(e.d||'').slice(5).replace('-','/'))}</b><span title="${esc(e.t)}">${esc(e.t)}</span><button type="button" onclick="plDel(${i})" title="지우기">✕</button></li>`).join('')
+  :'<li class="empty">아직 기록이 없습니다.</li>';
+ ul.scrollTop=ul.scrollHeight;
+}
+function plAdd(){
+ const d=document.getElementById('pl_date').value||new Date().toLocaleDateString('sv-SE'),t=(document.getElementById('pl_text').value||'').trim();
+ if(!t){msg('진척 내용을 입력하세요.');document.getElementById('pl_text').focus();return}
+ PLOG.push({d,t});PLOG.sort((a,b)=>String(a.d).localeCompare(String(b.d)));
+ document.getElementById('pl_text').value='';plRender();msg(`진척현황 추가 — 저장을 눌러야 DB에 반영됩니다.`);
+}
+function plDel(i){PLOG.splice(i,1);plRender()}
+
+/* v167 제품 형상 그림 — mes-attach 버킷 (부품 이미지와 같은 곳) */
+function shapePick(){const f=document.getElementById('shapeFile');f.value='';f.click()}
+function shapeShow(url){
+ const img=document.getElementById('shapeImg'),h=document.getElementById('shapeHint');
+ document.getElementById('image_url').value=url||'';
+ if(url){img.src=url;img.style.display='';h.style.display='none'}else{img.removeAttribute('src');img.style.display='none';h.style.display=''}
+}
+function shapeClear(){shapeShow('');msg('제품 그림을 지웠습니다 — 저장하면 반영됩니다.')}
+async function shapeUp(inp){
+ const f=inp.files&&inp.files[0];if(!f)return;
+ const job=curBase();
+ try{
+  msg('그림 올리는 중…');
+  const url=await MESDB.imgUpload(f,job||'공통','shape');
+  shapeShow(url);msg('제품 그림을 올렸습니다 — [▤ 저장]을 눌러야 계획에 기록됩니다.');
+ }catch(e){msg('그림 올리기 실패: '+String(e.message||e).slice(0,120))}
+ finally{inp.value=''}
+}
+['design','machining','assembly'].forEach(p=>['_start_date','_end_date'].forEach(k=>document.getElementById(p+k).addEventListener('change',()=>calcDays(p))));
+
+function load(o){
+ for(const k of ['job_no','customer_name','item_name','mold_type_name','product_name','process_set_qty','order_date','model','s1_planned_date','delivery_planned_date','design_start_date','design_end_date','design_days','design_manager','machining_start_date','machining_end_date','machining_manager','assembly_start_date','assembly_end_date','assembly_manager','order_price','target_price',
+   'machining_vendor',...EXTK]){
+  setSel(k,o[k]);
+ }
+ PLOG=Array.isArray(o.progress_log)?o.progress_log.slice():(typeof o.progress_log==='string'?(function(){try{return JSON.parse(o.progress_log)||[]}catch(e){return []}})():[]);
+ {const r=document.getElementById('receipt_date');if(!r.value&&o.order_date)r.value=String(o.order_date).slice(0,10)}
+ plRender();shapeShow(o.image_url||'');markLate();
+ document.getElementById('remark').value=o.remark||'';
+ /* v119: 설계·조립 외주 항목은 화면에서 삭제 — 값은 외주설계발주·SET외주발주 화면이 sales_plans 에 기록한다 */
+ {const c=document.getElementById('machining_set_outsourced');if(c)c.checked=!!o.machining_set_outsourced}
+ setOut('machining',o.machining_outsourced);
+ {const v=document.getElementById('machining_vendor');if(v)v.value=(isOut('machining')&&o.machining_vendor)?o.machining_vendor:'';vendorGate('machining')}
+ AK.forEach((k,i)=>{const n=document.getElementById('a'+(i+1));if(n)n.value=num(o[k])?fmt(num(o[k])):''});
+ ['design','machining','assembly'].forEach(p=>{if(!document.getElementById(p+'_days').value)calcDays(p)});
+ order_price.value=num(order_price.value)?fmt(num(order_price.value)):'';
+ recalc();
+}
+function clearForm(quiet){
+ document.querySelectorAll('input:not(.adr)').forEach(n=>{if(n.type==='checkbox')n.checked=false;else if(n.type!=='radio')n.value=''});
+ document.getElementById('remark').value='';PLOG=[];plRender();shapeShow('');markLate();
+ ['design','machining','assembly'].forEach(calcDays);
+ ['design','machining','assembly'].forEach(k=>setOut(k,false));
+ recalc();try{adSum()}catch(e){}if(!quiet)message.textContent='입력값을 비웠습니다.';
+}
+/* v28: 영업계획을 sales_plans 테이블에 실제 저장 + 수주정보 연동 */
+const PCT={design_internal_amount:'design_internal_pct',design_external_amount:'design_external_pct',
+ raw_material_amount:'raw_material_pct',purchase_amount:'purchase_pct',
+ machining_internal_amount:'machining_internal_pct',machining_external_amount:'machining_external_pct',
+ assembly_internal_amount:'assembly_internal_pct',assembly_external_amount:'assembly_external_pct'};
+/* v167: 엑셀(제번관리) 항목 — 도번·제작구분·재질·사이즈·고객담당·설계처·제작처·양산처·그림·요구/가능일정·특기사항 */
+const EXTK=['receipt_manager','tryout_manager','complete_manager','tryout_start_date','complete_start_date','drawing_no','make_type','material_spec','size_spec','customer_contact','design_partner','maker_name','mass_vendor','image_url',
+ 'receipt_date','req_receipt_date','req_design_date','req_machining_date','req_assembly_date','req_tryout_date','req_complete_date',
+ 'can_receipt_date','can_design_date','can_machining_date','can_assembly_date','can_tryout_date','can_complete_date'];
+const HK=['job_no','product_name','customer_name','process_set_qty','item_name','order_date',
+ 'mold_type_name','s1_planned_date','model','delivery_planned_date','design_start_date','design_end_date',
+ 'design_days','design_manager','machining_start_date','machining_end_date','machining_manager',
+ 'assembly_start_date','assembly_end_date','assembly_manager','order_price','target_price',
+ 'machining_vendor',...EXTK];
+const DATEK=['order_date','s1_planned_date','delivery_planned_date','design_start_date','design_end_date',
+ 'machining_start_date','machining_end_date','assembly_start_date','assembly_end_date',
+ ...EXTK.filter(k=>/_date$/.test(k))];
+const NUMK=['process_set_qty','design_days','order_price','target_price'];
+const online=()=>!!(window.MESDB&&MESDB.online);
+const msg=t=>message.textContent=t;
+async function waitDB(){for(let i=0;i<60&&!window.MESDB;i++)await new Promise(r=>setTimeout(r,50));
+ if(window.MESDB&&MESDB.ready){try{await MESDB.ready}catch(e){}}}
+
+function collect(){
+ const o={};
+ HK.forEach(k=>{const n=document.getElementById(k);o[k]=n?(n.value||null):null});
+ NUMK.forEach(k=>{o[k]=o[k]==null?null:(num(o[k])||null)});
+ DATEK.forEach(k=>{if(o[k]==='')o[k]=null});
+ o.remark=(document.getElementById('remark').value||'').trim()||null;
+ o.progress_log=PLOG.length?PLOG:[];
+ /* v119: 설계·조립 외주 여부는 이 화면에서 보내지 않는다 (DB 값 유지). 가공만 입력 */
+ o.machining_outsourced=isOut('machining');
+ {const c=document.getElementById('machining_set_outsourced');o.machining_set_outsourced=!!(c&&c.checked)}
+ if(!o.machining_outsourced)o.machining_vendor=null;
+ let s=0;AK.forEach((k,i)=>s+=num(document.getElementById('a'+(i+1)).value));
+ AK.forEach((k,i)=>{const a=num(document.getElementById('a'+(i+1)).value);
+  o[k]=a||null;o[PCT[k]]=s?Math.round(a/s*1000)/10:0});
+ o.target_price=s||null;
+ const op=num(order_price.value);
+ o.profit_rate_pct=op?Math.round((op-s)/op*1000)/10:null;
+ return o;
+}
+
+/* ── v68 기준정보 드롭다운 ──────────────────────────────
+ * 제번: job_pool(취소 제외 수주) / 고객사: 업체관리 고객사 / 아이템·금형타입: 기준정보 / 담당자: 사용자정보 */
+function fillDL(id,rows,val,lab){
+ const dl=document.getElementById(id);if(!dl)return;
+ dl.innerHTML=rows.map(r=>{const v=val(r);if(!v)return '';const l=lab?lab(r):'';
+  return `<option value="${esc(v)}">${esc(l)}</option>`}).join('');
+}
+/* ── v183: 관리제번 단위 제작계획 ─────────────────────────────
+ *  목록·입력칸은 「26DSA057 (A~D)」 처럼 관리제번 + 공정 범위로 보인다.
+ *  저장하면 그 관리제번의 공정 제번(A·B·C·D) 모두에 같은 계획(일정·담당·특기사항)이 들어가고,
+ *  원가 항목(설계·재료·가공·조립 금액)은 공정 수로 나눠 넣는다. 수주가는 각 공정 제번의 수주가를 쓴다. */
+const JSPL=j=>{const m=/^(.*\d)([A-Z])$/.exec(String(j||'').trim());return m?{base:m[1],seq:m[2]}:{base:String(j||'').trim(),seq:''}};
+let JGROUP=new Map();   /* 관리제번 → [공정 제번…] */
+const seqRange=js=>{const q=js.map(j=>JSPL(j).seq).filter(Boolean);if(!q.length)return '';
+ const c=q.map(x=>x.charCodeAt(0));const run=c.every((v,i)=>!i||v===c[i-1]+1);
+ return q.length===1?`(${q[0]})`:run?`(${q[0]}~${q[q.length-1]})`:`(${q.join('·')})`};
+const baseLabel=b=>{const js=JGROUP.get(b)||[];const r=seqRange(js);return r?`${b} ${r}`:b};
+function curBase(){return String(job_no.value||'').trim().toUpperCase().split(/[\s(]/)[0]||''}
+function jobsOfBase(b){const js=JGROUP.get(b);if(js&&js.length)return js.slice();return b?[b]:[]}
+async function loadMasters(){
+ await waitDB();if(!online()){msg('DB 미연결 - 기준정보를 불러올 수 없습니다.');return}
+ try{
+  const rs=await MESDB.table('job_pool').select('select=job_no,item_name,customer_name,order_date&order=row_no');
+  const info=new Map();JGROUP=new Map();
+  (rs||[]).forEach(r=>{const b=JSPL(r.job_no).base;if(!JGROUP.has(b)){JGROUP.set(b,[]);info.set(b,r)}JGROUP.get(b).push(String(r.job_no))});
+  JGROUP.forEach(a=>a.sort());
+  const bases=[...JGROUP.keys()].sort((a,b)=>b.localeCompare(a));
+  fillDL('dl_job',bases.map(b=>({b,r:info.get(b)})),x=>baseLabel(x.b),x=>[x.r.item_name,x.r.customer_name].filter(Boolean).join(' · '));
+  job_no.placeholder=bases.length?`관리제번 입력/선택 (등록 ${bases.length}건)`:'등록된 수주가 없습니다';
+  if(curBase())job_no.value=baseLabel(curBase());
+ }catch(e){}
+ const K=window.MESLOOK;if(!K)return;
+ const pull=async kind=>{try{return await K.rows(kind)}catch(e){return []}};
+ fillDL('dl_cust',await pull('customer'),r=>r.vendor_name,r=>r.vendor_code||'');
+ fillDL('dl_item',await pull('item'),r=>r.item_name,r=>r.item_code||'');
+ fillDL('dl_mold',await pull('mold'),r=>r.mold_type_name,r=>r.mold_type_code||'');
+ fillDL('dl_emp',await pull('employee'),r=>r.name,r=>r.department_name||'');
+ /* 외주업체: 설계=외주설계 협력업체, 가공=외주가공 협력업체, 조립=협력업체 전체 */
+ fillDL('dl_vd_design',await pull('design_partner'),r=>r.partner_name,r=>'외주설계');
+ fillDL('dl_vd_mach',await pull('vendor_outsourcing'),r=>r.vendor_name,r=>r.vendor_code||'');
+ fillDL('dl_vd_mass',await pull('mass_production'),r=>r.vendor_name,r=>r.vendor_code||'');   /* v238: 양산처 드롭다운 */
+ fillDL('dl_vd_asm',(await pull('vendor')).filter(r=>r.vendor_type==='협력업체'),r=>r.vendor_name,r=>r.vendor_code||'');
+ ['design','machining','assembly'].forEach(vendorGate);
+}
+
+/* 기준정보·수주가 바뀌면 목록만 다시 채운다 (입력값은 그대로 유지) */
+(function(){const bind=()=>{if(window.MESDB&&MESDB.onChange){MESDB.onChange(['sale_orders','jobs','vendors','item_categories','mold_types','users'],()=>{loadMasters()});return true}return false};
+ if(!bind()){let n=0;const iv=setInterval(()=>{if(bind()||++n>40)clearInterval(iv)},100)}})();
+
+/* 관리제번 선택 → 공정 제번 중 기존 계획이 있으면 그것, 없으면 수주정보(sale_orders)로 헤더 채움 */
+async function loadJob(j){
+ if(typeof j==='string'&&j)setSel('job_no',j);
+ const b=curBase();if(!b){clearForm(true);msg('관리제번을 입력하거나 목록에서 고르세요.');return}
+ if(!JGROUP.has(b)){const hit=[...JGROUP.entries()].find(([k,v])=>v.includes(b));if(hit){setSel('job_no',baseLabel(hit[0]));return loadJob()}}
+ job_no.value=baseLabel(b);
+ const jobs=jobsOfBase(b),rg=seqRange(jobs);
+ if(!online()){msg('DB 미연결 - 수주정보를 불러올 수 없습니다.');return}
+ try{
+  const inq=`in.(${jobs.map(x=>encodeURIComponent(x)).join(',')})`;
+  const [ex,so]=await Promise.all([
+   MESDB.table('sales_plans').select(`select=*&job_no=${inq}&order=job_no`),
+   MESDB.table('sale_orders').select(`select=*&job_no=${inq}&order=job_no`)]);
+  const soSum=(so||[]).reduce((t,r)=>t+num(r.order_price),0);
+  if(ex&&ex.length){
+   const o={...ex[0]};
+   /* 원가 금액은 공정 합계로 보여준다 (저장 시 다시 공정 수로 나눔) */
+   if(ex.length>1)AK.forEach(k=>{o[k]=ex.reduce((t,r)=>t+num(r[k]),0)||null});
+   load(o);setSel('job_no',baseLabel(b));
+   /* v238: 계획에 비어 있는 양산처·도번은 수주등록 값으로 채운다 */
+   if(so&&so[0]){if(!mass_vendor.value)setSel('mass_vendor',so[0].mass_production_vendor_name);if(!drawing_no.value)setSel('drawing_no',so[0].drawing_no);if(!design_partner.value&&so[0].design_vendor_name)setSel('design_partner',so[0].design_vendor_name)}   /* v242: 수주등록 설계업체 */
+   if(soSum)order_price.value=fmt(soSum);recalc();
+   msg(`${b} ${rg} 기존 제작계획을 불러왔습니다. (공정 제번 ${jobs.length}건 중 계획 ${ex.length}건${ex.length<jobs.length?' — 저장하면 나머지 공정에도 들어갑니다':''})`);return}
+  if(!so||!so[0]){msg(`${b} 수주정보가 없습니다. 수주등록을 먼저 진행하세요.`);return}
+  const s0=so[0];
+  clearForm(true);setSel('job_no',baseLabel(b));
+  setSel('item_name',s0.item_name);setSel('product_name',s0.product_name);setSel('customer_name',s0.customer_name);
+  setSel('model',s0.model);setSel('order_date',s0.order_date);setSel('s1_planned_date',s0.s1_planned_date);
+  setSel('delivery_planned_date',s0.delivery_planned_date);setSel('mold_type_name',s0.mold_type_name);
+  setSel('process_set_qty',s0.process_set_qty);
+  setSel('drawing_no',s0.drawing_no);setSel('receipt_date',s0.order_date);
+  setSel('mass_vendor',s0.mass_production_vendor_name);   /* v238: 수주등록의 양산처 */
+  if(s0.design_vendor_name)setSel('design_partner',s0.design_vendor_name);   /* v242: 수주등록의 설계업체 → 설계처 */
+  /* v168: 새 계획은 EVENT 표의 빈 날짜 칸을 전부 오늘로 채운다 — 휠로 밀어 가며 잡기 쉽게 */
+  fillTodayAll();markLate();
+  order_price.value=soSum?fmt(soSum):'';
+  recalc();msg(`${b} ${rg} 수주정보를 불러왔습니다. (신규 제작계획 — 저장하면 공정 제번 ${jobs.length}건에 함께 들어갑니다)`);
+ }catch(e){msg('조회 실패: '+String(e.message||e).slice(0,120))}
+}
+
+async function saveOne(o){
+ if(!o.job_no){msg('제번은 필수입니다.');return false}
+ if(!online()){await adStore();msg(`${o.job_no} 저장했습니다. (DB 미연결 - 로컬)`);return}
+ try{
+  const jb=await MESDB.table('jobs').select(`select=job_no&job_no=eq.${encodeURIComponent(o.job_no)}&limit=1`);
+  if(!jb||!jb[0]){msg(`${o.job_no} 은(는) 등록된 제번이 아닙니다. 수주등록을 먼저 진행하세요.`);return false}
+  const ex=await MESDB.table('sales_plans').select(`select=row_no&job_no=eq.${encodeURIComponent(o.job_no)}&limit=1`);
+  /* v39: 기존은 row_no 로 갱신, 신규는 DB identity 에 맡긴다 */
+  if(ex&&ex[0]){o.row_no=Number(ex[0].row_no);await MESDB.table('sales_plans').upsert(o,'row_no')}
+  else{delete o.row_no;const ins=await MESDB.table('sales_plans').insertOne(o);if(ins&&ins.row_no!=null)o.row_no=Number(ins.row_no)}
+  /* 영업계획현황 행 동기화 — v62: 현황행은 job_no 로 찾아 갱신 (sales_plans.row_no 를 그대로 쓰면 다른 제번 행을 덮어씀) */
+  let srNo=null;
+  try{const sr=await MESDB.table('sales_plan_status_rows').select(`select=row_no&job_no=eq.${encodeURIComponent(o.job_no)}&limit=1`);if(sr&&sr[0])srNo=Number(sr[0].row_no)}catch(e){}
+  const sum=(...ks)=>{const v=ks.reduce((a,k)=>a+Number(o[k]||0),0);return v||null};
+  const r={job_no:o.job_no,item_name:o.item_name,
+   order_price:o.order_price,target_price:o.target_price,profit_rate_pct:o.profit_rate_pct,
+   design_start_date:o.design_start_date,design_end_date:o.design_end_date,
+   design_days:o.design_days,design_manager:o.design_manager,
+   machining_amount:sum('machining_internal_amount','machining_external_amount'),
+   assembly_amount:sum('assembly_internal_amount','assembly_external_amount'),
+   etc_amount:sum('design_internal_amount','design_external_amount','raw_material_amount','purchase_amount'),
+   delivery_planned_date:o.delivery_planned_date};
+  try{if(srNo!=null)await MESDB.table('sales_plan_status_rows').upsert({row_no:srNo,...r},'row_no');
+      else await MESDB.table('sales_plan_status_rows').insertOne(r)}
+  catch(e){msg(`${o.job_no} 계획은 저장됐으나 제작계획현황 반영 실패: `+String(e.message||e).slice(0,100));return false}
+  /* v68: 설계=외주 + 외주업체 지정이면 외주설계 발주(order_lines)를 여기서 바로 만든다.
+     설계관리의 외주설계발주등록 화면을 대신한다. 견적가 = 설계 사외 금액, 입고예정일 = 설계 종료일 */
+  /* v119: 외주설계 자동발주 제거 — 설계외주는 영업관리 › 설계외주 › 외주설계발주등록에서 직접 등록 */
+  let odMsg='';
+  try{MESDB.notify&&MESDB.notify(['sales_plans','sales_plan_status_rows','order_lines'])}catch(e){}
+  return true;
+ }catch(e){
+  const m=String(e.message||e);
+  msg(`${o.job_no} `+(/무결성|foreign key/i.test(m)?'저장 실패: 등록되지 않은 제번입니다.':'저장 실패: '+m.slice(0,120)));
+  return false;
+ }
+}
+/* v183: 관리제번의 공정 제번 모두에 저장 — 원가 금액은 공정 수로 나누고, 수주가는 각 공정의 수주가 */
+async function save(){
+ const b=curBase();if(!b){msg('관리제번은 필수입니다.');return}
+ const base=collect();const jobs=jobsOfBase(b),n=jobs.length,rg=seqRange(jobs);
+ if(!online()){await adStore();msg(`${b} ${rg} 저장했습니다. (DB 미연결 - 로컬)`);return}
+ let soP={};
+ try{const so=await MESDB.table('sale_orders').select(`select=job_no,order_price&job_no=in.(${jobs.map(x=>encodeURIComponent(x)).join(',')})`);(so||[]).forEach(r=>soP[r.job_no]=num(r.order_price))}catch(e){}
+ const part=(tot,i)=>{tot=num(tot);if(!tot)return null;const each=Math.round(tot/n);return i===n-1?tot-each*(n-1):each};
+ let ok=0,fail=[];
+ for(let i=0;i<n;i++){
+  const o={...base,job_no:jobs[i]};delete o.row_no;
+  if(n>1){
+   let s=0;AK.forEach(k=>{o[k]=part(base[k],i);s+=num(o[k])});
+   AK.forEach(k=>{o[PCT[k]]=s?Math.round(num(o[k])/s*1000)/10:0});
+   o.target_price=s||null;
+   o.order_price=soP[jobs[i]]||part(base.order_price,i);
+   o.profit_rate_pct=o.order_price?Math.round((o.order_price-s)/o.order_price*1000)/10:null;
+  }
+  if(await saveOne(o))ok++;else fail.push(jobs[i]);
+ }
+ try{MESDB.notify&&MESDB.notify(['sales_plans','sales_plan_status_rows'])}catch(e){}
+ const ad=await adStore();
+ msg(fail.length?`${b} ${rg} 제작계획 ${ok}건 저장 · 실패 ${fail.join(', ')}`
+   :`${b} ${rg} 제작계획을 공정 제번 ${ok}건(${jobs.join(', ')})에 저장했습니다. (목표원가 합계 ${Number(base.target_price||0).toLocaleString()}원 / 이익률 ${base.profit_rate_pct ?? '-'}%)`+ad);
+ if(!fail.length)try{(window.MESPOP||window.parent?.MESPOP)?.ok(`${b} ${rg} 제작계획 저장`,'제작계획등록')}catch(e){}
+}
+/* 외주설계 발주 동기화 — 미입고(status=발주) 라인만 만들거나 고친다. 입고가 시작된 라인은 건드리지 않는다 */
+async function syncDesignOrder(o){
+ const job=o.job_no;
+ const ex=await MESDB.table('order_lines').select(`select=line_id,vendor_name,status,quote_price,nego_rate,receipt_amount&category=eq.외주설계&job_no=eq.${encodeURIComponent(job)}&order=line_id`);
+ /* 외주설계는 nego_rate 를 진척률(%)로 쓴다 — 진척이 시작된 라인은 손대지 않는다 */
+ const open=(ex||[]).filter(r=>r.status==='발주'&&!(Number(r.nego_rate)>0)&&!(Number(r.receipt_amount)>0));
+ const started=(ex||[]).filter(r=>!open.includes(r));
+ if(!o.design_outsourced||!o.design_vendor){
+  if(open.length)return ` / 주의: 사내설계로 바뀌었지만 외주설계 발주 ${open.length}건(${[...new Set(open.map(r=>r.vendor_name))].join(',')})이 남아 있습니다. 외주설계발주입고에서 발주취소 하세요.`;
+  return '';
+ }
+ if(started.length&&!open.length)return ` / 외주설계 발주는 이미 입고 진행 중(${started[0].vendor_name})이라 변경하지 않았습니다.`;
+ const owner=(function(){try{return (window.MES_AUTH||window.parent.MES_AUTH)?.name||null}catch(e){return null}})();
+ const quote=Number(o.design_external_amount)||0;
+ let proc='A',procName='1/1';
+ try{const st=await MESDB.table('design_plan_steps').select(`select=process_code,process_name&job_no=eq.${encodeURIComponent(job)}&order=row_no&limit=1`);
+  if(st&&st[0]){proc=st[0].process_code||proc;procName=st[0].process_name||procName}}catch(e){}
+ const row={category:'외주설계',status:'발주',job_no:job,item_name:o.item_name||null,
+  vendor_name:o.design_vendor,process_code:proc,process_name:procName,
+  order_date:new Date().toISOString().slice(0,10),required_date:o.design_end_date||null,
+  quote_price:quote,confirm_price:quote,order_qty:1,owner_name:owner,updated_at:new Date().toISOString()};
+ if(open.length){
+  const t=open[0];
+  await MESDB.table('order_lines').upsert({line_id:t.line_id,vendor_name:row.vendor_name,process_code:proc,process_name:procName,
+   required_date:row.required_date,quote_price:quote,confirm_price:quote,updated_at:row.updated_at},'line_id');
+  for(const d of open.slice(1))try{await MESDB.table('order_lines').delete({line_id:d.line_id})}catch(e){}
+  return ` / 외주설계 발주 갱신: ${row.vendor_name} ${quote.toLocaleString()}원`;
+ }
+ if(MESDB.ensureRefs)await MESDB.ensureRefs([row]);
+ await MESDB.table('order_lines').upsert([row]);
+ return ` / 외주설계 발주 생성: ${row.vendor_name} ${quote.toLocaleString()}원 (외주설계발주입고에서 진척 처리)`;
+}
+window.MES={save,clearForm,setMessage:t=>message.textContent=t,search:loadJob,load,loadJob};
+job_no.addEventListener('change',()=>loadJob());
+clearForm(true);
+</script><script src="mes_sample.js?v=169"></script><script src="mes_demo.js?v=68"></script><script src="mes_db.js?v=196"></script>
+<script>loadMasters();</script>
+<script src="mes_ctx.js?v=169"></script>
+
+<script>
+function sampleFill(){
+  var say=(window.msg||function(t){var e=document.getElementById('message');if(e)e.textContent=t});
+  if(window.MESDEMO)return MESDEMO.run('sales_plan_input',{keyId:'job_no',auto:null});
+  if(!window.MESSAMPLE)return say('예제 모듈을 불러오지 못했습니다.');
+  say(MESSAMPLE.fill('sales_plan_input',{keyId:'job_no',auto:null}).msg);
+}
+</script>
+</body></html>

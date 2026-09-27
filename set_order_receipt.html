@@ -1,0 +1,187 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>조립외주입고</title>
+<style>
+:root{--line:#9daab6;--line2:#c5ced6;--ink:#344758}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{font-family:"Malgun Gothic","맑은 고딕",Arial,sans-serif;font-size:12px;color:var(--ink);background:#fff;overflow:hidden}button,input,select{font:inherit;color:inherit}
+.screen{height:100%;display:flex;flex-direction:column}.title{height:46px;padding:9px 14px 4px;border-bottom:2px solid #3977ad;display:flex;align-items:center;gap:14px}.title h1{margin:0;font-size:21px;font-weight:500;color:#4b5b69}.title h1:before{content:'◯';margin-right:6px;color:#8795a1}.title .plant{margin-left:auto;display:flex;align-items:center;gap:6px;color:#6b7885}
+.filters{padding:7px 14px;border-bottom:1px solid var(--line2);background:#fafbfc;display:flex;gap:6px;align-items:center}.label{font-weight:700}.field{height:27px;border:1px solid #b7c2cb;background:#fff;padding:0 7px;outline:none}.field:focus{border-color:#4e88bb}
+.top{flex:1.1;min-height:0;padding:7px 14px 0;display:flex}.top .box{flex:1}
+.bottom{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1.6fr;gap:6px;padding:6px 14px}.formgrid{display:grid;grid-template-columns:90px 1fr 90px 1fr;gap:5px;padding:8px;align-content:start}.formgrid .label{height:27px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line2);background:#eef3f7}.formgrid .field{width:100%}.formgrid .wide{grid-column:2/5}.bar{height:8px;background:#e1e8ee;border:1px solid #c5ced6}.bar i{display:block;height:100%;background:#3f87c4}
+.box{border:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:#fff}.box-title{height:24px;display:flex;align-items:center;justify-content:center;background:linear-gradient(#deebf5,#caddea);border-bottom:1px solid var(--line);font-weight:700;color:#536677}
+.searchbar{height:26px;display:flex;gap:4px;align-items:center;padding:0 4px;border-bottom:1px solid var(--line2);background:#f6f8fa}.searchbar input{flex:1;height:21px;border:1px solid #b7c2cb;padding:0 4px}.searchbar button{height:21px;border:1px solid #9ca9b5;background:linear-gradient(#fff,#e2e8ed)}
+.tablewrap{flex:1;min-height:0;overflow:auto}table{border-collapse:collapse;width:100%;table-layout:fixed}th,td{height:24px;padding:0 5px;border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}th{position:sticky;top:0;z-index:2;text-align:center;background:linear-gradient(#dbe9f4,#c7d9e8);color:#405266;font-weight:700}tbody tr:hover td{background:#edf6fd}tbody tr.sel td{background:#2e78bd;color:#fff}.c{text-align:center}.r{text-align:right}
+.movebar{display:flex;justify-content:flex-end;gap:6px;padding:0 14px}
+.btn{height:28px;min-width:70px;border:1px solid #9ca9b5;background:linear-gradient(#fff,#dfe6eb)}.btn:hover{background:#fff}.btn.primary{background:linear-gradient(#f9ffff,#d2e7f6);color:#1e5e91}.btn.confirm{background:linear-gradient(#fff3f7,#f3c3d5);color:#a8235a;border-color:#d38aa6;font-weight:700}.btn.confirm:hover{background:linear-gradient(#fff,#f7d3e0)}
+.foot{height:42px;display:flex;align-items:center;padding:5px 14px;border-top:1px solid var(--line);background:#eef2f5;gap:5px}.msg{margin-left:10px;color:#687784}.foot .right{margin-left:auto;color:#7c8993}
+input.cell{width:100%;height:20px;border:1px solid #cbd4dc;padding:0 3px;text-align:right}
+@media(max-width:900px){.top,.bottom{grid-template-columns:1fr;height:auto}.title h1{font-size:18px}}
+
+/* v21 입력란 배치 보정: 좁은 폭에서 필드를 숨기지 않고 단계적으로 줄바꿈 */
+.field,.formrow input,.formrow select,.formgrid input,.formgrid select,.detail-grid input,.detail-grid select{min-width:0;max-width:100%}
+.lab,.label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:880px){.formgrid{grid-template-columns:90px minmax(0,1fr)}}
+.formgrid>*{min-width:0}
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="title"><h1>조립외주입고</h1><small>영업관리 · 조립외주</small></div>
+  <section class="filters">
+    <span class="label">발주일</span><input id="fromQ" class="field" type="date" value="2025-01-01"><span>~</span><input id="toQ" class="field" type="date" value="2026-12-31">
+    <span class="label">협력업체</span><select id="venQ" class="field"><option value="">전체</option></select>
+    <span class="label" title="관리제번을 고르면 A~F 공정 발주가 모두 나옵니다. 공정 제번·품명으로도 찾습니다">관리제번</span><input id="jobQ" class="field" list="dl_base" autocomplete="off" style="width:200px" placeholder="관리제번 입력/선택"><datalist id="dl_base"></datalist>
+    <label><input type="checkbox" id="onlyOpen" checked> 미입고만</label>
+    <button class="btn" onclick="search()">⌕ 조회</button>
+  </section>
+  <section class="top">
+    <div class="box"><div class="box-title">조립외주 발주 리스트 (입고 대상)</div><div class="tablewrap"><table>
+      <colgroup><col style="width:36px"><col style="width:36px"><col style="width:11%"><col style="width:13%"><col style="width:12%"><col style="width:6%"><col style="width:7%"><col style="width:9%"><col style="width:9%"><col style="width:10%"><col style="width:11%"><col style="width:9%"><col style="width:7%"></colgroup>
+      <thead><tr><th>No</th><th></th><th>제번</th><th>품명</th><th>협력업체</th><th>조수</th><th>공정명</th><th>발주일</th><th>입고요구일</th><th>네고가</th><th>진척률</th><th>입고일</th><th>상태</th></tr></thead>
+      <tbody id="ordBody"></tbody></table></div></div>
+  </section>
+  <section class="bottom">
+    <div class="box"><div class="box-title">입고 등록</div>
+      <div class="formgrid">
+        <div class="label">제번</div><input id="fJob" class="field" readonly><div class="label">조수</div><input id="fSeq" class="field" readonly>
+        <div class="label">협력업체</div><input id="fVen" class="field" readonly><div class="label">네고가</div><input id="fNego" class="field r" readonly>
+        <div class="label">입고일</div><input id="fDate" class="field" type="date"><div class="label">진척률(%)</div><input id="fRate" class="field r" type="number" min="0" max="100" step="5" value="100">
+        <div class="label">입고금액</div><input id="fAmt" class="field r" type="number" min="0"><div class="label">검수자</div><input id="fInsp" class="field">
+        <div class="label">비고</div><input id="fRemark" class="wide field" placeholder="입고 검수 내용">
+      </div></div>
+    <div class="box"><div class="box-title">입고 이력</div><div class="tablewrap"><table>
+      <colgroup><col style="width:36px"><col style="width:36px"><col style="width:15%"><col style="width:7%"><col style="width:16%"><col style="width:13%"><col style="width:9%"><col style="width:13%"><col style="width:10%"><col></colgroup>
+      <thead><tr><th>No</th><th></th><th>제번</th><th>조수</th><th>협력업체</th><th>입고일</th><th>진척</th><th>입고금액</th><th>검수자</th><th>비고</th></tr></thead>
+      <tbody id="rcpBody"></tbody></table></div></div>
+  </section>
+  <footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn confirm" onclick="receive()">▣ 입고처리</button><button class="btn" onclick="cancelReceipt()">↶ 입고취소</button><button class="btn" onclick="cancelOrder()">✕ 발주취소</button><button class="btn" onclick="exportCsv()">▤ EXCEL</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">입고할 발주를 선택한 뒤 입고일·진척률을 입력하고 입고처리 하세요.</span><span class="right" id="countText"></span></footer>
+</div>
+<script>
+/* v77: 조립외주입고 — 설계외주입고와 같은 진척률·입고이력 방식으로 재작성.
+ *   발주 : set_order_lines (status 발주 → 100% 입고 시 '입고')
+ *   이력 : set_order_receipt_history (line_id 기준 회차별 입고) */
+let ORD=[],RCP=[],view=[],sel=-1;
+const TBL='set_order_lines',HIS='set_order_receipt_history';
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const money=v=>Number(v||0).toLocaleString('ko-KR');
+const today=()=>new Date().toISOString().slice(0,10);
+const online=()=>!!(window.MESDB&&MESDB.online);
+const me=()=>{try{const a=window.MES_AUTH||window.parent.MES_AUTH;if(!a)return '';const em=a.session&&a.session.user&&a.session.user.email;return a.name||a.user_name||(em?String(em).split('@')[0]:'')||''}catch(e){return ''}};
+const msg=t=>message.textContent=t;
+const rate=o=>Number(o.progress_rate)||0;
+function statusOf(o){return rate(o)>=100?'입고완료':rate(o)>0?'부분입고':(o.receipt_planned_date&&o.receipt_planned_date<today()?'지연':'대기')}
+function renderOrd(){ordBody.innerHTML=view.length?view.map((o,i)=>`<tr class="${i===sel?'sel':''}" onclick="pick(${i})"><td class="c">${i+1}</td><td class="c">${i===sel?'▶':''}</td><td>${esc(o.job_no)}</td><td>${esc(o.item_name||'')}</td><td>${esc(o.partner_vendor_name)}</td><td class="c">${esc(o.set_seq)}</td><td class="c">${esc(o.process_name||'')}</td><td class="c">${o.order_date||''}</td><td class="c">${o.receipt_planned_date||''}</td><td class="r">${money(o.nego_price)}</td><td><div class="bar"><i style="width:${rate(o)}%"></i></div><small>${rate(o)}%</small></td><td class="c">${o.receipt_date||''}</td><td class="c">${statusOf(o)}</td></tr>`).join('')
+ :`<tr><td colspan="13" class="c" style="height:70px;color:#8a97a2">${online()?'조회 조건에 맞는 발주가 없습니다.':'DB 미연결 — 입고처리를 사용할 수 없습니다.'}</td></tr>`;
+ countText.textContent=`발주 ${view.length}건 / 입고이력 ${RCP.length}건`}
+function fillVen(){const cur=venQ.value;venQ.innerHTML='<option value="">전체</option>'+[...new Set(ORD.map(o=>o.partner_vendor_name).filter(Boolean))].sort().map(v=>`<option>${esc(v)}</option>`).join('');if([...venQ.options].some(o=>o.value===cur))venQ.value=cur}
+function renderRcp(){const list=sel>=0?RCP.filter(r=>Number(r.line_id)===Number(view[sel].line_id)):RCP;
+ rcpBody.innerHTML=list.map((r,i)=>`<tr><td class="c">${i+1}</td><td class="c"><input type="checkbox" data-no="${r.receipt_no}"></td><td>${esc(r.job_no)}</td><td class="c">${esc(r.set_seq)}</td><td>${esc(r.partner_vendor_name)}</td><td class="c">${r.receipt_date||''}</td><td class="c">${Number(r.progress_rate)||0}%</td><td class="r">${money(r.amount)}</td><td class="c">${esc(r.inspector||'')}</td><td>${esc(r.remark||'')}</td></tr>`).join('')}
+function pick(i){sel=i;const o=view[i];fJob.value=o.job_no;fSeq.value=`${o.set_seq} (${o.process_name||''})`;fVen.value=o.partner_vendor_name;fNego.value=money(o.nego_price);fDate.value=today();fRate.value=100;
+ if(!fInsp.value)fInsp.value=me();
+ const done=RCP.filter(r=>Number(r.line_id)===Number(o.line_id)).reduce((s,r)=>s+(Number(r.amount)||0),0);
+ fAmt.value=Math.max(0,(Number(o.nego_price)||0)-done);
+ renderOrd();renderRcp();msg(`${o.job_no} ${o.set_seq} (${o.partner_vendor_name}) 선택 - 현재 진척 ${rate(o)}%`)}
+
+/* v197: 관리제번 드롭다운 — 발주 행의 제번을 관리제번으로 묶어 「26DSA057 (A~F) · 품명」 */
+const JSPL=j=>{const m=/^(.*\d)([A-Z])$/.exec(String(j||'').trim());return m?{base:m[1],seq:m[2]}:{base:String(j||'').trim(),seq:''}};
+const seqRange=q=>{q=[...new Set(q.filter(Boolean))].sort();if(!q.length)return '';const c=q.map(x=>x.charCodeAt(0));const run=c.every((v,i)=>!i||v===c[i-1]+1);
+ return q.length===1?`(${q[0]})`:run?`(${q[0]}~${q[q.length-1]})`:`(${q.join('·')})`};
+let _dlKey='';
+function fillBaseDL(list){
+ const dl=document.getElementById('dl_base');if(!dl)return;const e=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+ const mp=new Map();list.forEach(o=>{const s=JSPL(o.job_no);let g=mp.get(s.base);if(!g){g={seqs:[],item:''};mp.set(s.base,g)}g.seqs.push(s.seq);if(!g.item&&o.item_name)g.item=o.item_name});
+ const key=[...mp.entries()].map(([b,g])=>b+g.seqs.join('')).join(',');if(key===_dlKey)return;_dlKey=key;
+ dl.innerHTML=[...mp.keys()].sort((a,b)=>b.localeCompare(a)).map(b=>{const g=mp.get(b);return `<option value="${e(b)}">${e([seqRange(g.seqs),g.item].filter(Boolean).join(' · '))}</option>`}).join('');
+}
+function search(){try{fillBaseDL(ORD)}catch(e){}const f=fromQ.value,t=toQ.value,v=venQ.value,q=jobQ.value.trim().toLowerCase(),open=onlyOpen.checked;
+ view=ORD.filter(o=>(!f||!o.order_date||o.order_date>=f)&&(!t||!o.order_date||o.order_date<=t)&&(!v||o.partner_vendor_name===v)&&(!q||o.job_no.toLowerCase().includes(q)||(o.item_name||'').toLowerCase().includes(q))&&(!open||rate(o)<100));
+ sel=-1;renderOrd();renderRcp();msg(`발주 ${view.length}건을 조회했습니다.`)}
+
+/* ── 입고처리: 회차별 이력 저장 + 발주라인 진척 갱신 (100% = 입고) ── */
+async function receive(){
+ if(sel<0)return msg('입고할 발주를 선택하세요.');const o=view[sel];
+ if(!online())return msg('DB 미연결 상태에서는 입고처리를 할 수 없습니다.');
+ const cur=rate(o);if(cur>=100)return msg('이미 입고완료된 발주입니다.');
+ const r=Number(fRate.value),amt=Number(fAmt.value)||0;
+ if(!fDate.value)return msg('입고일을 입력하세요.');
+ if(Number.isNaN(r))return msg('진척률을 숫자로 입력하세요.');
+ if(!(r>cur&&r<=100))return msg(`진척률은 현재값(${cur}%)보다 크고 100 이하여야 합니다.`);
+ if(o.order_date&&fDate.value<o.order_date)return msg('입고일이 발주일보다 빠를 수 없습니다.');
+ const done=RCP.filter(x=>Number(x.line_id)===Number(o.line_id)).reduce((s,x)=>s+(Number(x.amount)||0),0);
+ if(done+amt>(Number(o.nego_price)||0)&&!confirm('입고금액 누계가 네고가를 초과합니다. 계속하시겠습니까?'))return;
+ try{
+  const rec={line_id:o.line_id,job_no:o.job_no,partner_vendor_name:o.partner_vendor_name,set_seq:o.set_seq,process_name:o.process_name||null,
+   receipt_date:fDate.value,progress_rate:r,amount:amt,inspector:fInsp.value||me()||null,remark:fRemark.value||null};
+  const ins=await MESDB.table(HIS).insertOne(rec);
+  RCP.push(ins||rec);
+  await MESDB.table(TBL).upsert({line_id:o.line_id,progress_rate:r,
+   receipt_date:r>=100?fDate.value:null,status:r>=100?'입고':'발주',
+   confirmed_by:r>=100?(fInsp.value||me()||null):null,updated_at:new Date().toISOString()},'line_id');
+  o.progress_rate=r;if(r>=100){o.receipt_date=fDate.value;o.status='입고'}
+  fRemark.value='';
+  const ok=`${o.job_no} ${o.set_seq} ${r>=100?'입고완료':'부분입고 '+r+'%'} 처리했습니다.`;
+  if(onlyOpen.checked&&r>=100){search();msg(ok+' 미입고 목록에서 제외되었습니다.')}else{renderOrd();renderRcp();msg(ok)}
+ }catch(e){msg('입고 저장 실패: '+String(e.message||e).slice(0,130))}
+}
+/* ── 입고취소: 이력 삭제 → 진척은 남은 이력의 최대값으로 ── */
+async function cancelReceipt(){
+ const ids=[...rcpBody.querySelectorAll('input:checked')].map(x=>Number(x.dataset.no));
+ if(!ids.length)return msg('취소할 입고 이력을 선택하세요.');
+ if(!online())return msg('DB 미연결 상태에서는 사용할 수 없습니다.');
+ if(!confirm(`${ids.length}건의 입고를 취소하시겠습니까?`))return;
+ try{for(const id of ids)await MESDB.table(HIS).delete({receipt_no:id})}catch(e){return msg('입고취소 실패: '+String(e.message||e).slice(0,130))}
+ const touched=new Set();
+ for(let i=RCP.length-1;i>=0;i--)if(ids.includes(Number(RCP[i].receipt_no))){touched.add(Number(RCP[i].line_id));RCP.splice(i,1)}
+ for(const lid of touched){
+  const o=ORD.find(x=>Number(x.line_id)===lid);if(!o)continue;
+  const rest=RCP.filter(x=>Number(x.line_id)===lid);
+  const pr=rest.length?Math.max(...rest.map(x=>Number(x.progress_rate)||0)):0;
+  const last=rest.filter(x=>Number(x.progress_rate)>=100).map(x=>x.receipt_date).sort().pop()||null;
+  o.progress_rate=pr;o.receipt_date=pr>=100?last:null;o.status=pr>=100?'입고':'발주';
+  try{await MESDB.table(TBL).upsert({line_id:lid,progress_rate:pr,receipt_date:o.receipt_date,status:o.status,confirmed_by:pr>=100?o.confirmed_by||null:null,updated_at:new Date().toISOString()},'line_id')}catch(e){}
+ }
+ search();msg(`${ids.length}건 입고를 취소했습니다.`);
+}
+/* ── 발주취소: 진척이 없는 발주 라인만 삭제 ── */
+async function cancelOrder(){
+ if(sel<0)return msg('취소할 발주를 선택하세요.');const o=view[sel];
+ if(!online())return msg('DB 미연결 상태에서는 사용할 수 없습니다.');
+ if(rate(o)>0)return msg('입고가 시작된 발주는 취소할 수 없습니다. 먼저 입고취소하세요.');
+ if(!confirm(`${o.job_no} / ${o.partner_vendor_name} / ${o.set_seq}\n발주를 취소(삭제)하시겠습니까?`))return;
+ try{await MESDB.table(TBL).delete({line_id:o.line_id})}catch(e){return msg('발주취소 실패: '+String(e.message||e).slice(0,130))}
+ try{await MESDB.syncPlanOut(o.job_no,'assembly')}catch(e){}   /* v119 */
+ ORD=ORD.filter(x=>Number(x.line_id)!==Number(o.line_id));search();msg(`${o.job_no} / ${o.partner_vendor_name} 발주를 취소했습니다.`);
+}
+function exportCsv(){const out=[['제번','조수','공정명','협력업체','입고일','진척률','입고금액','검수자','비고'],...RCP.map(r=>[r.job_no,r.set_seq,r.process_name,r.partner_vendor_name,r.receipt_date,r.progress_rate,r.amount,r.inspector,r.remark||''])];const csv='\ufeff'+out.map(a=>a.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='set_order_receipts.csv';a.click();URL.revokeObjectURL(a.href)}
+
+async function load(){
+ ORD=[];RCP=[];
+ for(let i=0;i<60&&!window.MESDB;i++)await new Promise(r=>setTimeout(r,50));
+ if(window.MESDB&&MESDB.ready){try{await MESDB.ready}catch(e){}}
+ if(online()){
+  try{
+   const [ls,pool,his]=await Promise.all([
+    MESDB.table(TBL).select('select=*&order=job_no,line_id'),
+    MESDB.table('set_order_job_pool').select('select=job_no,item_name'),
+    MESDB.table(HIS).select('select=*&order=receipt_no')]);
+   const item={};(pool||[]).forEach(p=>item[p.job_no]=p.item_name||'');
+   ORD=(ls||[]).map(l=>({...l,item_name:item[l.job_no]||'',progress_rate:Number(l.progress_rate)||(l.status!=='발주'?100:0)}));
+   RCP=[...(his||[])];
+  }catch(e){msg('조회 실패: '+String(e.message||e).slice(0,120))}
+ }
+ fillVen();search();
+}
+/* 다른 화면에서 발주가 생기거나 바뀌면 다시 읽는다 */
+(function(){const bind=()=>{if(window.MESDB&&MESDB.onChange){MESDB.onChange([TBL],()=>load());return true}return false};
+ if(!bind()){let n=0;const iv=setInterval(()=>{if(bind()||++n>40)clearInterval(iv)},100)}})();
+load();window.MES={search,save:receive,receive,cancelReceipt,cancelOrder,exportCsv,setMessage:msg,reload:load};
+</script>
+<script src="mes_sample.js?v=169"></script><script src="mes_scene.js?v=77"></script><script src="mes_demo.js?v=77"></script><script src="mes_db.js?v=171"></script>
+<script src="mes_ctx.js?v=169"></script>
+<script>
+function sampleFill(){
+  if(window.MESDEMO)return MESDEMO.run('set_order_receipt',{});
+  msg('예제 모듈을 불러오지 못했습니다.');
+}
+</script>
+</body>
+</html>

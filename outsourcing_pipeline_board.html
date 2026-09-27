@@ -1,0 +1,559 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>외주가공 진척현황</title><style>
+:root{
+ --bg:#eef2f7;--card:#fff;--line:#dbe3ec;--line2:#e8edf3;
+ --ink:#243342;--ink2:#5a6b7c;--ink3:#8d9aa8;
+ --blue:#2f75b5;--blue2:#eaf3fb;--blued:#1d5a92;
+ --done:#2f7d4f;--doneb:#e4f2ea;--in:#d97a00;--inb:#fdf1dd;
+ --out:#2f75b5;--outb:#e7f1fa;--req:#9aa7b3;--reqb:#f1f4f7;
+ --late:#c0392b;--lateb:#fbecea;--ok:#2f7d4f;
+ --sh:0 1px 3px rgba(30,45,60,.08),0 4px 14px rgba(30,45,60,.06);
+ --r:10px;
+}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{font-family:Pretendard,-apple-system,"Malgun Gothic","맑은 고딕",sans-serif;font-size:13px;color:var(--ink);background:var(--bg)}
+button,input,select{font:inherit;color:inherit}button{cursor:pointer}
+.num{font-variant-numeric:tabular-nums}
+
+/* ── 상단 바 ── */
+.top{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.93);backdrop-filter:blur(6px);
+ border-bottom:1px solid var(--line);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.top h1{margin:0;font-size:18px;font-weight:800;letter-spacing:-.02em}
+.top h1 small{font-weight:500;font-size:11px;color:var(--ink3);margin-left:8px}
+.seg{display:flex;background:#e9eef4;border-radius:9px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;border-radius:7px;padding:6px 14px;font-weight:700;color:var(--ink2)}
+.seg button.on{background:#fff;color:var(--blued);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.cbo{height:33px;width:150px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:0 8px;outline:0;font:inherit;color:inherit}
+.cbo:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(47,117,181,.14)}
+@media(max-width:820px){.cbo{width:120px}}
+/* v141: mes_ctx 콤보 래퍼(.mescb)가 인라인 폭이 없으면 100% 로 늘어나 한 줄을 다 차지하던 문제 — 폭 고정 + 툴바 높이에 맞춤 */
+.top .mescb{width:170px!important;flex:0 0 auto}
+.top .mescb-in{height:33px;border-radius:8px;border-color:var(--line);padding-left:10px}
+.top .mescb-in:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(47,117,181,.14)}
+.top .mescb-ar{height:31px;line-height:31px;right:4px}
+@media(max-width:820px){.top .mescb{width:130px!important}}
+.srch{position:relative;flex:1;min-width:140px;max-width:300px}
+.srch input{width:100%;height:33px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:0 10px 0 30px;outline:0}
+.srch input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(47,117,181,.14)}
+.srch:before{content:'⌕';position:absolute;left:10px;top:6px;color:var(--ink3);font-size:15px}
+.tbtn{height:33px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:0 12px;font-weight:600;color:var(--ink2)}
+.tbtn:hover{border-color:var(--blue);color:var(--blued)}
+.tbtn.on{background:var(--blue);border-color:var(--blued);color:#fff}
+.tbtn.red.on{background:var(--late);border-color:var(--late)}
+.live{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink3);margin-left:auto}
+.live i{width:8px;height:8px;border-radius:50%;background:#c3cdd6}
+.live.on i{background:#37b26a;box-shadow:0 0 0 3px rgba(55,178,106,.2);animation:pulse 2.2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+
+/* ── 요약 스트립 ── */
+.sum{display:flex;gap:7px;flex-wrap:wrap;padding:11px 16px 0;max-width:1500px;margin:0 auto}
+.pill{background:#fff;border:1px solid var(--line2);border-radius:20px;padding:6px 13px;font-size:12px;color:var(--ink2);box-shadow:var(--sh);display:flex;gap:6px;align-items:center}
+.pill b{font-size:13.5px}
+.pill.done b{color:var(--done)}.pill.out b{color:var(--out)}.pill.in b{color:var(--in)}
+.pill.req b{color:var(--ink3)}.pill.late{border-color:#eec4be;background:var(--lateb)}.pill.late b{color:var(--late)}
+.pill .pb{width:86px;height:7px;background:var(--reqb);border-radius:4px;overflow:hidden}
+.pill .pb i{display:block;height:100%;background:linear-gradient(90deg,#5aa0d8,#2f75b5)}
+
+.wrap{padding:12px 16px 30px;max-width:1500px;margin:0 auto}
+.hide{display:none!important}
+.empty{padding:70px;text-align:center;color:var(--ink3);background:#fff;border-radius:var(--r);border:1px dashed var(--line)}
+
+/* ── ① 파이프라인 뷰 ── */
+.jobhd{display:flex;align-items:center;gap:9px;margin:16px 2px 8px;font-size:14px}
+.jobhd b{color:var(--blued);font-size:15px}
+.jobhd .cnt{font-size:11px;color:var(--ink3)}
+.jobhd:first-child{margin-top:2px}
+.pcard{background:#fff;border:1px solid var(--line2);border-radius:var(--r);box-shadow:var(--sh);margin-bottom:9px;overflow:hidden}
+.pcard.late{border-left:4px solid var(--late)}
+.phead{display:flex;align-items:center;gap:11px;padding:10px 14px;cursor:pointer;flex-wrap:wrap}
+.phead:hover{background:#f6f9fc}
+.phead .delp{margin-left:6px;border:1px solid #d9a3a3;background:#fff;color:#a8403c;border-radius:6px;padding:3px 9px;font-size:12px;cursor:pointer;white-space:nowrap}
+.phead .delp:hover{background:#fdf0f0}
+.phead .delp[disabled]{opacity:.4;cursor:default}
+.phead .pn{font-weight:800;font-size:14px;min-width:110px}
+.phead .pc{color:var(--ink3);font-size:12px}
+.stpro{display:flex;align-items:center;gap:7px;margin-left:auto}
+.stpro .sb{width:110px;height:8px;background:var(--reqb);border-radius:4px;overflow:hidden;display:flex}
+.stpro .sb i{height:100%}
+.stpro .tx{font-size:11.5px;font-weight:800;color:var(--ink2)}
+.dchip{font-size:11px;font-weight:800;border-radius:12px;padding:3px 9px;white-space:nowrap}
+.dchip.bad{background:var(--lateb);color:var(--late)}
+.dchip.warn{background:var(--inb);color:var(--in)}
+.dchip.ok{background:var(--doneb);color:var(--done)}
+.dchip.mut{background:var(--reqb);color:var(--ink3)}
+/* 공정 체인 */
+.chain{display:flex;gap:0;overflow-x:auto;padding:4px 12px 13px;align-items:stretch}
+.stp{position:relative;flex:0 0 auto;min-width:128px;margin-right:14px}
+.stp:not(:last-child):after{content:'';position:absolute;right:-12px;top:50%;width:10px;height:2px;background:#c4cfd9}
+.stp .bx{border:1.5px solid var(--line);border-radius:9px;padding:7px 10px;height:100%;background:#fff}
+.stp small{display:block;font-size:10px;font-weight:800;letter-spacing:.02em}
+.stp b{display:block;font-size:12.5px;margin-top:1px}
+.stp .vd{display:block;font-size:11px;color:var(--ink2);margin-top:2px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stp .dtx{display:block;font-size:10.5px;color:var(--ink3);margin-top:2px}
+.stp.done .bx{border-color:var(--done);background:var(--doneb)}
+.stp.done small{color:var(--done)}
+.stp.in .bx{border-color:var(--in);background:var(--inb)}
+.stp.in small{color:var(--in)}
+.stp.out .bx{border-color:var(--out);background:var(--outb)}
+.stp.out small{color:var(--out)}
+.stp.req .bx{border-style:dashed;opacity:.72}
+.stp.plan .bx{border-style:dashed;border-color:#c7d1da;background:#fafbfc;opacity:.9}
+.stp.plan small{color:#a3aeb8}
+/* v175: 사내가공 공정 — 사내외가공 발주와 같은 갈색 */
+.stp.hs .bx{border:1.5px solid #c9a86b;background:repeating-linear-gradient(135deg,#f3e6c8 0 6px,#efe0bf 6px 12px);opacity:1}
+.stp.hs small{color:#8a6d3b}.stp.hs .bx b{color:#5a4118;font-weight:700}
+.stp.hs.hdone .bx{background:#cbb894;border-color:#6b5327}.stp.hs.hdone small,.stp.hs.hdone .bx b{color:#3d2f16}
+.stp.plan .bx b{color:#8d9aa8;font-weight:600}
+.stp.req small{color:var(--ink3)}
+.stp.ready .bx{border-color:var(--blue);border-style:solid;opacity:1;box-shadow:0 0 0 3px rgba(47,117,181,.14)}
+.stp.ready small{color:var(--blued)}
+.stp.lt .bx{border-color:var(--late)!important;background:var(--lateb)!important}
+.stp.lt small{color:var(--late)!important}
+/* 상세 */
+.pdet{border-top:1px dashed var(--line);background:#fafcfd;padding:9px 14px;overflow-x:auto}
+.pdet table{border-collapse:collapse;width:100%;min-width:640px}
+.pdet th,.pdet td{border:1px solid var(--line2);padding:4px 8px;font-size:11.5px;white-space:nowrap}
+.pdet th{background:#eef3f7;font-weight:700;color:#41586b}
+.pdet td.r{text-align:right}.pdet td.c{text-align:center}
+.stag{font-size:10px;font-weight:800;border-radius:9px;padding:2px 7px}
+.stag.done{background:var(--doneb);color:var(--done)}.stag.in{background:var(--inb);color:var(--in)}
+.stag.out{background:var(--outb);color:var(--out)}.stag.req{background:var(--reqb);color:var(--ink3)}
+
+/* ── ② 업체 보드 ── */
+.kb{display:flex;gap:10px;overflow-x:auto;padding-bottom:12px;scroll-snap-type:x proximity}
+.kcol{flex:0 0 232px;scroll-snap-align:start;background:#e7edf4;border-radius:var(--r);display:flex;flex-direction:column;max-height:calc(100vh - 215px)}
+.kcol.hot{background:#f3e9e0}
+.khead{padding:10px 12px 8px;display:flex;align-items:center;gap:7px}
+.khead b{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.khead .cnt{margin-left:auto;background:#fff;border-radius:10px;font-size:11px;font-weight:800;padding:2px 8px;color:var(--ink2)}
+.khead .lt{background:var(--lateb);color:var(--late)}
+.kbody{overflow-y:auto;padding:2px 8px 10px;display:flex;flex-direction:column;gap:7px}
+.kcard{background:#fff;border-radius:8px;border:1px solid var(--line2);box-shadow:0 1px 2px rgba(0,0,0,.06);padding:8px 11px}
+.kcard.late{border-left:3px solid var(--late)}
+.kcard .l1{display:flex;align-items:center;gap:6px}
+.kcard .l1 b{font-size:12.5px;color:var(--blued)}
+.kcard .l1 .stag{margin-left:auto}
+.kcard .l2{font-size:11.5px;color:var(--ink2);margin-top:3px}
+.kcard .l3{font-size:10.5px;color:var(--ink3);margin-top:2px}
+.knone{padding:14px;text-align:center;color:var(--ink3);font-size:11px}
+
+@media(max-width:620px){
+ .wrap{padding:10px 10px 24px}.sum{padding:9px 10px 0}
+ .top{padding:8px 10px}.top h1 small{display:none}
+ .seg button{padding:6px 10px;font-size:12px}
+ .stpro .sb{width:70px}
+ .phead .pn{min-width:90px;font-size:13px}
+ .kcol{flex-basis:206px}
+}
+</style></head><body>
+
+<div class="top">
+ <h1>외주가공 진척현황<small>가공계획 전체 부품 · 미발주→발주→입고→확정</small></h1>
+ <div class="seg" id="seg">
+  <button data-v="pipe" class="on" onclick="setView('pipe')">부품별 공정</button>
+  <button data-v="vendor" onclick="setView('vendor')">업체 보드</button>
+ </div>
+ <input id="fJob" class="cbo" style="width:170px" list="jobDL" autocomplete="off" placeholder="제번 입력/선택" oninput="apply()" onchange="jobPick()"><datalist id="jobDL"></datalist>
+ <input id="fPn" class="cbo" style="width:170px" list="pnDL" autocomplete="off" placeholder="품번 입력/선택" oninput="apply()" onchange="pnPick()"><datalist id="pnDL"></datalist>
+ <div class="srch"><input id="q" placeholder="부품코드 · 업체 · 공정 검색" oninput="apply()"></div>
+ <button class="tbtn red" id="bLate" onclick="toggleLate()">⚠ 지연만</button>
+ <button class="tbtn" id="bPlan" onclick="togglePlan()" title="가공계획에는 있으나 아직 발주하지 않은 공정이 남은 부품만 봅니다">⬚ 미발주만</button>
+ <button class="tbtn" id="bOpen" onclick="toggleOpen()">진행중만</button>
+ <button class="tbtn" onclick="exportCsv()" title="현재 보이는 목록을 엑셀(CSV)로 내려받습니다">▤ EXCEL</button>
+ <button class="tbtn" onclick="load(true)">⟳</button>
+ <span class="live" id="live"><i></i><span id="liveTx">연결 확인중</span></span>
+</div>
+
+<div class="sum" id="sum"></div>
+
+<div class="wrap">
+ <section id="vPipe"></section>
+ <section id="vVendor" class="hide"><div class="kb" id="kb"></div></section>
+</div>
+
+<script>
+/* ═══ 상태 정의: 요청(미발주) → 발주(출고) → 입고 → 입고확정(완료) ═══ */
+const ST={req:{n:'요청',cls:'req'},out:{n:'발주',cls:'out'},in:{n:'입고',cls:'in'},done:{n:'완료',cls:'done'}};
+const stOf=s=>s==='입고확정'?'done':s==='입고'?'in':s==='발주'?'out':'req';
+const today=new Date().toISOString().slice(0,10);
+
+/* 오프라인 미리보기용 예시 (DB 연결 시 자동 대체) */
+const SAMPLE=[
+ {line_id:1,job_no:'IP26-041',part_no:'P-1041-03',process_code:'MC',step_no:1,machining_process_code:'MCT',vendor_name:'대성정밀',status:'입고확정',quote_price:1200000,required_date:'2026-08-12',receipt_date:'2026-08-11',confirm_date:'2026-08-12'},
+ {line_id:2,job_no:'IP26-041',part_no:'P-1041-03',process_code:'MC',step_no:2,machining_process_code:'열처리',vendor_name:'한빛열처리',status:'입고확정',quote_price:340000,required_date:'2026-08-20',receipt_date:'2026-08-19',confirm_date:'2026-08-20'},
+ {line_id:3,job_no:'IP26-041',part_no:'P-1041-03',process_code:'MC',step_no:3,machining_process_code:'연마',vendor_name:'서진연마',status:'입고',quote_price:280000,required_date:'2026-09-10',receipt_date:'2026-09-11'},
+ {line_id:4,job_no:'IP26-041',part_no:'P-1041-03',process_code:'MC',step_no:4,machining_process_code:'와이어',vendor_name:'',status:'',quote_price:450000,required_date:'2026-09-18'},
+ {line_id:5,job_no:'IP26-041',part_no:'P-1041-07',process_code:'MC',step_no:1,machining_process_code:'MCT',vendor_name:'대성정밀',status:'입고확정',quote_price:980000,required_date:'2026-08-15',confirm_date:'2026-08-14'},
+ {line_id:6,job_no:'IP26-041',part_no:'P-1041-07',process_code:'MC',step_no:2,machining_process_code:'연마',vendor_name:'서진연마',status:'발주',quote_price:210000,required_date:'2026-09-08'},
+ {line_id:7,job_no:'IP26-038',part_no:'P-1038-01',process_code:'WC',step_no:1,machining_process_code:'MCT',vendor_name:'대성정밀',status:'발주',quote_price:1500000,required_date:'2026-09-05'},
+ {line_id:8,job_no:'IP26-038',part_no:'P-1038-01',process_code:'WC',step_no:2,machining_process_code:'열처리',vendor_name:'한빛열처리',status:'',quote_price:380000,required_date:'2026-09-15'},
+ {line_id:9,job_no:'IP26-038',part_no:'P-1038-05',process_code:'WC',step_no:1,machining_process_code:'와이어',vendor_name:'정도와이어',status:'입고',quote_price:640000,required_date:'2026-09-09',receipt_date:'2026-09-10'},
+ {line_id:10,job_no:'IP26-043',part_no:'P-1043-02',process_code:'MC',step_no:1,machining_process_code:'MCT',vendor_name:'대성정밀',status:'입고확정',quote_price:1100000,confirm_date:'2026-08-30',required_date:'2026-08-29'},
+ {line_id:11,job_no:'IP26-043',part_no:'P-1043-02',process_code:'MC',step_no:2,machining_process_code:'연마',vendor_name:'서진연마',status:'입고확정',quote_price:190000,confirm_date:'2026-09-06',required_date:'2026-09-05'}
+];
+
+/* v113: 시작 시 SAMPLE 을 바로 그리면 실데이터로 바뀌기 전 '하드코딩 화면'이 잠깐 보인다.
+   DB 연결이 확인될 때까지 비워 두고, 오프라인일 때만 SAMPLE 로 대체한다. */
+let lines=[],parts=[],view=[],curView='pipe',fLate=false,fPlan=false,onlyOpen=true,open=new Set(),booting=true;
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const n0=v=>Number(v||0);
+const won=v=>n0(v).toLocaleString('ko-KR');
+const d5=v=>v?String(v).slice(5,10):'';
+const online=()=>!!(window.MESDB&&MESDB.online);
+
+/* ═══ 조회 ═══
+ * order_lines(발주된 외주가공) + machining_plan_parts(가공계획의 전체 부품·공정)를 합쳐
+ * 아직 발주하지 않은 부품·공정도 '미발주'로 보여준다. */
+/* v113: mes_db.js 는 </body> 끝에서 로드되므로 시작 시점엔 window.MESDB 가 아직 없다.
+   그대로 online() 을 물으면 '미연결' 로 판정해 예시 데이터가 먼저 그려졌다 → 최대 3초 기다린다. */
+async function waitDB(){
+ for(let i=0;i<60&&!window.MESDB;i++)await new Promise(r=>setTimeout(r,50));
+ if(window.MESDB&&MESDB.ready){try{await MESDB.ready}catch(e){}}
+}
+let PLAN=[],PLM=[],STD=null;const HOUSE=new Map();   /* v175: 사내가공 실적 (제번|품번|공정코드) */
+const stepCode=x=>String((x&&typeof x==='object')?(x.process_code||x.code||''):(x??'')).trim();
+const PROCN={};
+/* ── v125: 부품별 외주가공 진행삭제 — 그 부품의 발주·입고·확정 기록을 모두 지운다 ──
+   가공계획(부품·공정)은 남으므로, 지운 뒤 처음부터 다시 발주할 수 있다. */
+async function delPart(job,part){
+ if(!(window.MESDB&&MESDB.online))return setMsg('DB 미연결 — 진행삭제를 사용할 수 없습니다.');
+ const p=(parts||[]).find(x=>x.job===job&&x.part===part);
+ if(!p)return;
+ const ls=p.steps.filter(l=>!l.plan&&l.line_id);
+ if(!ls.length)return setMsg(`${part} 은(는) 아직 발주된 기록이 없습니다.`);
+ const cnt={};ls.forEach(l=>{const k=l.status||'발주';cnt[k]=(cnt[k]||0)+1});
+ const detail=Object.entries(cnt).map(([k,v])=>`${k} ${v}건`).join(' · ');
+ const done=ls.filter(l=>/입고/.test(l.status||'')).length;
+ if(!confirm(`[${job}] ${part} 의 외주가공 진행을 모두 삭제합니다.\n\n`
+   +`삭제 대상 : ${ls.length}건 (${detail})\n`
+   +(done?`입고·확정된 ${done}건도 함께 지워집니다.\n`:'')
+   +`\n되돌릴 수 없습니다. 계속할까요?`))return;
+ setMsg(`${part} 진행삭제 중…`);
+ let ok=0,ng=0,last='';
+ for(const l of ls){
+  try{await MESDB.table('order_lines').delete({line_id:l.line_id});ok++}
+  catch(e){ng++;last=String(e.message||e)}
+ }
+ /* 이력도 함께 정리 — 물류이동(outsourcing_moves)은 발주라인 삭제 시 DB가 같이 지우지만(CASCADE),
+    남는 것이 없도록 제번·부품 기준으로 한 번 더 쓸어낸다. 공정이력카드도 같이 지운다. */
+ for(const t of ['outsourcing_moves','process_history_cards']){
+  try{await MESDB.table(t).delete({job_no:job,part_no:part})}catch(e){}
+ }
+ try{MESDB.notify&&MESDB.notify(['order_lines','outsourcing_moves','process_history_cards'])}catch(e){}
+ try{MESDB.dropCache&&MESDB.dropCache('order_lines')}catch(e){}
+ await load(true);
+ setMsg(ng?`${part} 진행삭제 — 성공 ${ok}건 · 실패 ${ng}건: ${last.slice(0,90)}`
+          :`${job} · ${part} 의 외주가공 진행 ${ok}건을 삭제했습니다. 다시 발주할 수 있습니다.`);
+}
+function setMsg(t){try{const el=document.getElementById('sum');if(el)el.insertAdjacentHTML('afterbegin',
+ `<span class="pill" style="background:#fff4e5;border-color:#e6c69a">${String(t).replace(/</g,'')}</span>`)}catch(e){}
+ try{console.log('[외주가공 진척현황]',t)}catch(e){}}
+async function load(manual){
+ await waitDB();
+ if(!online()){setLive(false);if(!lines.length)lines=[...SAMPLE];booting=false;build();apply();return}
+ const o=manual?{fresh:true}:undefined;
+ try{
+  const [rs,pl,pm,sd,dr]=await Promise.all([
+   MESDB.table('order_lines').select('select=*&category=eq.외주가공&order=job_no,part_no,step_no,line_id',o),
+   MESDB.table('machining_plan_parts').select('select=*&order=job_no,row_no',o).catch(()=>[]),
+   MESDB.table('partlist_materials').select('select=job_no,part_no,part_name,process_code,qty&order=job_no,row_no',o).catch(()=>[]),
+   MESDB.table('machining_standard_routes').select('select=*&order=standard_process_no&limit=1').catch(()=>[]),
+   MESDB.table('design_results').select('select=job_no,part_no,machining_process_code,work_minutes,labor_cost,work_date&work_type=eq.가공',o).catch(()=>[])
+  ]);
+  lines=(rs||[]).filter(l=>String(l.status||'')!=='취소');PLAN=pl||[];PLM=pm||[];STD=(sd&&sd[0])||null;booting=false;
+  HOUSE.clear();(dr||[]).forEach(r=>{const k=(r.job_no||'')+'|'+(r.part_no||'')+'|'+stepCode(r.machining_process_code).toUpperCase();const h=HOUSE.get(k)||{min:0,cost:0,last:''};h.min+=n0(r.work_minutes);h.cost+=n0(r.labor_cost);if(String(r.work_date||'')>h.last)h.last=String(r.work_date||'');HOUSE.set(k,h)});
+  if(!Object.keys(PROCN).length){
+   try{(await MESDB.table('processes').select('select=process_code,process_name'))
+     .forEach(p=>{const c=String(p.process_code||'').trim();if(c)PROCN[c.toUpperCase()]=p.process_name||''})}catch(e){}
+  }
+  setLive(true);build();fillDLs();apply();
+  pnLoad();                 /* v133: 제번별 품번(제품) 지도 — 콤보 목록에 쓴다 */
+ }catch(e){setLive(false);if(!lines.length)lines=[...SAMPLE];booting=false;build();apply()}
+}
+const pName=c=>PROCN[String(c||'').trim().toUpperCase()]||String(c||'');
+function setLive(on){
+ document.getElementById('live').classList.toggle('on',!!on);
+ document.getElementById('liveTx').textContent=on?'실시간 연결':'예시 데이터';
+}
+
+/* ═══ 부품 단위 그룹 (제번+품번, step_no 순) ═══
+ * 가공계획에 등록된 부품·공정을 뼈대로 만들고, 발주된 라인을 순번에 맞춰 덮어쓴다.
+ * 계획에 없지만 발주만 있는 부품도 그대로 포함한다. */
+function build(){
+ const g=new Map();
+ const key=(j,p)=>(j||'')+'|'+(p||'');
+ /* 1) 가공계획의 전체 부품·공정 = 미발주(plan) 자리 */
+ /* v175: 사내외가공 발주와 같은 기준 — 가공계획 + (계획 없는) PartList 부품 × 기준공정 01, 사내 공정 표시 */
+ const planRows=[...PLAN];
+ const planned=new Set(PLAN.map(pl=>key(pl.job_no,pl.part_no)));
+ const stdSteps=STD&&Array.isArray(STD.steps)?STD.steps:[],stdIn=STD&&Array.isArray(STD.inhouse)?STD.inhouse:[];
+ const jobsWithWork=new Set([...PLAN.map(x=>x.job_no),...lines.map(x=>x.job_no)]);
+ for(const pm of PLM){const k=key(pm.job_no,pm.part_no);if(planned.has(k)||!jobsWithWork.has(pm.job_no))continue;planned.add(k);
+  planRows.push({job_no:pm.job_no,part_no:pm.part_no,part_name:pm.part_name,process_code:pm.process_code,qty:pm.qty,steps:stdSteps,inhouse:stdIn})}
+ for(const pl of planRows){
+  const codes=(Array.isArray(pl.steps)?pl.steps:[]).map(stepCode).filter(Boolean);
+  if(!codes.length)continue;
+  const k=key(pl.job_no,pl.part_no);
+  if(!g.has(k))g.set(k,{job:pl.job_no||'',part:pl.part_no||'',partName:pl.part_name||'',proc:pl.process_code||'',qty:(pl.qty!=null?Number(pl.qty):1),steps:[],planned:true});
+  const t=g.get(k);
+  codes.forEach((c,i)=>{const hs=!!(Array.isArray(pl.inhouse)&&pl.inhouse[i]);
+    const h=hs?HOUSE.get(k+'|'+c.toUpperCase()):null;
+    t.steps[i]={plan:!(h&&h.min>0),house:hs,hmin:h?h.min:0,hcost:h?h.cost:0,hdate:h?h.last:'',job_no:pl.job_no,part_no:pl.part_no,part_name:pl.part_name||'',
+    machining_process_code:c,step_no:i+1,status:(h&&h.min>0)?'입고확정':'',vendor_name:hs?'사내':'',required_date:null}});
+ }
+ /* 2) 실제 발주 라인으로 덮어쓴다 (순번 없으면 뒤에 붙인다) */
+ for(const l of lines){
+  const k=key(l.job_no,l.part_no);
+  if(!g.has(k))g.set(k,{job:l.job_no||'',part:l.part_no||'',partName:l.part_name||'',proc:l.process_code||'',qty:(n0(l.order_qty)||1),steps:[],planned:false});
+  const t=g.get(k);
+  if(!t.partName&&l.part_name)t.partName=l.part_name;
+  if(!t.qty)t.qty=n0(l.order_qty)||1;
+  const i=n0(l.step_no)-1;
+  if(i>=0)t.steps[i]=l; else t.steps.push(l);
+ }
+ parts=[...g.values()];
+ for(const p of parts){
+  p.steps=p.steps.filter(Boolean);
+  p.steps.sort((a,b)=>n0(a.step_no)-n0(b.step_no)||n0(a.line_id)-n0(b.line_id));
+  p.planN=p.steps.filter(l=>l.plan&&!l.house).length;          /* 아직 발주 안 한 (외주) 공정 수 */
+  p.ordered=p.steps.length-p.planN;
+  p.doneN=p.steps.filter(l=>stOf(l.status)==='done').length;
+  p.allDone=p.steps.length>0&&p.doneN===p.steps.length;
+  p.late=p.steps.some(isLate);
+  /* 발주 가능 지점: 직전 공정이 입고/입고확정일 때만 다음 발주 (첫 공정은 항상 가능) */
+  p.readyIdx=-1;
+  let prevSt='done';
+  for(let i=0;i<p.steps.length;i++){
+   const l=p.steps[i];
+   if(l.house)continue;                       /* v175: 사내 공정은 발주 순서 판정에서 건너뛴다 (사내외가공 발주와 동일) */
+   const st=stOf(l.status);
+   if(st!=='req'){prevSt=st;continue}
+   if(prevSt==='done'||prevSt==='in')p.readyIdx=i;   /* v112: 현품 입고되면 다음 공정 발주 가능 (입고확정은 나중에) */
+   break;
+  }
+  const due=p.steps.map(l=>l.required_date).filter(Boolean).sort().pop();
+  p.due=due||null;
+ }
+}
+const isLate=l=>stOf(l.status)!=='done'&&l.required_date&&String(l.required_date).slice(0,10)<today;
+
+/* ── v133: 제번·품번(수주등록의 품번) 검색 — 드롭다운 + 직접입력 ───────── */
+const PNMAP=new Map();                 /* 제번 → 품번(제품) */
+const PN=j=>PNMAP.get(j)||'';
+function fillDLs(){
+ const jd=document.getElementById('jobDL'),pd=document.getElementById('pnDL');
+ const jobs=[...new Set(parts.map(p=>p.job).filter(Boolean))].sort();
+ if(jd)jd.innerHTML=jobs.map(j=>`<option value="${String(j).replace(/"/g,'')}">${String(PN(j)).replace(/</g,'')}</option>`).join('');
+ if(pd){const seen=new Set(),out=[];
+  jobs.forEach(j=>{const m=PN(j);if(!m||seen.has(m))return;seen.add(m);out.push({m,job:j})});
+  out.sort((a,b)=>a.m.localeCompare(b.m));
+  pd.innerHTML=out.map(o=>`<option value="${o.m.replace(/"/g,'')}">${String(o.job).replace(/</g,'')}</option>`).join('')}
+}
+async function pnLoad(){
+ try{
+  if(!(window.MESDB&&MESDB.online))return;
+  const rs=await MESDB.table('job_pool').select('select=job_no,model');
+  PNMAP.clear();(rs||[]).forEach(r=>{const m=String(r.model||'').trim();if(m)PNMAP.set(r.job_no,m)});
+  fillDLs();apply();
+ }catch(e){}
+}
+/* 제번을 고르면 품번 칸을, 품번을 고르면 제번 칸을 채운다 */
+function jobPick(){const m=PN(String(document.getElementById('fJob').value||'').trim());if(m)document.getElementById('fPn').value=m;apply()}
+function pnPick(){
+ const v=String(document.getElementById('fPn').value||'').trim().toLowerCase();
+ if(v){const jobs=[...PNMAP.entries()].filter(([,m])=>m.toLowerCase()===v).map(([j])=>j);
+  if(jobs.length===1)document.getElementById('fJob').value=jobs[0];else if(jobs.length>1)document.getElementById('fJob').value=''}
+ apply();
+}
+/* ═══ 필터 ═══ */
+function apply(){
+ const q=document.getElementById('q').value.trim().toLowerCase();
+ const fj=(document.getElementById('fJob')?.value||'').trim().toLowerCase();
+ const fp=(document.getElementById('fPn')?.value||'').trim().toLowerCase();
+ view=parts.filter(p=>{
+  if(fj&&!String(p.job||'').toLowerCase().includes(fj))return false;
+  if(fp&&!String(PN(p.job)||'').toLowerCase().includes(fp))return false;
+  if(onlyOpen&&p.allDone)return false;
+  if(fLate&&!p.late)return false;
+  if(fPlan&&!p.planN)return false;              /* 미발주 공정이 남은 부품만 */
+  if(q){
+   const hay=(p.job+' '+p.part+' '+(p.partName||'')+' '+p.proc+' '+p.steps.map(l=>(l.vendor_name||'')+' '+(l.machining_process_code||'')+' '+pName(l.machining_process_code)).join(' ')).toLowerCase();
+   if(!hay.includes(q))return false;
+  }
+  return true;
+ });
+ view.sort((a,b)=>(b.late-a.late)||String(a.due||'9999').localeCompare(String(b.due||'9999')));
+ render();
+}
+function toggleLate(){fLate=!fLate;document.getElementById('bLate').classList.toggle('on',fLate);apply()}
+function togglePlan(){fPlan=!fPlan;document.getElementById('bPlan').classList.toggle('on',fPlan);apply()}
+function toggleOpen(){onlyOpen=!onlyOpen;const b=document.getElementById('bOpen');
+ b.classList.toggle('on',!onlyOpen);b.textContent=onlyOpen?'진행중만':'완료포함';apply()}
+function setView(v){
+ curView=v;
+ document.querySelectorAll('#seg button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+ vPipe.classList.toggle('hide',v!=='pipe');
+ vVendor.classList.toggle('hide',v!=='vendor');
+ render();
+}
+
+/* ═══ 요약 스트립 ═══ */
+function renderSum(){
+ if(booting){document.getElementById('sum').innerHTML='<span class="pill">불러오는 중…</span>';return}
+ const ls=parts.flatMap(p=>p.steps);
+ const c=k=>ls.filter(l=>!l.plan&&stOf(l.status)===k).length;
+ const planN=ls.filter(l=>l.plan&&!l.house).length;
+ const late=ls.filter(isLate).length;
+ const amt=l=>(l.plan||l.house)?0:(n0(l.confirm_price)||n0(l.quote_price));
+ const tot=ls.reduce((a,l)=>a+amt(l),0);
+ const done=ls.filter(l=>stOf(l.status)==='done').reduce((a,l)=>a+amt(l),0);
+ const rate=tot?Math.round(done*1000/tot)/10:0;
+ /* 금액 집계 — 확정(완료) / 미입고(발주·출고) / 미발주(계획) */
+ const notin=ls.filter(l=>!l.plan&&stOf(l.status)==='out').reduce((a,l)=>a+amt(l),0);
+ const inamt=ls.filter(l=>!l.plan&&stOf(l.status)==='in').reduce((a,l)=>a+amt(l),0);
+ document.getElementById('sum').innerHTML=
+  `<span class="pill">부품 <b class="num">${parts.length}</b></span>`
+  +`<span class="pill">공정 <b class="num">${ls.length}</b></span>`
+  +`<span class="pill req">미발주 <b class="num">${planN}</b></span>`
+  +`<span class="pill req">요청 <b class="num">${c('req')}</b></span>`
+  +`<span class="pill out">발주 <b class="num">${c('out')}</b></span>`
+  +`<span class="pill in">입고 <b class="num">${c('in')}</b></span>`
+  +`<span class="pill done">완료 <b class="num">${c('done')}</b></span>`
+  +`<span class="pill late">⚠ 지연 <b class="num">${late}</b></span>`
+  +`<span class="pill" title="발주금액 합계 ${tot.toLocaleString('ko-KR')}원 · 확정 ${done.toLocaleString('ko-KR')}원 · 입고(미확정) ${inamt.toLocaleString('ko-KR')}원 · 미입고 ${notin.toLocaleString('ko-KR')}원">금액진척 <span class="pb"><i style="width:${rate}%"></i></span><b class="num">${rate}%</b></span>`
+  +`<span class="pill" title="입고확정된 금액 / 전체 발주금액">확정금액 <b class="num">${done.toLocaleString('ko-KR')}</b> / ${tot.toLocaleString('ko-KR')}</span>`;
+}
+
+/* ═══ ① 부품 파이프라인 ═══ */
+function stepBox(l,i,p){
+ const st=stOf(l.status);
+ const ready=(i===p.readyIdx);
+ const lt=isLate(l);
+ const plan=!!l.plan;                       /* 가공계획에만 있고 아직 발주 안 한 공정 */
+ const dtx=plan?'미발주':
+  st==='done'?('확정 '+d5(l.confirm_date||l.receipt_date)):
+  st==='in'?('입고 '+d5(l.receipt_date)):
+  ('납기 '+(d5(l.required_date)||'-'));
+ const code=l.machining_process_code||l.process_code||'-';
+ if(l.house){const dn=l.hmin>0;
+  return `<div class="stp hs${dn?' hdone':' plan'}"><div class="bx">
+  <small>공정${n0(l.step_no)||i+1} · 사내${dn?' 완료':''}</small>
+  <b>${esc(pName(code)||code)}</b>
+  <span class="vd">${dn?`사내 · ${(l.hmin/60).toFixed(1)}h · ${won(l.hcost)}원`:'사내가공'}</span>
+  <span class="dtx">${dn?'완료 '+d5(l.hdate):'미완료'}</span></div></div>`}
+ return `<div class="stp ${ST[st].cls}${plan?' plan':''}${ready?' ready':''}${lt?' lt':''}"><div class="bx">
+  <small>공정${n0(l.step_no)||i+1} · ${lt?'지연':ready?'발주가능':plan?'계획':ST[st].n}</small>
+  <b>${esc(pName(code)||code)}</b>
+  <span class="vd">${esc(plan?'—':(l.vendor_name||'업체 미지정'))}${plan?'':` · ${n0(l.order_qty)||p.qty||1}개${n0(l.receipt_qty)?` (입고 ${n0(l.receipt_qty)})`:''}`}</span>
+  <span class="dtx">${esc(dtx)}</span>
+ </div></div>`;
+}
+function renderPipe(){
+ if(booting){vPipe.innerHTML='<div class="empty">불러오는 중…</div>';return}
+ if(!view.length){vPipe.innerHTML='<div class="empty">표시할 외주가공 발주가 없습니다.</div>';return}
+ const byJob=new Map();
+ for(const p of view){if(!byJob.has(p.job))byJob.set(p.job,[]);byJob.get(p.job).push(p)}
+ let html='';
+ for(const [job,ps] of byJob){
+  html+=`<div class="jobhd"><b>${esc(job||'제번 미지정')}</b><span class="cnt">${ps.length}개 부품</span></div>`;
+  html+=ps.map(p=>{
+   const key=p.job+'|'+p.part;
+   const segs=p.steps.map(l=>{const st=stOf(l.status);
+    const col=l.house?(l.hmin>0?'#8a6d3b':'#e8d9b5'):l.plan?'transparent':st==='done'?'var(--done)':st==='in'?'var(--in)':st==='out'?'var(--out)':'transparent';
+    return `<i style="flex:1;background:${col}"></i>`}).join('');
+   return `<div class="pcard${p.late?' late':''}">
+    <div class="phead" onclick="toggle('${esc(key)}')">
+     <span class="pn">${esc(p.part)}</span><span class="pc">${esc(p.partName||'')}${p.proc?' · '+esc(p.proc):''}${p.qty?' · 수량 '+n0(p.qty):''}</span>
+     ${p.late?'<span class="dchip bad">지연</span>':p.readyIdx>=0?'<span class="dchip mut" style="background:var(--blue2);color:var(--blued)">발주가능</span>':''}
+     ${p.planN?`<span class="dchip mut" title="가공계획에는 있으나 아직 발주하지 않은 공정">미발주 ${p.planN}</span>`:''}
+     <span class="stpro"><span class="sb">${segs}</span><span class="tx num">${p.doneN}/${p.steps.length}</span>
+      ${p.allDone?'<span class="dchip ok">완료</span>':p.due?`<span class="dchip ${String(p.due)<today?'bad':'mut'}">납기 ${d5(p.due)}</span>`:''}</span>
+     <button class="delp" title="이 부품의 외주가공 발주·입고 기록을 모두 지웁니다"
+       onclick="event.stopPropagation();delPart('${esc(p.job)}','${esc(p.part)}')"
+       ${p.steps.some(l=>!l.plan&&l.line_id)?'':'disabled'}>✕ 진행삭제</button>
+    </div>
+    <div class="chain">${p.steps.map((l,i)=>stepBox(l,i,p)).join('')}</div>
+    ${open.has(key)?pdet(p):''}
+   </div>`}).join('');
+ }
+ vPipe.innerHTML=html;
+}
+function pdet(p){
+ return `<div class="pdet"><table>
+  <tr><th>공정</th><th>가공공정</th><th>업체</th><th>상태</th><th>납기</th><th>입고일</th><th>확정일</th><th>금액</th></tr>
+  ${p.steps.map((l,i)=>{const st=stOf(l.status);
+   const code=l.machining_process_code||l.process_code||'-';
+   return `<tr><td class="c">공정${n0(l.step_no)||i+1}</td><td>${esc(pName(code)||code)}</td>
+   <td>${esc(l.plan?'-':(l.vendor_name||'-'))}</td><td class="c"><span class="stag ${ST[st].cls}">${l.plan?'미발주':isLate(l)?'지연':ST[st].n}</span></td>
+   <td class="c">${esc(String(l.required_date||'').slice(0,10)||'-')}</td>
+   <td class="c">${esc(String(l.receipt_date||'').slice(0,10)||'-')}</td>
+   <td class="c">${esc(String(l.confirm_date||'').slice(0,10)||'-')}</td>
+   <td class="r num">${won(n0(l.confirm_price)||n0(l.quote_price))}</td></tr>`}).join('')}
+ </table></div>`;
+}
+function toggle(k){open.has(k)?open.delete(k):open.add(k);render()}
+
+/* ═══ ② 업체 보드 ═══ */
+function renderVendor(){
+ if(booting){document.getElementById('kb').innerHTML='<div class="empty">불러오는 중…</div>';return}
+ const ls=view.flatMap(p=>p.steps.map(l=>({l,p})));
+ const act=ls.filter(x=>{const st=stOf(x.l.status);return st==='out'||st==='in'});
+ const g=new Map();
+ for(const x of act){const v=x.l.vendor_name||'업체 미지정';if(!g.has(v))g.set(v,[]);g.get(v).push(x)}
+ /* 발주 가능(요청) 대기열 */
+ const ready=[];
+ for(const p of view){if(p.readyIdx>=0)ready.push({l:p.steps[p.readyIdx],p})}
+ ready.sort((a,b)=>String(a.p.job+a.p.part).localeCompare(String(b.p.job+b.p.part)));
+ const cols=[...g.entries()].sort((a,b)=>b[1].length-a[1].length);
+ let html=cols.map(([v,items])=>{
+  const lateN=items.filter(x=>isLate(x.l)).length;
+  return `<div class="kcol${lateN?' hot':''}"><div class="khead"><b title="${esc(v)}">${esc(v)}</b>
+   ${lateN?`<span class="cnt lt">지연 ${lateN}</span>`:''}<span class="cnt num">${items.length}</span></div>
+   <div class="kbody">${items.sort((a,b)=>String(a.l.required_date||'9999').localeCompare(String(b.l.required_date||'9999')))
+    .map(x=>kcard(x)).join('')}</div></div>`}).join('');
+ html=`<div class="kcol"><div class="khead"><b>⚑ 발주 대기 (가능)</b><span class="cnt num">${ready.length}</span></div>
+   <div class="kbody">${ready.map(x=>kcard(x,true)).join('')||'<div class="knone">발주 가능한 공정이 없습니다</div>'}</div></div>`+html;
+ document.getElementById('kb').innerHTML=html||'<div class="empty">진행 중인 외주가공이 없습니다.</div>';
+}
+function kcard(x,isReady){
+ const {l,p}=x;const st=stOf(l.status);const lt=isLate(l);
+ return `<div class="kcard${lt?' late':''}">
+  <div class="l1"><b>${esc(p.job)}</b><span style="font-size:11px;color:var(--ink2)">${esc(p.part)}</span>
+   <span class="stag ${isReady?'out':ST[st].cls}" ${isReady?'style="background:var(--blue2);color:var(--blued)"':''}>${isReady?'발주요망':lt?'지연':ST[st].n}</span></div>
+  <div class="l2">공정${n0(l.step_no)} · ${esc(pName(l.machining_process_code||l.process_code)||'-')}${isReady&&l.vendor_name?' · '+esc(l.vendor_name):''}</div>
+  <div class="l3">납기 ${esc(String(l.required_date||'').slice(0,10)||'-')}${st==='in'?' · 입고 '+d5(l.receipt_date):''}</div>
+ </div>`;
+}
+
+/* v112: 가공구매 진척현황을 대체 — 현재 목록(필터 적용)을 CSV 로 내려받는다 */
+function exportCsv(){
+ const head=['제번','품번','부품명','공정(조)','공정순번','가공공정','협력업체','상태','납기','입고일','확정일','발주금액','확정금액'];
+ const out=[head];
+ for(const p of view){
+  p.steps.forEach((l,i)=>{
+   const st=l.plan?'미발주':isLate(l)?'지연':ST[stOf(l.status)].n;
+   const code=l.machining_process_code||l.process_code||'';
+   out.push([p.job,p.part,p.partName||'',p.proc||'',n0(l.step_no)||i+1,pName(code)||code,
+    l.plan?'':(l.vendor_name||''),st,
+    String(l.required_date||'').slice(0,10),String(l.receipt_date||'').slice(0,10),String(l.confirm_date||'').slice(0,10),
+    l.plan?'':n0(l.quote_price),l.plan?'':n0(l.confirm_price)]);
+  });
+ }
+ const csv='\ufeff'+out.map(a=>a.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+ a.download='outsourcing_pipeline.csv';a.click();URL.revokeObjectURL(a.href);
+}
+function render(){renderSum();if(curView==='pipe')renderPipe();else renderVendor()}
+
+/* ═══ 시작 · 자동갱신 ═══ */
+(function init(){
+ build();apply();          /* booting=true 이므로 '불러오는 중' 만 그린다 */
+ load();
+ let t=null;const go=()=>{clearTimeout(t);t=setTimeout(()=>load(true),400)};
+ const bind=()=>{if(window.MESDB&&MESDB.onChange){MESDB.onChange(['order_lines'],go);return true}return false};
+ if(!bind()){let n=0;const iv=setInterval(()=>{if(bind()||++n>40)clearInterval(iv)},100)}
+ setInterval(()=>{if(online())load()},300000);
+})();
+window.MES=Object.assign(window.MES||{},{search:()=>load(true),reload:()=>load(true),exportCsv});
+</script>
+<script src="mes_db.js?v=171"></script>
+</body></html>

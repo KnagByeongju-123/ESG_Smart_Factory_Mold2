@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>외주가공 발주현황</title>
+<style>
+:root{--line:#9daab6;--line2:#c5ced6;--ink:#344758}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{font-family:"Malgun Gothic","맑은 고딕",Arial,sans-serif;font-size:12px;color:var(--ink);background:#fff;overflow:hidden}button,input,select{font:inherit;color:inherit}
+.screen{height:100%;display:flex;flex-direction:column}.title{height:46px;padding:9px 14px 4px;border-bottom:2px solid #3977ad;display:flex;align-items:center;gap:14px}.title h1{margin:0;font-size:21px;font-weight:500;color:#4b5b69}.title h1:before{content:'◯';margin-right:6px;color:#8795a1}.title .plant{margin-left:auto;display:flex;align-items:center;gap:6px;color:#6b7885}
+.filters{padding:7px 14px;border-bottom:1px solid var(--line2);background:#fafbfc}.frow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.frow+.frow{margin-top:5px}.label{font-weight:700}.field{height:26px;border:1px solid #b7c2cb;background:#fff;padding:0 6px;outline:none}.field:focus{border-color:#4e88bb}.radios{display:flex;gap:9px;color:#5f6d79}
+.gridbox{flex:1;min-height:0;margin:7px 14px;border:1px solid var(--line);display:flex;flex-direction:column;background:#fff}
+.tablewrap{flex:1;min-height:0;overflow:auto}table{border-collapse:collapse;min-width:1764px;width:100%;table-layout:fixed}th,td{height:25px;padding:0 5px;border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}th{position:sticky;top:0;z-index:2;text-align:center;background:linear-gradient(#dbe9f4,#c7d9e8);color:#405266;font-weight:700}tbody tr:nth-child(even) td{background:#fafcfd}tbody tr:hover td{background:#edf6fd}tbody tr.sel td{background:#2e78bd;color:#fff}.c{text-align:center}.r{text-align:right}
+tfoot th{position:sticky;bottom:0;background:linear-gradient(#e6eef5,#d3e0ea)}
+.tag{display:inline-block;min-width:60px;text-align:center;border-radius:2px;padding:0 4px;color:#fff;background:#8e9aa6}
+/* v112: 화면 표기값(대기/입고/확정)에도 색을 준다 — 배경이 없으면 흰 글자가 안 보인다 */
+.t-대기,.t-발주{background:#8e9aa6!important}.t-입고{background:#3d84c6!important}.t-확정,.t-입고확정{background:#3f9a6d!important}.t-발주{background:#8e9aa6}.t-입고{background:#3d84c6}.t-입고확정{background:#3f9a6d}
+.btn{height:28px;min-width:70px;border:1px solid #9ca9b5;background:linear-gradient(#fff,#dfe6eb)}.btn:hover{background:#fff}.btn.primary{background:linear-gradient(#f9ffff,#d2e7f6);color:#1e5e91}
+.btn.danger{border-color:#c08a86;color:#a8403c;background:linear-gradient(#fff,#f7e7e6)}.btn.danger:hover{background:#fff}
+.foot{height:42px;display:flex;align-items:center;padding:5px 14px;border-top:1px solid var(--line);background:#eef2f5;gap:5px}.msg{margin-left:10px;color:#687784}.foot .right{margin-left:auto;color:#7c8993}
+@media(max-width:900px){.title h1{font-size:18px}}
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="title"><h1>외주가공 발주현황</h1></div>
+  <section class="filters">
+    <div class="frow">
+      <span class="label">구분</span>
+      <div class="radios">
+        <label><input type="radio" name="st" value="전체" checked onchange="search()"> 전체</label>
+        <label><input type="radio" name="st" value="발주" onchange="search()"> 발주</label>
+        <label><input type="radio" name="st" value="입고" onchange="search()"> 입고</label>
+        <label><input type="radio" name="st" value="입고확정" onchange="search()"> 입고확정</label>
+      </div>
+      <span class="label">입고예정일</span><input id="ed1" class="field" type="date"><span>~</span><input id="ed2" class="field" type="date">
+      <span class="label">입고일</span><input id="id1" class="field" type="date"><span>~</span><input id="id2" class="field" type="date">
+      <span class="label">입고확정일</span><input id="cd1" class="field" type="date"><span>~</span><input id="cd2" class="field" type="date">
+    </div>
+    <div class="frow">
+      <span class="label">제번</span><input id="jobQ" class="field" style="width:180px" placeholder="제번 입력/선택" autocomplete="off">
+      <span class="label">품번</span><input id="pnQ" class="field" style="width:180px" placeholder="품번 입력/선택" list="pnDL" autocomplete="off"><datalist id="pnDL"></datalist>
+      <span class="label">협력업체</span><select id="vendorQ" class="field" data-combo style="width:180px"><option value="">전체</option></select>
+      <button class="btn" onclick="search()">⌕ 조회</button>
+    </div>
+  </section>
+  <div class="gridbox"><div class="tablewrap"><table>
+    <colgroup><col style="width:44px"><col style="width:76px"><col style="width:110px"><col style="width:120px"><col style="width:180px"><col style="width:48px"><col style="width:58px"><col style="width:70px"><col style="width:140px"><col style="width:52px"><col style="width:52px"><col style="width:84px"><col style="width:92px"><col style="width:96px"><col style="width:92px"><col style="width:96px"><col style="width:100px"><col style="width:100px"><col style="width:62px"></colgroup>
+    <thead><tr><th style="width:34px" title="전체 선택 / 해제"><input type="checkbox" id="chkAll" onclick="checkAll(this.checked)"></th><th>No</th><th>구분</th><th>협력업체</th><th>제번</th><th title="수주등록의 품번(제품)">품번(제품)</th><th>공정</th><th>공정명</th><th>품번</th><th>부품명</th><th title="발주수량">발주<br>수량</th><th title="입고수량">입고<br>수량</th><th>가공공정</th><th>발주일</th><th>입고예정일</th><th>입고일</th><th>입고확정일</th><th>견적가</th><th>확정가</th><th>수정</th></tr></thead>
+    <tbody id="body"></tbody>
+    <tfoot><tr><th colspan="17" class="r">합계</th><th class="r" id="sumQuote">0</th><th class="r" id="sumFix">0</th><th></th></tr></tfoot>
+  </table></div></div>
+  <footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn" onclick="editChecked()" title="체크한 한 행을 수정합니다">✎ 수정</button><button class="btn danger" onclick="delChecked()" title="체크한 발주를 삭제합니다 (입고 이력도 함께 삭제)">✕ 삭제</button><button class="btn primary" onclick="exportCsv()">▤ EXCEL</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫 기</button><span class="msg" id="message">외주가공 발주현황을 조회했습니다. (행을 더블클릭하면 수정)</span><span class="right" id="countText"></span></footer>
+</div>
+<script>
+const rows=[];
+let view=[...rows];
+const money=v=>Number(v||0).toLocaleString('ko-KR');
+function within(v,a,b){if(!a&&!b)return true;if(!v)return false;return (!a||v>=a)&&(!b||v<=b)}
+function render(){body.innerHTML=view.map((r,i)=>`<tr onclick="sel(this)" ondblclick="openEdit(${i})" title="더블클릭하면 이 행을 수정할 수 있습니다"><td class="c"><input type="checkbox" data-no="${r.no}" ${CHK.has(Number(r.no))?'checked':''} onclick="event.stopPropagation();toggleChk(${Number(r.no)},this.checked)"></td><td class="c">${i+1}</td><td class="c"><span class="tag t-${r.st}">${r.st}</span></td><td>${r.vendor}</td><td>${r.job}</td><td>${PN(r.job)}</td><td class="c">${r.proc}</td><td class="c">${r.procName}</td><td>${r.part}${window.MESCYCLE?MESCYCLE.badge(r.cyc,null,r.cycWhy):''}</td><td>${r.partName}</td><td class="r">${Number(r.ord)||1}</td><td class="r">${Number(r.got)||0}</td><td class="c">${r.mp}</td><td class="c">${r.odate}</td><td class="c">${r.edate}</td><td class="c">${r.idate}</td><td class="c">${r.cdate}</td><td class="r">${money(r.quote)}</td><td class="r">${money(r.fix)}</td><td class="c"><button class="btn edit" onclick="event.stopPropagation();openEdit(${i})" title="이 행을 수정합니다">✎ 수정</button></td></tr>`).join('');
+sumQuote.textContent=money(view.reduce((a,r)=>a+(Number(r.quote)||0),0));sumFix.textContent=money(view.reduce((a,r)=>a+(Number(r.fix)||0),0));
+ syncChkAll();countText.textContent=`${view.length}건`+(CHK.size?` · 선택 ${CHK.size}`:'');}
+function sel(tr){document.querySelectorAll('#body tr').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel')}
+/* v88: [조회] 는 DB 를 다시 읽고 나서 거른다 — 다른 화면에서 새로 생긴 발주가 바로 보인다 */
+function search(){
+ if(window.MESDB&&MESDB.reloadLines){
+  MESDB.reloadLines().then(n=>{_filterNow();if(n===-1&&typeof msg==='function')msg(MESDB.online===false?'DB 재조회 실패 — 화면에 있는 자료로만 걸렀습니다.':'저장하지 않은 입력이 있어 새로고침을 건너뛰었습니다. 먼저 [▣ 저장] 하세요.')})
+   .catch(()=>_filterNow());
+  return;
+ }
+ _filterNow();
+}
+/* ── v132: 행 선택(체크박스) + 하단 [수정]·[삭제] — 테스트로 넣은 발주를 골라 지운다 ── */
+const CHK=new Set();
+function toggleChk(no,on){on?CHK.add(Number(no)):CHK.delete(Number(no));syncChkAll();
+ countText.textContent=`${view.length}건`+(CHK.size?` · 선택 ${CHK.size}`:'')}
+function checkAll(on){
+ view.forEach(r=>{on?CHK.add(Number(r.no)):CHK.delete(Number(r.no))});
+ document.querySelectorAll('#body input[type=checkbox][data-no]').forEach(cb=>{cb.checked=on});
+ syncChkAll();countText.textContent=`${view.length}건`+(CHK.size?` · 선택 ${CHK.size}`:'')}
+function syncChkAll(){const el=document.getElementById('chkAll');if(!el)return;
+ const on=view.length>0&&view.every(r=>CHK.has(Number(r.no)));
+ el.checked=on;el.indeterminate=!on&&view.some(r=>CHK.has(Number(r.no)))}
+function checkedRows(){return view.filter(r=>CHK.has(Number(r.no)))}
+/* [✎ 수정] — 체크한 한 행을 수정창으로 연다 (더블클릭과 같은 창) */
+function editChecked(){
+ const sel=checkedRows();
+ if(!sel.length)return msg('수정할 행을 체크하세요. (행을 더블클릭해도 됩니다)');
+ if(sel.length>1)return msg(`수정은 한 번에 한 행만 됩니다. 지금 ${sel.length}건이 체크돼 있습니다.`);
+ const i=view.findIndex(r=>Number(r.no)===Number(sel[0].no));
+ if(i>=0)openEdit(i);
+}
+/* [✕ 삭제] — 체크한 발주를 모두 지운다 (입고 이력도 함께 지워진다) */
+async function delChecked(){
+ const sel=checkedRows();
+ if(!sel.length)return msg('삭제할 행을 체크하세요.');
+ if(!(window.MESDB&&MESDB.online))return msg('DB 미연결 상태에서는 삭제할 수 없습니다.');
+ const cnt={};sel.forEach(r=>{const k=r.st||'발주';cnt[k]=(cnt[k]||0)+1});
+ const detail=Object.entries(cnt).map(([k,v])=>`${k} ${v}건`).join(' · ');
+ const done=sel.filter(r=>/입고/.test(r.st||'')).length;
+ const head=sel.slice(0,6).map(r=>` · ${r.job} ${r.part||''} ${r.mp||''} (${r.vendor||''})`).join('\n');
+ if(!confirm(`외주가공 발주 ${sel.length}건을 삭제합니다. (${detail})\n\n${head}${sel.length>6?'\n … 외 '+(sel.length-6)+'건':''}\n`
+   +(done?`\n입고·확정된 ${done}건도 함께 지워집니다. 입고 이력도 사라집니다.\n`:'')
+   +`\n되돌릴 수 없습니다. 계속할까요?`))return;
+ msg(`삭제 중… 0/${sel.length}`);
+ let ok=0,ng=0,last='';
+ for(const r of sel){
+  try{await MESDB.delLines([Number(r.no)]);ok++;CHK.delete(Number(r.no));msg(`삭제 중… ${ok}/${sel.length}`)}
+  catch(e){ng++;last=String(e.message||e)}
+ }
+ try{MESDB.notify&&MESDB.notify(['order_lines','outsourcing_moves'])}catch(e){}
+ try{MESDB.dropCache&&MESDB.dropCache('order_lines')}catch(e){}
+ if(MESDB.reloadLines)await MESDB.reloadLines();
+ _filterNow();
+ msg(ng?`삭제 — 성공 ${ok}건 · 실패 ${ng}건: ${last.slice(0,100)}`:`외주가공 발주 ${ok}건을 삭제했습니다.`);
+}
+/* ── v122: 수주등록의 품번(job_pool.model)으로 찾기 — 제번·품번 드롭다운(타이핑 병행) ── */
+const PNMAP=new Map();                 /* 제번 → 품번(제품) */
+const PN=j=>PNMAP.get(j)||'';
+function pnFillDL(){
+ const dl=document.getElementById('pnDL');if(!dl)return;
+ const jobs=[...new Set(rows.map(r=>r.job))];
+ const seen=new Set(),out=[];
+ jobs.forEach(j=>{const m=PN(j);if(!m||seen.has(m))return;seen.add(m);out.push({m,job:j})});
+ out.sort((a,b)=>a.m.localeCompare(b.m));
+ dl.innerHTML=out.map(o=>`<option value="${String(o.m).replace(/"/g,'')}">${String(o.job).replace(/</g,'')}</option>`).join('');
+}
+async function pnLoad(){
+ try{
+  for(let i=0;i<60&&!window.MESDB;i++)await new Promise(r=>setTimeout(r,50));
+  if(window.MESDB&&MESDB.ready){try{await MESDB.ready}catch(e){}}
+  for(let i=0;i<20&&!(window.MESDB&&MESDB.online);i++)await new Promise(r=>setTimeout(r,150));
+  if(!(window.MESDB&&MESDB.online))return;
+  const rs=await MESDB.table('job_pool').select('select=job_no,model');
+  PNMAP.clear();(rs||[]).forEach(r=>{const m=String(r.model||'').trim();if(m)PNMAP.set(r.job_no,m)});
+  pnFillDL();render();
+ }catch(e){}
+}
+/* 품번을 고르면 제번 칸을 채우고, 제번을 고르면 품번 칸을 채운다 */
+function pnPick(){
+ const v=String(pnQ.value||'').trim();
+ if(v){const jobs=[...PNMAP.entries()].filter(([,m])=>m.toLowerCase()===v.toLowerCase()).map(([j])=>j);
+  if(jobs.length===1)jobQ.value=jobs[0];else if(jobs.length>1)jobQ.value='';}
+ _filterNow();
+}
+function jobPick(){const m=PN(String(jobQ.value||'').trim());if(m)pnQ.value=m;_filterNow()}
+/* v231: 구분 필터 — 화면 상태값(대기·입고·확정)을 라디오 값(발주·입고·입고확정)으로 맞춘다.
+   종전엔 r.st===st 로 비교해 [발주]·[입고확정] 을 고르면 항상 0건이었다. (원재료·구매품 현황과 같은 방식) */
+const ST=v=>v==='대기'?'발주':v==='확정'?'입고확정':(v||'');
+/* v231: 필터만 적용 (메시지 없음) — DB 자동갱신 때도 조회조건을 유지한다 */
+function _applyFilter(){const st=document.querySelector('input[name=st]:checked').value;const j=jobQ.value.trim().toLowerCase(),pn=pnQ.value.trim().toLowerCase(),v=vendorQ.value.trim().toLowerCase();
+view=rows.filter(r=>(st==='전체'||ST(r.st)===st)&&(!j||r.job.toLowerCase().includes(j))&&(!pn||PN(r.job).toLowerCase().includes(pn))&&(!v||r.vendor.toLowerCase().includes(v))&&within(r.edate,ed1.value,ed2.value)&&within(r.idate,id1.value,id2.value)&&within(r.cdate,cd1.value,cd2.value));
+render();return st}
+function _filterNow(){const st=_applyFilter();msg(`${st} 기준 ${view.length}건을 조회했습니다.`)}
+function exportCsv(){const out=[['구분','협력업체','제번','품번(제품)','공정','공정명','품번','부품명','발주수량','입고수량','가공공정','발주일','입고예정일','입고일','입고확정일','견적가','확정가'],...view.map(r=>[r.st,r.vendor,r.job,PN(r.job),r.proc,r.procName,r.part,r.partName,(Number(r.ord)||1),(Number(r.got)||0),r.mp,r.odate,r.edate,r.idate,r.cdate,r.quote,r.fix])];const csv='\ufeff'+out.map(a=>a.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='outsourcing_order_status.csv';a.click();URL.revokeObjectURL(a.href);msg('EXCEL(CSV) 파일을 생성했습니다.')}
+function msg(t){message.textContent=t}
+/* ════ v112: 행 더블클릭 수정 ════
+ *  협력업체·발주일·입고예정일·입고일·입고확정일·견적가·확정가를 그 자리에서 고친다.
+ *  상태(구분)는 발주→입고→입고확정 화면에서 처리하므로 여기서는 바꾸지 않는다(표시만).
+ *  삭제(발주취소)는 입고 전 행만 가능. */
+let ED=null;
+const _e=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const _num=v=>Number(String(v??'').replace(/[^0-9.\-]/g,''))||0;
+const _vv=id=>{const e=document.getElementById(id);return e?e.value:''};
+function closeEdit(){document.getElementById('edMask').classList.remove('on');document.getElementById('edPop').classList.remove('on');ED=null}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&ED)closeEdit()});
+function openEdit(i){
+ const r=view[i];if(!r)return;
+ if(!(window.MESDB&&MESDB.online))return msg('DB 미연결 상태에서는 수정할 수 없습니다.');
+ ED=r;
+ const vs=[...document.getElementById('vendorQ').options].map(o=>o.value).filter(Boolean);
+ if(r.vendor&&!vs.includes(r.vendor))vs.unshift(r.vendor);
+ document.getElementById('edTitle').textContent=`외주가공 발주 수정 — ${r.st||''}`;
+ document.getElementById('edBody').innerHTML=`
+  <div class="sub"><b>${_e(r.job)}</b> · ${_e(r.part)} ${_e(r.partName||'')} · 가공공정 <b>${_e(r.mp||'')}</b> · 품명 ${_e(r.item||'')}</div>
+  <div class="g">
+   <label>구분</label><input value="${_e(r.st||'')}" readonly>
+   <label>협력업체</label><select id="edVendor">${vs.map(v=>`<option value="${_e(v)}"${v===r.vendor?' selected':''}>${_e(v)}</option>`).join('')}</select>
+   <label>발주일</label><input id="edOdate" type="date" value="${_e(r.odate||'')}">
+   <label>입고예정일</label><input id="edEdate" type="date" value="${_e(r.edate||'')}">
+   <label>입고일</label><input id="edIdate" type="date" value="${_e(r.idate||'')}">
+   <label>입고확정일</label><input id="edCdate" type="date" value="${_e(r.cdate||'')}">
+   <label>견적가</label><input id="edQuote" class="r" value="${money(r.quote)}" inputmode="numeric" onchange="edRate()">
+   <label>확정가</label><input id="edFix" class="r" value="${money(r.fix)}" inputmode="numeric" onchange="edRate()">
+   <label>네고율(%)</label><input id="edNego" class="r" value="0" readonly>
+  </div>
+  <div class="note" id="edNote">구분(발주/입고/입고확정)은 입고·입고확정 화면에서 처리됩니다. 여기서는 업체·일자·금액만 수정합니다.</div>`;
+ const canDel=r.st==='발주'&&!r.idate&&!r.cdate;
+ document.getElementById('edFoot').innerHTML=
+  (canDel?`<button class="btn del" onclick="edDelete()">✕ 발주취소(삭제)</button>`:'')
+  +`<button class="btn go" id="edGo" onclick="edSave()">▣ 저장</button><button class="btn" onclick="closeEdit()">취소</button>`;
+ document.getElementById('edMask').classList.add('on');
+ document.getElementById('edPop').classList.add('on');
+ edRate();
+ setTimeout(()=>document.getElementById('edVendor').focus(),30);
+}
+function edRate(){
+ const q=_num(_vv('edQuote')),f=_num(_vv('edFix'));
+ const qe=document.getElementById('edQuote'),fe=document.getElementById('edFix');
+ if(qe)qe.value=q?money(q):'';if(fe)fe.value=f?money(f):'';
+ const n=document.getElementById('edNego');if(n)n.value=q?((1-f/q)*100).toFixed(1):'0';
+}
+async function edSave(){
+ const r=ED;if(!r)return;
+ const b=document.getElementById('edGo');if(b){b.disabled=true;b.textContent='저장 중…'}
+ const q=_num(_vv('edQuote')),f=_num(_vv('edFix'));
+ const patch={line_id:Number(r.no),vendor_name:_vv('edVendor')||null,
+  order_date:_vv('edOdate')||null,required_date:_vv('edEdate')||null,
+  receipt_date:_vv('edIdate')||null,confirm_date:_vv('edCdate')||null,
+  quote_price:q||null,confirm_price:f||null,
+  nego_rate:q?Number(((1-f/q)*100).toFixed(2)):null,
+  updated_at:new Date().toISOString()};
+ try{
+  await MESDB.table('order_lines').upsert([patch],'line_id');
+  try{MESDB.dropCache&&MESDB.dropCache('order_lines')}catch(e){}
+  try{MESDB.notify&&MESDB.notify(['order_lines'])}catch(e){}
+  closeEdit();
+  if(MESDB.reloadLines)await MESDB.reloadLines();
+  _filterNow();
+  msg(`${r.job} · ${r.part} ${r.mp||''} 수정했습니다. (업체 ${patch.vendor_name||'-'} · 견적 ${money(q)} · 확정 ${money(f)})`);
+ }catch(e){msg('수정 실패: '+String(e.message||e).slice(0,130));if(b){b.disabled=false;b.textContent='▣ 저장'}}
+}
+async function edDelete(){
+ const r=ED;if(!r)return;
+ if(!confirm(`아래 외주가공 발주를 취소(삭제)합니다.\n\n제 번 : ${r.job}\n품 번 : ${r.part} ${r.partName||''}\n가공공정 : ${r.mp||''}\n업 체 : ${r.vendor||''}\n\n되돌릴 수 없습니다. 계속할까요?`))return;
+ try{
+  await MESDB.delLines([Number(r.no)]);
+  try{MESDB.notify&&MESDB.notify(['order_lines'])}catch(e){}
+  closeEdit();
+  if(MESDB.reloadLines)await MESDB.reloadLines();
+  _filterNow();
+  msg(`${r.job} · ${r.part} ${r.mp||''} 발주를 취소했습니다.`);
+ }catch(e){
+  const m=String(e.message||e);
+  msg(/foreign key|23503/i.test(m)?'발주취소 실패: 이 발주를 참조하는 입고 자료가 있습니다.':'발주취소 실패: '+m.slice(0,120));
+ }
+}
+render();window.MES={search,exportCsv,setMessage:msg};
+</script>
+<style>
+/* v112: 행 더블클릭 수정 팝업 */
+button.btn.edit{height:21px;min-width:0;padding:0 8px;font-size:11px;line-height:19px;border:1px solid #9cb5cb;background:linear-gradient(#fff,#eaf2f8);color:#2c6ca8;cursor:pointer;border-radius:3px}
+button.btn.edit:hover{background:#fff;border-color:#4e88bb}
+tbody tr.sel button.btn.edit{background:#fff;color:#2c6ca8}
+#edMask{position:fixed;inset:0;background:rgba(20,28,35,.38);z-index:9000;display:none}#edMask.on{display:block}
+#edPop{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9001;width:470px;max-width:96vw;background:#fff;border:1px solid #6f8090;box-shadow:0 8px 26px rgba(0,0,0,.3);display:none;font-size:12px;color:#22303a}
+#edPop.on{display:block}
+#edPop .h{display:flex;align-items:center;gap:8px;padding:0 8px 0 12px;height:32px;color:#fff;font-weight:700;background:linear-gradient(#5f7f9f,#3f5f7d)}
+#edPop .h .x{margin-left:auto;border:0;background:transparent;color:#fff;cursor:pointer;font:inherit;font-size:15px}
+#edPop .b{padding:10px 12px 6px}
+#edPop .sub{color:#4d5c69;margin-bottom:8px;line-height:1.5}#edPop .sub b{color:#20456b}
+#edPop .g{display:grid;grid-template-columns:84px minmax(0,1fr) 84px minmax(0,1fr);gap:6px 8px;align-items:center}
+#edPop .g label{font-weight:700;text-align:right;color:#4d5c69;white-space:nowrap}
+#edPop .g input,#edPop .g select{width:100%;min-width:0;height:26px;border:1px solid #b9c3cb;padding:0 5px;font:inherit;box-sizing:border-box;color:#22303a!important;background:#fff!important}
+#edPop .g input.r{text-align:right}
+#edPop .g input[readonly]{background:#eef1f4!important;color:#78868f!important}
+#edPop .note{font-size:11px;color:#6d7b88;margin-top:8px;line-height:1.5}
+#edPop .f{display:flex;gap:6px;justify-content:flex-end;padding:9px 12px 11px;border-top:1px solid #e3e9ed;background:#f7f9fa}
+#edPop .f .btn{height:28px;min-width:74px}
+#edPop .f .btn.go{font-weight:700;color:#fff;border-color:#2a5d95;background:linear-gradient(#4a8ad0,#2f6fb0)}
+#edPop .f .btn.go:disabled{opacity:.5}
+#edPop .f .btn.del{color:#a8231f;border-color:#d6a6a2;background:linear-gradient(#fff,#f7e4e2);margin-right:auto}
+</style>
+<div id="edMask" onclick="closeEdit()"></div>
+<div id="edPop"><div class="h"><span id="edTitle">발주 수정</span><button class="x" onclick="closeEdit()">✕</button></div>
+ <div class="b" id="edBody"></div><div class="f" id="edFoot"></div></div>
+<script src="mes_db.js?v=230"></script><script src="mes_cycle.js?v=225"></script>
+<script>MESDB.lines({page:"outsourcing_order_status",category:"외주가공",statuses:[],map:{"no": {"col": "line_id", "type": "num"}, "vendor": "vendor_name", "job": "job_no", "item": "item_name", "proc": "process_code", "procName": "process_name", "part": "part_no", "cyc": {"col": "cycle_no", "type": "num"}, "cycWhy": "cycle_reason", "partName": "part_name", "st": {"col": "status", "type": "status"}, "ord": {"col": "order_qty", "type": "num"}, "got": {"col": "receipt_qty", "type": "num"}, "mp": "machining_process_code", "odate": {"col": "order_date", "type": "date"}, "edate": {"col": "required_date", "type": "date"}, "idate": {"col": "receipt_date", "type": "date"}, "cdate": {"col": "confirm_date", "type": "date"}, "quote": {"col": "quote_price", "type": "num"}, "fix": {"col": "confirm_price", "type": "num"}},get:()=>rows,render:()=>{try{_applyFilter()}catch(e){view=[...rows];render()}}});   /* v231: 재조회·자동갱신 때 조회조건 유지 */</script>
+<script src="mes_lookup.js?v=92"></script>
+<script>
+/* v86: 협력업체 — 기준정보(업체 관리)의 외주가공 협력사를 드롭다운으로 선택 */
+async function loadVendorSel(){
+ const sel=document.getElementById('vendorQ');if(!sel||sel.tagName!=='SELECT')return;
+ const keepV=sel.value;
+ let n=0;
+ try{
+  for(let i=0;i<40&&!window.MESLOOK;i++)await new Promise(r=>setTimeout(r,50));
+  if(window.MESLOOK){
+   await MESLOOK.fillSelect(sel,'vendor_outsourcing',{keep:['전체'],
+     value:r=>r.vendor_name||'',label:r=>r.vendor_name||''});
+   n=sel.options.length-1;
+  }
+ }catch(e){}
+ if(n<=0){   /* 마스터가 비어 있으면 조회된 발주자료의 업체로 대체 */
+  try{
+   const src=(typeof rows!=='undefined'&&Array.isArray(rows))?rows:[];
+   const vs=[...new Set(src.map(r=>r.vendor).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ko'));
+   sel.innerHTML='<option value="">전체</option>'+vs.map(v=>`<option>${String(v).replace(/[<>&"]/g,'')}</option>`).join('');
+   n=vs.length;
+  }catch(e){}
+ }
+ if([...sel.options].some(o=>o.value===keepV))sel.value=keepV;
+ if(!sel.__vwire){sel.__vwire=1;sel.addEventListener('change',()=>{try{search()}catch(e){}})}
+ if(!n&&typeof msg==='function')msg('협력업체 마스터가 비어 있습니다. 기준정보 > 업체 관리에서 외주가공 업체를 등록하세요.');
+}
+loadVendorSel();setTimeout(loadVendorSel,1500);
+</script>
+<script src="mes_ctx.js?v=169"></script>
+<script src="mes_jobpick.js?v=162"></script>
+<script>/* v122: 제번·품번 — 목록에서 고르거나 직접 입력 */
+try{MESJOB.attach("jobQ",{onPick:()=>{try{jobPick()}catch(e){}}})}catch(e){}
+try{jobQ.addEventListener("change",()=>{try{jobPick()}catch(e){}});
+ pnQ.addEventListener("change",()=>{try{pnPick()}catch(e){}});
+ [jobQ,pnQ].forEach(el=>el.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();el.blur()}}));
+ pnLoad();}catch(e){}
+</script>
+</body>
+</html>
