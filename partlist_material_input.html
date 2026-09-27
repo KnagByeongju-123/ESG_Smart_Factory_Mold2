@@ -233,6 +233,37 @@ async function saveChecked(){
  }catch(e){const m=String(e.message||e);
   alert('등록 실패: '+(/무결성|foreign key/i.test(m)?'등록되지 않은 제번입니다. 수주등록을 먼저 하세요.':m.slice(0,160)))}
 }
+/* TJD v262: PartList 를 지우면 그 부품의 가공계획(machining_plan_parts)도 함께 지운다.
+   (가공계획이 남아 사내외가공 발주·외주가공 진척현황에 지운 부품이 계속 보이던 문제)
+   이미 가공 발주·가공 실적이 있는 부품은 가공계획을 남기고 알려 준다. */
+async function planCascade(job,parts){
+ const res={del:0,kept:[],raw:[]};
+ if(!job||!parts.length||!online())return res;
+ const J=encodeURIComponent(job);
+ const [plan,ol,dr,remain]=await Promise.all([
+  MESDB.table('machining_plan_parts').select(`select=row_no,part_no,process_code&job_no=eq.${J}`,{fresh:true}).catch(()=>[]),
+  MESDB.table('order_lines').select(`select=part_no,category,machining_process_code,status&job_no=eq.${J}`,{fresh:true}).catch(()=>[]),
+  MESDB.table('design_results').select(`select=part_no&job_no=eq.${J}`,{fresh:true}).catch(()=>[]),
+  MESDB.table('partlist_materials').select(`select=part_no,process_code&job_no=eq.${J}`,{fresh:true}).catch(()=>[])]);
+ const left=new Set((remain||[]).map(r=>String(r.process_code??'').trim()+'|'+String(r.part_no||'')));
+ const want=new Set(parts.map(p=>String(p.part_no||'')));
+ const busy=new Set();
+ (ol||[]).forEach(r=>{if(!want.has(String(r.part_no)))return;
+  if(r.machining_process_code)busy.add(String(r.part_no));else res.raw.push(r.part_no+' ('+(r.category||'')+' '+(r.status||'')+')')});
+ (dr||[]).forEach(r=>{if(want.has(String(r.part_no)))busy.add(String(r.part_no))});
+ for(const r of plan||[]){const pn=String(r.part_no||'');if(!want.has(pn))continue;
+  if(left.has(String(r.process_code??'').trim()+'|'+pn))continue;   /* 다른 조 PartList 에 아직 있는 부품은 둔다 */
+  if(busy.has(pn)){res.kept.push(pn);continue}
+  await MESDB.table('machining_plan_parts').delete({row_no:r.row_no});res.del++}
+ try{MESDB.dropCache&&MESDB.dropCache('machining_plan_parts');MESDB.notify&&MESDB.notify(['machining_plan_parts'])}catch(e){}
+ res.kept=[...new Set(res.kept)];res.raw=[...new Set(res.raw)];
+ return res;
+}
+function cascadeMsg(r){
+ return (r.del?` · 가공계획 ${r.del}건 함께 삭제`:'')
+  +(r.kept.length?` · 가공 발주/실적이 있어 가공계획 유지: ${r.kept.slice(0,5).join(', ')}${r.kept.length>5?' …':''}`:'')
+  +(r.raw.length?` · 원재료 발주가 남아 있습니다(원재료 발주 화면에서 취소): ${r.raw.slice(0,5).join(', ')}${r.raw.length>5?' …':''}`:'');
+}
 async function del_(){
  const ids=[...chk];
  if(!ids.length){msg('삭제할 행을 체크하세요.');return}
@@ -241,10 +272,13 @@ async function del_(){
  if(!confirm(`선택한 ${ids.length}건을 삭제하시겠습니까?`+(loc.length?`\n(미등록 ${loc.length}건은 리스트에서만 지웁니다)`:'')))return;
  try{
   for(const id of loc){const i=pend.findIndex(x=>x.row_no===id);if(i>=0)pend.splice(i,1)}
+  const delRows=dbIds.map(id=>data.find(x=>x.row_no===id)).filter(Boolean);
   for(const id of dbIds)await MESDB.table('partlist_materials').delete({row_no:id});
   ids.forEach(id=>chk.delete(id));
+  let cr={del:0,kept:[],raw:[]};
+  if(delRows.length){try{cr=await planCascade(curJobNo(),delRows)}catch(e){}}
   if(dbIds.length){notify();await loadJob()}else render();
-  msg(`${ids.length}건을 삭제했습니다.`);
+  msg(`${ids.length}건을 삭제했습니다.`+cascadeMsg(cr));
  }catch(e){msg('삭제 실패: '+String(e.message||e).slice(0,120))}
 }
 
@@ -276,10 +310,12 @@ async function bulkRun(){
  if(!confirm(`제번 ${job}\n원재료 PartList ${dCnt}건을 모두 삭제합니다.\n\n복구할 수 없습니다. 진행할까요?`))return;
  dBtn.disabled=true;dInfo.textContent='삭제 중…';
  try{
+  const parts=await MESDB.table('partlist_materials').select(`select=part_no,process_code&job_no=eq.${encodeURIComponent(job)}`,{fresh:true}).catch(()=>[]);
   await MESDB.table('partlist_materials').delete({job_no:job});
+  let cr={del:0,kept:[],raw:[]};try{cr=await planCascade(job,parts||[])}catch(e){}
   notify();
-  dInfo.innerHTML=`<b style="color:#1d6b3a">${dCnt}건을 삭제했습니다.</b>`;
-  msg(`제번 ${job} PartList ${dCnt}건 일괄삭제 완료`);
+  dInfo.innerHTML=`<b style="color:#1d6b3a">${dCnt}건을 삭제했습니다.</b>`+esc(cascadeMsg(cr));
+  msg(`제번 ${job} PartList ${dCnt}건 일괄삭제 완료`+cascadeMsg(cr));
   dConfirm.value='';dCnt=0;if(curJobNo()===job){pend.length=0;chk.clear()}
   if(curJobNo()===job)await loadJob(job);
   setTimeout(bulkClose,800);
