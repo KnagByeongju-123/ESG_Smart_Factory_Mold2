@@ -138,7 +138,13 @@ function fresh(){
   dtitle.textContent='신규 요청';tb.querySelectorAll('tr').forEach(t=>t.classList.remove('sel'));$('title').focus();
 }
 async function save(){
-  const t=$('title').value.trim();if(!t)return msg('제목을 입력하세요.');
+  /* TJD: 제목이 비어 있으면 요청내용 첫 줄을 제목으로 쓴다. 둘 다 비면 눈에 띄게 알린다
+     (하단 메시지줄만으로는 '저장이 안 된다'로 보였다) */
+  let t=$('title').value.trim();
+  if(!t){const c=($('content').value||'').trim().split(/\r?\n/)[0].trim();
+    if(c){t=c.length>40?c.slice(0,40)+'…':c;$('title').value=t}
+    else{$('title').style.borderColor='#d9534f';$('title').focus();msg('제목(또는 요청내용)을 입력하세요.');alert('제목 또는 요청내용을 입력하세요.');return}}
+  $('title').style.borderColor='';
   const row={};F.forEach(k=>{if(k!=='req_id')row[k]=$(k).value===''?null:$(k).value});
   row.updated_at=new Date().toISOString();
   const prev=selId?data.find(x=>x.req_id===selId):null;
@@ -149,7 +155,7 @@ async function save(){
     else{const ins=await MESDB.table(T).insertOne(row);selId=ins?.req_id??null}
     await load();if(selId)pick(selId);msg(`#${selId} 저장했습니다.`);
     try{window.parent.MESDB?.notify?.(T)}catch(e){}
-  }catch(e){msg('저장 실패: '+e.message)}
+  }catch(e){msg('저장 실패: '+e.message);alert('저장 실패: '+String(e.message||e).slice(0,200))}
 }
 function setStatus(s){if(!selId)return msg('요청을 먼저 선택하세요.');$('status').value=s;if(!$('reply').value.trim())$('reply').value='처리 완료';save()}
 async function remove(){
