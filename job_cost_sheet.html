@@ -1,0 +1,339 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>금형원가내역</title><style>
+:root{--line:#98a6b2;--line2:#c5d0d8;--blue:#2f75b5;--ink:#344757;--head1:#e8f1f8;--head2:#c8dbe9}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{font-family:"Malgun Gothic","맑은 고딕",Arial,sans-serif;font-size:12px;color:var(--ink);background:#fff;overflow:hidden}
+button,input,select{font:inherit;color:inherit}.screen{height:100%;display:flex;flex-direction:column;background:#fff}
+.title{height:46px;padding:8px 14px 4px;border-bottom:2px solid #3978ae;display:flex;align-items:center}.title h1{margin:0;font-size:21px;font-weight:500;color:#4b5c6a}.title h1:before{content:'◯';margin-right:6px;color:#8796a1}.title small{font-size:11px;color:#9ca7af;margin-left:12px}
+.field{height:27px;border:1px solid #b5c0c9;background:#fff;padding:0 6px;min-width:0;max-width:100%}
+.filt{padding:7px 14px;background:#fafbfc;border-bottom:1px solid var(--line2);display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap}
+.lb{font-weight:700;white-space:nowrap}
+.btn{height:29px;min-width:62px;padding:0 10px;border:1px solid #9ba8b4;background:linear-gradient(#fff,#dfe6eb);cursor:pointer}.btn:hover{background:#fff}
+.btn.pri{background:linear-gradient(#4a90d9,#2f75b5);color:#fff;border-color:#2c6396}
+.tabs{display:flex;gap:0;padding:6px 14px 0;background:#fafbfc;border-bottom:1px solid var(--line2)}
+.tabs button{height:30px;min-width:130px;padding:0 16px;border:1px solid var(--line2);border-bottom:0;background:linear-gradient(#f4f7f9,#e6ecf1);color:#5a6b7a;font-weight:700;cursor:pointer;margin-right:3px}
+.tabs button.on{background:#fff;color:#1d5da3;border-color:var(--line);position:relative;top:1px}
+.gridbox{flex:1;min-height:0;margin:8px 14px;border:1px solid var(--line);overflow:auto;background:#fff}
+table{border-collapse:collapse;width:100%}
+th,td{height:25px;border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);padding:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+thead th{position:sticky;top:0;z-index:3;text-align:center;background:linear-gradient(var(--head1),var(--head2));color:#405266;font-weight:700}
+thead tr:first-child th{top:0}thead tr:nth-child(2) th{top:25px}
+thead th.grp{background:linear-gradient(#dbe9f5,#b9d2e6);letter-spacing:1px}
+tbody tr:nth-child(even) td{background:#fafcfd}tbody tr:hover td{background:#edf6fd}
+.c{text-align:center}.num{text-align:right}
+td.pc{text-align:right;font-size:11px}
+td.pc .h{color:#1d5da3;font-weight:700}
+td.pc .o{color:#7a4a12}
+td.pc .w{color:#9aa5ad}   /* 미확정(발주·입고) 금액 */
+td.dt{text-align:center;font-size:11px}
+td.dt.done{background:#fff6cc!important;color:#7a5c00;font-weight:700}
+td.dt.run{background:#e8f4ff!important;color:#1d5da3}
+td.dt.out{color:#7a4a12}
+tfoot td{position:sticky;bottom:0;background:#dfe9f2!important;font-weight:700;border-top:2px solid var(--line)}
+.sum{padding:0 14px 6px;color:#4b5c6a;display:flex;gap:16px;flex-wrap:wrap}
+.sum b{color:#1d5da3}
+.foot{height:42px;display:flex;align-items:center;padding:5px 14px;border-top:1px solid var(--line);background:#eef2f5;gap:5px}.msg{margin-left:8px;color:#687784}.right{margin-left:auto;color:#7c8993}
+@media print{
+ @page{size:A4 landscape;margin:8mm}
+ body{overflow:visible}.filt,.tabs,.foot,.title small{display:none!important}
+ .screen{height:auto}.gridbox{border:0;margin:0;overflow:visible;max-height:none}
+ thead th{position:static}tfoot td{position:static}
+ th,td{font-size:10px;height:auto;padding:2px 4px;white-space:normal}
+}
+
+/* v196: 금형 공통비 · 총원가 */
+tr.cmh td{background:#eef3f7!important;font-weight:700;color:#34495e;border-top:2px solid #98a6b2;height:26px}tr.cmh td span{font-weight:400;font-size:11px;color:#7c8993;margin-left:6px}
+tr.cm td{background:#fbfcfd}tr.cm td b{display:inline-block;min-width:130px;color:#1d3f63}tr.cm td .det{color:#5d6e7d;font-size:11.5px}
+tr.cm.zero td b,tr.cm.zero td{color:#a9b4bc!important}
+tfoot tr.grand td{background:#cfe0ee!important;color:#12365a;font-size:12.5px}
+tfoot tr:not(:last-child) td{bottom:var(--grandH,27px)}
+/* v196: 더블클릭 이동 */
+#body td.go{cursor:pointer}#body td.go:hover{box-shadow:inset 0 0 0 1px #2f75b5}
+</style></head><body><div class="screen">
+<div class="title"><h1>금형원가내역 <span id="hdJob" style="font-size:16px;color:#1d5da3;margin-left:10px"></span></h1><small>원가관리 · 제조원가 &nbsp;|&nbsp; 부품(품번)별 재료비 + 공정별 가공비 · 진행현황</small></div>
+<section class="filt">
+ <span class="lb">관리제번</span><input id="jobQ" class="field" style="width:250px" placeholder="제번 입력/선택">
+ <label style="display:flex;align-items:center;gap:4px" title="같은 관리제번(공정 문자를 뺀 제번)의 A·B·C 공정을 한 표로 묶어 봅니다"><input type="checkbox" id="grpQ" onchange="load()"> 관리제번 전체</label>
+ <span class="lb" style="margin-left:6px">품번</span><input id="partQ" class="field" style="width:150px" placeholder="품번/부품명" oninput="render()">
+ <label style="display:flex;align-items:center;gap:4px" title="원재료·가공 기록이 하나도 없는 부품을 숨깁니다"><input type="checkbox" id="hideEmpty" onchange="render()"> 기록 있는 부품만</label>
+ <button class="btn" onclick="load()">⌕ 조회</button>
+ <span style="color:#6b7a86">공정 열은 공정명 가나다순입니다. 셀 위 =<b style="color:#1d5da3">사내 시간</b>, 아래 =<b style="color:#7a4a12">외주 금액</b>, <span style="color:#9aa5ad">(회색)</span> = 미확정 · <b>칸을 우클릭하면 근거 화면으로 이동</b></span>
+</section>
+<div class="tabs">
+ <button id="tab1" class="on" onclick="setTab('cost')">▤ 원가내역</button>
+ <button id="tab2" onclick="setTab('prog')">◴ 진행현황</button>
+</div>
+<div class="gridbox"><table id="grid" style="min-width:1280px"><thead id="thead"></thead><tbody id="body"></tbody><tfoot id="tfoot"></tfoot></table></div>
+<div class="sum" id="sumLine"></div>
+<footer class="foot"><button class="btn" onclick="load()">⌕ 조회</button><button class="btn" onclick="csv()">▤ EXCEL</button><button class="btn pri" onclick="window.print()">⎙ 인쇄 (A4 가로)</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">제번을 선택하면 부품별 원가내역이 조회됩니다.</span><span class="right" id="countText"></span></footer>
+</div>
+<script>
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const msg=t=>message.textContent=t;
+const online=()=>!!(window.MESDB&&MESDB.online);
+const N=v=>Number(v)||0, F=v=>Math.round(N(v)).toLocaleString('ko-KR');
+const H=m=>{const h=N(m)/60;return h?(h>=10?h.toFixed(0):h.toFixed(1)):''};
+const D=v=>String(v||'').slice(0,10), MD=v=>{const d=D(v);return d?d.slice(5).replace('-','/'):''};
+let TAB='cost', ROWS=[], COLS=[], PROCNAME={}, PROCORD={}, CURJOB='', BASEMODE=false;
+const stepCode=s=>String((s&&typeof s==='object')?(s.process_code||s.code||''):(s??'')).trim();
+const pn=c=>PROCNAME[c]||PROCNAME[String(c).toUpperCase()]||c;
+/* 확정금액 — 제조원가조회와 같은 규칙 */
+const confAmt=l=>{const q=N(l.quote_price),c=(l.confirm_price==null||l.confirm_price==='')?null:N(l.confirm_price),ng=N(l.nego_rate);
+ return c!=null?c:Math.round(q*(1-ng/100))};
+const baseOf=j=>{try{return MESDB.jobSplit(j).base}catch(e){return String(j||'')}};
+const seqOf=j=>{try{return MESDB.jobSplit(j).seq}catch(e){return ''}};
+
+async function waitDB(){for(let i=0;i<80&&!window.MESDB;i++)await new Promise(r=>setTimeout(r,50));
+ if(window.MESDB&&MESDB.ready){try{await Promise.race([MESDB.ready,new Promise(r=>setTimeout(r,3000))])}catch(e){}}}
+function setTab(t){TAB=t;tab1.classList.toggle('on',t==='cost');tab2.classList.toggle('on',t==='prog');render()}
+
+async function loadProcs(){
+ if(Object.keys(PROCNAME).length)return;
+ try{const ps=await MESDB.table('processes').select('select=process_code,process_name,sort_order&order=sort_order,process_code');
+  (ps||[]).forEach((p,i)=>{PROCNAME[p.process_code]=p.process_name||p.process_code;PROCORD[p.process_code]=N(p.sort_order)||(i+1)})}catch(e){}
+}
+
+async function load(){
+ await waitDB();
+ const job=String(jobQ.value||'').trim();
+ if(!job){msg('제번을 입력하세요.');jobQ.focus();return}
+ if(!online()){msg('DB 미연결 상태입니다.');return}
+ BASEMODE=grpQ.checked;CURJOB=job;
+ const base=baseOf(job), key=BASEMODE?base:job;
+ hdJob.textContent=BASEMODE?`${base} (관리제번 전체)`:job;
+ msg('조회 중…');
+ try{
+  await loadProcs();
+  const F1=BASEMODE?`job_no=like.${encodeURIComponent(base+'*')}`:`job_no=eq.${encodeURIComponent(job)}`;
+  const [plan,pl,lines,res,exps]=await Promise.all([
+   MESDB.table('machining_plan_parts').select(`select=*&${F1}&order=row_no`).catch(()=>[]),
+   MESDB.table('partlist_all').select(`select=*&${F1}`).catch(()=>[]),
+   MESDB.table('order_lines').select(`select=*&${F1}&order=line_id`).catch(()=>[]),
+   MESDB.table('design_results').select(`select=*&${F1}&work_type=in.(가공,조립,검사,설계)`).catch(()=>[]),   /* v169: 조립·검사 실적도 공정 칸에 */
+   MESDB.table('expenses').select(`select=*&${F1}`).catch(()=>[])   /* v196: 경비 → 금형 공통비 */
+  ]);
+  /* v159: 형태·이미지 보충 (뷰에 없을 수 있음) */
+  let meta={};try{meta=await MESDB.partMeta(BASEMODE?null:job)||{}}catch(e){}
+  build(plan||[],pl||[],lines||[],res||[],meta,exps||[]);
+  msg(`${hdJob.textContent} · 부품 ${ROWS.length}건 · 공정 ${COLS.length}개`);
+ }catch(e){msg('조회 실패: '+String(e.message||e).slice(0,130))}
+ render();
+}
+
+/* v196: 금형 공통비 — 부품에 딸리지 않는 비용 (외주설계 · 사내설계 · 조립/검사 「금형 전체」 · 경비 · 부품 미지정 발주·실적) */
+let COMMON=null;
+const LABOR=r=>r.labor_cost!=null&&r.labor_cost!==''?N(r.labor_cost):Math.round(N(r.work_minutes)/60*30000);
+function build(plan,pl,lines,res,meta,exps){
+ COMMON={dex:{amt:0,wait:0,n:0},sex:{amt:0,wait:0,n:0},din:{min:0,amt:0,n:0},asm:{min:0,amt:0,n:0},insp:{min:0,amt:0,n:0},exp:{amt:0,n:0},etc:{amt:0,min:0,n:0}};
+ const map=new Map();   /* job|part → row */
+ const K=(j,p)=>j+'|'+p;
+ const at=(j,p)=>{const k=K(j,p);if(!map.has(k))map.set(k,{job:j,seq:seqOf(j),part:p,name:'',mat:'',shape:'',img:'',spec:'',qty:null,
+   steps:[],inhouse:[],mat_in:'',mat_qty:null,mat_price:null,mat_amt:0,raw_amt:0,buy_amt:0,proc:{}});return map.get(k)};
+ /* 1) 부품 목록: 가공계획 → PartList(원재료·구매품) */
+ plan.forEach(r=>{const x=at(r.job_no,r.part_no);x.name=r.part_name||x.name;
+  const st=(Array.isArray(r.steps)?r.steps:[]).map(stepCode).filter(Boolean);
+  if(st.length){x.steps=st;x.inhouse=st.map((c,i)=>!!(Array.isArray(r.inhouse)&&r.inhouse[i]))}
+  if(r.qty!=null)x.qty=N(r.qty)});
+ pl.forEach(r=>{const x=at(r.job_no,r.part_no);x.name=x.name||r.part_name||'';
+  x.mat=x.mat||r.material||'';x.shape=x.shape||r.shape||'';x.img=x.img||r.image_url||'';
+  x.spec=x.spec||r.design_dimension||r.spec||'';x.pl_cat=x.pl_cat||r.order_type||'';
+  if(x.qty==null&&r.qty!=null)x.qty=N(r.qty)});
+ /* 2) 발주: 원재료·구매품 → 재료비 / 외주가공 → 공정별 금액 */
+ lines.forEach(l=>{
+  const done0=l.status==='입고확정';
+  if(l.category==='외주설계'){const c=COMMON.dex;c.n++;if(done0)c.amt+=confAmt(l);else if(l.status==='발주'||l.status==='입고')c.wait+=confAmt(l);return}
+  if(l.category==='외주SET'){const c=COMMON.sex;c.n++;if(done0)c.amt+=confAmt(l);else if(l.status==='발주'||l.status==='입고')c.wait+=confAmt(l);return}   /* v230: SET외주 → 금형 공통비 */
+  const p=l.part_no||'';
+  if(!p||p==='★'){if(done0&&['원재료','구매품','외주가공'].includes(l.category)){COMMON.etc.amt+=confAmt(l);COMMON.etc.n++}return}
+  const x=at(l.job_no,p);x.name=x.name||l.part_name||'';
+  const done=l.status==='입고확정', got=done||l.status==='입고';
+  if(l.category==='원재료'||l.category==='구매품'){
+   x.mat=x.mat||l.material||'';x.shape=x.shape||l.shape||'';x.spec=x.spec||l.spec||'';
+   const d=D(l.confirm_date||l.receipt_date);
+   if(got&&d&&(!x.mat_in||d>x.mat_in))x.mat_in=d;
+   if(l.unit_price!=null&&!x.mat_price)x.mat_price=N(l.unit_price);
+   if(x.mat_qty==null)x.mat_qty=N(l.receipt_qty)||N(l.order_qty)||null;
+   if(done){const a=confAmt(l);x.mat_amt+=a;if(l.category==='구매품')x.buy_amt+=a;else x.raw_amt+=a}
+   x.mat_st=x.mat_st||l.status;x.mat_cat=x.mat_cat||l.category;
+  }else if(l.category==='외주가공'){
+   const c=stepCode(l.machining_process_code||l.process_code);if(!c)return;
+   const q=x.proc[c]||(x.proc[c]={min:0,cost:0,out:0,wait:0,dOut:'',dIn:'',st:''});
+   if(done)q.out+=confAmt(l);else if(l.status==='발주'||l.status==='입고')q.wait+=confAmt(l);
+   const d=D(l.confirm_date||l.receipt_date);
+   if(got&&d&&d>q.dOut)q.dOut=d;
+   q.st=q.st==='입고확정'?q.st:l.status;
+   q.vendor=l.vendor_name||q.vendor;q.src=q.src||{};q.src['외주']=1;
+  }});
+ /* 3) 사내가공 실적 → 공정별 시간·금액 */
+ res.forEach(r=>{
+  const p=r.part_no||'';const c=stepCode(r.machining_process_code||r.process_code);
+  const wt=r.work_type||'가공';
+  if(wt==='설계'||!p||p==='★'||!c){   /* v196: 부품에 딸리지 않는 실적 → 금형 공통비 */
+   const g=wt==='설계'?COMMON.din:wt==='조립'?COMMON.asm:wt==='검사'?COMMON.insp:COMMON.etc;
+   g.min+=N(r.work_minutes);g.amt+=LABOR(r);g.n++;return}const x=at(r.job_no,p);
+  const q=x.proc[c]||(x.proc[c]={min:0,cost:0,out:0,wait:0,dOut:'',dIn:'',st:''});
+  q.min+=N(r.work_minutes);q.src=q.src||{};q.src[r.work_type||'가공']=1;
+  q.cost+=r.labor_cost!=null&&r.labor_cost!==''?N(r.labor_cost):Math.round(N(r.work_minutes)/60*30000);
+  const d=D(r.work_date);if(d&&d>q.dIn)q.dIn=d;
+ });
+ (exps||[]).forEach(e=>{COMMON.exp.amt+=N(e.amount);COMMON.exp.n++});
+ COMMON.total=COMMON.dex.amt+COMMON.sex.amt+COMMON.din.amt+COMMON.asm.amt+COMMON.insp.amt+COMMON.exp.amt+COMMON.etc.amt;
+ ROWS=[...map.values()];
+ ROWS.forEach(x=>{const m=(meta||{})[x.job+'|'+x.part];
+  if(m){if(!x.shape)x.shape=m.shape||'';if(!x.img)x.img=m.image_url||''}
+  x.matTot=x.mat_amt;x.rawTot=x.raw_amt;x.buyTot=x.buy_amt;
+  x.procTot=Object.values(x.proc).reduce((a,q)=>a+q.out+q.cost,0);
+  x.total=x.matTot+x.procTot;
+  x.minTot=Object.values(x.proc).reduce((a,q)=>a+q.min,0);
+  const st=x.steps.length?x.steps:Object.keys(x.proc);
+  x.doneN=st.filter(c=>{const q=x.proc[c];return q&&(q.dOut||q.dIn)}).length;
+  x.stepN=st.length;
+ });
+ ROWS.sort((a,b)=>String(a.job).localeCompare(String(b.job))||String(a.part).localeCompare(String(b.part)));
+ /* 4) 공정 열 = 이 제번에서 쓰인 공정 (가공계획 ∪ 발주 ∪ 실적), 마스터 순서대로 */
+ const set=new Set();
+ ROWS.forEach(x=>{x.steps.forEach(c=>set.add(c));Object.keys(x.proc).forEach(c=>set.add(c))});
+ COLS=[...set].sort((a,b)=>String(pn(a)).localeCompare(String(pn(b)),'ko',{numeric:true})||String(a).localeCompare(String(b)));   /* v196: 공정 열은 공정명 가나다순 */
+}
+
+/* v196: 더블클릭 → 근거 자료가 있는 화면으로 이동 (mes_go.js)
+ *   입고일·단가·수량·재료비 → 원재료 발주 / 구매품 발주
+ *   품번·부품명·재질·형태·규격 → PartList 등록(원재료 / 구매품)
+ *   공정 칸 → 외주·사내가공: 사내외가공 발주 (그 공정 칸 표시) · 조립: 조립실적등록 · 검사: 검사실적등록 · 설계: 설계실적등록 */
+function goTarget(td){
+ if(td.dataset.go==='common'){const k=td.dataset.kind,job=CURJOB,base=baseOf(CURJOB);
+  return ({dex:{name:'외주설계발주현황',p:{job,base}},sex:{name:'SET외주발주현황',p:{job,base}},din:{name:'설계실적등록',p:{job}},asm:{name:'조립실적등록',p:{job,part:'★'}},
+   insp:{name:'검사실적등록',p:{job,part:'★'}},exp:{name:'경비현황',p:{job:BASEMODE?base:job,base}},etc:{name:'사내외가공 발주',p:{job}}})[k]||null}
+ const tr=td.closest('tr[data-part]');if(!tr)return null;
+ const job=tr.dataset.job,part=tr.dataset.part,x=ROWS.find(r=>r.job===job&&r.part===part)||{};
+ const kind=td.dataset.go;
+ if(kind==='mat'){const cat=td.dataset.cat||x.mat_cat||x.pl_cat||'원재료';return {name:cat==='구매품'?'구매품 발주':'원재료 발주',p:{job,part}}}
+ if(kind==='pl'){const cat=x.pl_cat||x.mat_cat||'원재료';return {name:cat==='구매품'?'PartList 등록(구매품)':'PartList 등록(원재료)',p:{job,part}}}
+ if(kind==='proc'){const c=td.dataset.proc,q=(x.proc||{})[c],s=(q&&q.src)||{};
+  if(s['외주']||s['가공']||!q)return {name:'사내외가공 발주',p:{job,part,proc:c}};
+  if(s['조립'])return {name:'조립실적등록',p:{job,part}};
+  if(s['검사'])return {name:'검사실적등록',p:{job,part}};
+  if(s['설계'])return {name:'설계실적등록',p:{job,part}};
+  return {name:'사내외가공 발주',p:{job,part,proc:c}}}
+ return null}
+/* v222: 더블클릭 → 우클릭으로 변경 */
+document.addEventListener('contextmenu',e=>{const td=e.target.closest&&e.target.closest('#body td.go');if(!td||e.target.closest('img'))return;e.preventDefault();
+ const t=goTarget(td);if(!t)return;
+ if(!window.MESGO||!MESGO.open(t.name,t.p))return msg('메인 화면(MOLD)에서 열어야 이동할 수 있습니다.');
+ msg(`${t.p.job}${t.p.part&&t.p.part!=='★'?' · '+t.p.part:''} → ${t.name} 화면으로 이동합니다.`)});
+function view(){
+ const q=(partQ.value||'').trim().toLowerCase();
+ return ROWS.filter(x=>(!q||x.part.toLowerCase().includes(q)||String(x.name).toLowerCase().includes(q))
+  &&(!hideEmpty.checked||x.total>0||x.minTot>0||x.mat_in));
+}
+
+function render(){
+ const v=view(), showJob=BASEMODE;
+ const pcW=Math.max(62,Math.min(96,Math.round(760/Math.max(1,COLS.length))));
+ if(TAB==='cost'){
+  thead.innerHTML=`<tr>
+    <th class="grp" colspan="${showJob?11:10}">부품 · 재료비</th>
+    <th class="grp" colspan="${COLS.length||1}">공정별 가공비 &nbsp;<span style="font-weight:400;font-size:10px">(위 사내 h · 아래 외주 원)</span></th>
+    <th class="grp" colspan="2">합계</th></tr>
+   <tr><th style="width:74px">입고일</th>${showJob?'<th style="width:44px">공정</th>':''}
+    <th style="width:88px">품번</th><th style="width:150px">부품명</th><th style="width:70px">재질</th>
+    <th style="width:58px">형태</th><th style="width:120px">규격</th><th style="width:78px">단가</th><th style="width:42px">수량</th><th style="width:90px" title="원재료 발주 · 입고확정 금액">원재료비</th><th style="width:90px" title="구매품 발주 · 입고확정 금액">구매품비</th>
+    ${COLS.map(c=>`<th style="width:${pcW}px" title="${esc(c)} ${esc(pn(c))}">${esc(pn(c))}</th>`).join('')||'<th>가공 기록 없음</th>'}
+    <th style="width:70px">가공비</th><th style="width:104px">합계</th></tr>`;
+  body.innerHTML=v.length?v.map(x=>`<tr title="${esc(x.part)} ${esc(x.name)}" data-job="${esc(x.job)}" data-part="${esc(x.part)}">
+    <td class="c go" data-go="mat">${esc(MD(x.mat_in))}</td>${showJob?`<td class="c">${esc(x.seq)}</td>`:''}
+    <td class="go" data-go="pl">${x.img&&window.MESDB&&MESDB.imgBox?MESDB.imgBox(x.img,20)+' ':''}${esc(x.part)}</td><td class="go" data-go="pl">${esc(x.name)}</td><td class="c go" data-go="pl">${esc(x.mat)}</td>
+    <td class="c go" data-go="pl">${esc(x.shape||'')}</td><td class="go" data-go="pl">${esc(x.spec)}</td><td class="num go" data-go="mat">${x.mat_price?F(x.mat_price):''}</td><td class="num go" data-go="mat">${x.qty??''}</td><td class="num go" data-go="mat" data-cat="원재료">${x.rawTot?F(x.rawTot):''}</td><td class="num go" data-go="mat" data-cat="구매품">${x.buyTot?F(x.buyTot):''}</td>
+    ${COLS.map(c=>{const q=x.proc[c];
+      if(!q)return `<td class="pc go" data-go="proc" data-proc="${esc(c)}">${(x.steps.includes(c))?'<span style="color:#c3ccd4">·</span>':''}</td>`;
+      const tip=`${pn(c)}${q.vendor?' · '+q.vendor:''}${q.st?' · '+q.st:''}${q.min?' · 사내 '+H(q.min)+'h':''}${q.wait?' · 미확정 '+F(q.wait)+'원':''}`;
+      return `<td class="pc go" data-go="proc" data-proc="${esc(c)}" title="${esc(tip)} — 우클릭: 근거 화면으로">`+
+        (q.min?`<span class="h">${H(q.min)}</span><br>`:'')+
+        (q.out?`<span class="o">${F(q.out)}</span>`:(q.wait?`<span class="w">(${F(q.wait)})</span>`:(q.cost&&!q.min?F(q.cost):'')))+'</td>'}).join('')||'<td></td>'}
+    <td class="num">${x.procTot?F(x.procTot):''}</td><td class="num"><b>${x.total?F(x.total):''}</b></td></tr>`).join('')
+   :`<tr><td colspan="${(showJob?11:10)+(COLS.length||1)+2}" class="c" style="height:110px;color:#8a97a2">${CURJOB?'부품이 없습니다. PartList 또는 가공계획을 먼저 등록하세요.':'제번을 선택하세요.'}</td></tr>`;
+  /* v196: 금형 공통비 — 부품 표 아래에 항목별로 (우클릭하면 근거 화면) */
+  if(CURJOB&&COMMON){const all=(showJob?11:10)+(COLS.length||1)+2,C=COMMON,hh=m=>m?H(m)+'h':'';
+   const items=[['dex','외주설계',`입고확정 ${F(C.dex.amt)||0}원`+(C.dex.wait?` · 미확정 ${F(C.dex.wait)}원`:'')+(C.dex.n?` · ${C.dex.n}건`:''),C.dex.amt],
+    ['sex','SET외주',`입고확정 ${F(C.sex.amt)||0}원`+(C.sex.wait?` · 미확정 ${F(C.sex.wait)}원`:'')+(C.sex.n?` · ${C.sex.n}건`:''),C.sex.amt],
+    ['din','사내설계',C.din.n?`설계실적 ${hh(C.din.min)} · ${C.din.n}건`:'설계실적 없음',C.din.amt],
+    ['asm','조립 (금형 전체)',C.asm.n?`부품에 매지 않은 조립 ${hh(C.asm.min)} · ${C.asm.n}건`:'없음',C.asm.amt],
+    ['insp','검사 (금형 전체)',C.insp.n?`부품에 매지 않은 검사 ${hh(C.insp.min)} · ${C.insp.n}건`:'없음',C.insp.amt],
+    ['exp','경비',C.exp.n?`경비 ${C.exp.n}건`:'경비 없음',C.exp.amt]];
+   if(C.etc.n)items.push(['etc','기타 (부품 미지정)',`품번 없이 들어온 발주·실적 ${C.etc.n}건`+(C.etc.min?` · 사내 ${hh(C.etc.min)}`:''),C.etc.amt]);
+   body.innerHTML+=`<tr class="cmh"><td colspan="${all}">금형 공통비 <span>— 부품에 딸리지 않는 비용 · 우클릭하면 근거 화면으로 이동</span></td></tr>`+
+    items.map(([k,lab,det,amt])=>`<tr class="cm${amt?'':' zero'}" data-common="${k}"><td class="go" data-go="common" data-kind="${k}" colspan="${all-1}"><b>${lab}</b><span class="det">${esc(det)}</span></td><td class="num go" data-go="common" data-kind="${k}">${amt?F(amt):'0'}</td></tr>`).join('')}
+  const S=k=>v.reduce((a,x)=>a+N(x[k]),0);
+  const CT=COMMON?COMMON.total:0;
+  tfoot.innerHTML=v.length||CT?`<tr><td class="c" colspan="${showJob?9:8}">부품 합계 (${v.length}건)</td><td class="num">${F(S('rawTot'))}</td><td class="num">${F(S('buyTot'))}</td>
+   ${COLS.map(c=>{const o=v.reduce((a,x)=>a+(x.proc[c]?x.proc[c].out+x.proc[c].cost:0),0);return `<td class="num">${o?F(o):''}</td>`}).join('')||'<td></td>'}
+   <td class="num">${F(S('procTot'))}</td><td class="num">${F(S('total'))}</td></tr>
+   <tr class="grand"><td class="c" colspan="${(showJob?11:10)+(COLS.length||1)+1}">금형 총원가 = 부품 합계 ${F(S('total'))||0} + 금형 공통비 ${F(CT)||0}</td><td class="num">${F(S('total')+CT)}</td></tr>`:'';
+  sumLine.innerHTML=v.length||CT?`원재료비 <b>${F(S('rawTot'))}</b> · 구매품비 <b>${F(S('buyTot'))}</b> · 가공비 <b>${F(S('procTot'))}</b> (사내 ${H(S('minTot'))}h 포함) · 금형 공통비 <b>${F(CT)}</b> · <b>금형 총원가 ${F(S('total')+CT)}</b>원`:'';
+ }else{
+  thead.innerHTML=`<tr>
+    <th class="grp" colspan="${showJob?7:6}">부품</th>
+    <th class="grp" colspan="${COLS.length||1}">공정별 완료일 &nbsp;<span style="font-weight:400;font-size:10px">(노랑 = 완료 · 파랑 = 진행)</span></th>
+    <th class="grp" colspan="2">진행</th></tr>
+   <tr>${showJob?'<th style="width:44px">공정</th>':''}
+    <th style="width:88px">품번</th><th style="width:170px">부품명</th><th style="width:70px">재질</th>
+    <th style="width:58px">형태</th><th style="width:130px">규격</th><th style="width:42px">수량</th>
+    ${COLS.map(c=>`<th style="width:${pcW}px" title="${esc(c)} ${esc(pn(c))}">${esc(pn(c))}</th>`).join('')||'<th>공정 없음</th>'}
+    <th style="width:70px">진행률</th><th style="width:92px">상태</th></tr>`;
+  body.innerHTML=v.length?v.map(x=>{
+   const pct=x.stepN?Math.round(x.doneN/x.stepN*100):0;
+   return `<tr title="${esc(x.part)} ${esc(x.name)}">${showJob?`<td class="c">${esc(x.seq)}</td>`:''}
+    <td>${x.img&&window.MESDB&&MESDB.imgBox?MESDB.imgBox(x.img,20)+' ':''}${esc(x.part)}</td><td>${esc(x.name)}</td><td class="c">${esc(x.mat)}</td><td class="c">${esc(x.shape||'')}</td><td>${esc(x.spec)}</td><td class="num">${x.qty??''}</td>
+    ${COLS.map(c=>{const q=x.proc[c],plan=x.steps.includes(c);
+      if(!q)return `<td class="dt">${plan?'<span style="color:#c3ccd4">예정</span>':''}</td>`;
+      const d=q.dOut||q.dIn, out=!!q.out||q.st==='입고확정'||q.st==='입고'||q.st==='발주';
+      const cls=d?(q.st==='발주'?'run':'done'):(q.st?'run':'');
+      const txt=d?MD(d):(q.st||(q.min?H(q.min)+'h':''));
+      return `<td class="dt ${cls} ${out&&!q.min?'out':''}" title="${esc(pn(c))}${q.vendor?' · '+esc(q.vendor):''}${q.st?' · '+esc(q.st):''}${q.min?' · 사내 '+H(q.min)+'h':''}">${esc(txt)}</td>`}).join('')||'<td></td>'}
+    <td class="num">${x.stepN?pct+'%':''}</td>
+    <td class="c" style="${pct===100?'color:#1d6b3a;font-weight:700':''}">${x.stepN?(pct===100?'완료':`${x.doneN}/${x.stepN}`):''}</td></tr>`}).join('')
+   :`<tr><td colspan="${(showJob?7:6)+(COLS.length||1)+2}" class="c" style="height:110px;color:#8a97a2">${CURJOB?'부품이 없습니다.':'제번을 선택하세요.'}</td></tr>`;
+  const done=v.filter(x=>x.stepN&&x.doneN>=x.stepN).length;
+  tfoot.innerHTML=v.length?`<tr><td class="c" colspan="${(showJob?7:6)+(COLS.length||1)}">완료 ${done} / ${v.length} 부품</td>
+   <td class="num">${v.length?Math.round(done/v.length*100):0}%</td><td></td></tr>`:'';
+  sumLine.innerHTML=v.length?`부품 <b>${v.length}</b>건 · 공정 완료 <b>${done}</b>건 · 사내 가공 <b>${H(v.reduce((a,x)=>a+x.minTot,0))}</b>h`:'';
+ }
+ countText.textContent=v.length?`${v.length}건`:'';
+}
+
+function csv(){
+ const v=view();if(!v.length)return msg('내보낼 자료가 없습니다.');
+ const showJob=BASEMODE;
+ let h,rows;
+ if(TAB==='cost'){
+  h=['입고일',...(showJob?['공정']:[]),'품번','부품명','재질','형태','규격','단가','수량','원재료비','구매품비',
+     ...COLS.flatMap(c=>[pn(c)+' 사내(h)',pn(c)+' 외주(원)']),'가공비','합계'];
+  rows=v.map(x=>[D(x.mat_in),...(showJob?[x.seq]:[]),x.part,x.name,x.mat,x.shape||'',x.spec,Math.round(x.mat_price)||'',x.qty??'',Math.round(x.rawTot)||'',Math.round(x.buyTot)||'',
+   ...COLS.flatMap(c=>{const q=x.proc[c];return q?[q.min?(q.min/60).toFixed(1):'',Math.round(q.out+q.cost)||'']:['','']}),
+   Math.round(x.procTot)||'',Math.round(x.total)||'']);
+  if(COMMON){const w=h.length,row=(l,a)=>{const r=Array(w).fill('');r[0]=l;r[w-1]=Math.round(a)||0;return r};
+   rows.push(Array(w).fill(''),row('금형 공통비 · 외주설계',COMMON.dex.amt),row('금형 공통비 · SET외주',COMMON.sex.amt),row('금형 공통비 · 사내설계',COMMON.din.amt),row('금형 공통비 · 조립(금형 전체)',COMMON.asm.amt),
+    row('금형 공통비 · 검사(금형 전체)',COMMON.insp.amt),row('금형 공통비 · 경비',COMMON.exp.amt),...(COMMON.etc.n?[row('금형 공통비 · 기타(부품 미지정)',COMMON.etc.amt)]:[]),
+    row('금형 총원가',v.reduce((a,x)=>a+N(x.total),0)+COMMON.total))}
+ }else{
+  h=[...(showJob?['공정']:[]),'품번','부품명','재질','형태','규격','수량',...COLS.map(c=>pn(c)),'완료','전체','진행률'];
+  rows=v.map(x=>[...(showJob?[x.seq]:[]),x.part,x.name,x.mat,x.shape||'',x.spec,x.qty??'',
+   ...COLS.map(c=>{const q=x.proc[c];return q?(q.dOut||q.dIn||q.st||''):(x.steps.includes(c)?'예정':'')}),
+   x.doneN,x.stepN,x.stepN?Math.round(x.doneN/x.stepN*100)+'%':'']);
+ }
+ const t='﻿'+[h,...rows].map(a=>a.map(x=>'"'+String(x??'').replaceAll('"','""')+'"').join(',')).join('\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv;charset=utf-8'}));
+ a.download=`금형원가내역_${(BASEMODE?baseOf(CURJOB):CURJOB)||'전체'}_${TAB==='cost'?'원가':'진행'}.csv`;a.click();URL.revokeObjectURL(a.href);
+ msg(`${v.length}건을 엑셀로 내보냈습니다.`);
+}
+window.MES={search:load,csv,setMessage:msg,reload:load};
+render();
+(async()=>{await waitDB();const j=(jobQ.value||'').trim();if(j&&online())load()})();
+</script>
+<script src="mes_db.js?v=230"></script>
+<script src="mes_ctx.js?v=169"></script>
+<script src="mes_jobpick.js?v=196"></script>
+<script src="mes_go.js?v=196"></script>
+<script>/* v196: 관리제번 ▼ | 제번 ▼ 두 칸 선택 (금형원가(내역)과 같은 방식) */
+try{MESJOB.attachSplit("jobQ",{onPick:()=>load()}).then(()=>{document.querySelectorAll('span.lb').forEach(e=>{if(e.textContent==='공정')e.textContent='제번'});const ss=document.getElementById('jobQ_seq');if(ss)ss.style.width='150px'})}catch(e){}
+jobQ.addEventListener('keydown',e=>{if(e.key==='Enter')load()});
+try{MESDB.onChange&&MESDB.onChange(['order_lines','design_results','machining_plan_parts'],()=>{clearTimeout(window.__jt);window.__jt=setTimeout(()=>{if(CURJOB)load()},500)})}catch(e){}</script>
+</body></html>

@@ -1,0 +1,122 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>업체별 가공비 합계</title><style>
+:root{--line:#98a6b2;--line2:#c5d0d8;--blue:#2f75b5;--ink:#344757;--head1:#e8f1f8;--head2:#c8dbe9}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{font-family:"Malgun Gothic","맑은 고딕",Arial,sans-serif;font-size:12px;color:var(--ink);background:#fff;overflow:hidden}
+button,input,select{font:inherit;color:inherit}.screen{height:100%;display:flex;flex-direction:column;background:#fff}
+.title{height:48px;padding:8px 14px 5px;border-bottom:2px solid #3978ae;display:flex;align-items:center}.title h1{margin:0;font-size:22px;font-weight:500;color:#4b5c6a}.title h1:before{content:'◯';margin-right:6px;color:#8796a1}.title small{font-size:11px;color:#9ca7af;margin-left:12px}
+.field{height:27px;border:1px solid #b5c0c9;background:#fff;padding:0 6px;min-width:0;max-width:100%}
+.filt{padding:7px 14px;background:#fafbfc;border-bottom:1px solid var(--line2);display:flex;align-items:center;gap:6px 14px;flex-wrap:wrap}
+.fgrp{display:flex;align-items:center;gap:5px}.lb{font-weight:700;white-space:nowrap}.tilde{color:#7b8a99}
+.btn{height:29px;min-width:62px;padding:0 10px;border:1px solid #9ba8b4;background:linear-gradient(#fff,#dfe6eb);cursor:pointer}.btn:hover{background:#fff}
+.panes{flex:1;min-height:0;display:grid;grid-template-rows:minmax(0,1fr) minmax(0,1fr);gap:8px;padding:8px 14px}
+.pane{border:1px solid var(--line);background:#fff;display:flex;flex-direction:column;min-height:0}
+.ph{padding:5px 9px;font-weight:700;background:linear-gradient(var(--head1),var(--head2));color:#405266;border-bottom:1px solid var(--line2);display:flex;gap:8px}.ph .sp{margin-left:auto;font-weight:400;color:#6b7a86}
+.pb{flex:1;min-height:0;overflow:auto}
+table{border-collapse:collapse;width:100%}th,td{height:27px;border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);padding:0 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+th{position:sticky;top:0;z-index:2;text-align:center;background:linear-gradient(var(--head1),var(--head2));color:#405266}
+tbody tr:nth-child(even) td{background:#fafcfd}tbody tr:hover td{background:#edf6fd}tbody tr.sel td{background:#2d75b7;color:#fff}tbody tr{cursor:pointer}
+.c{text-align:center}.num{text-align:right}.gtot td{background:#dfe9f2;font-weight:700}
+.bar{display:inline-block;height:12px;background:#3f7fbf;vertical-align:middle;border-radius:2px}
+.foot{height:42px;display:flex;align-items:center;padding:5px 14px;border-top:1px solid var(--line);background:#eef2f5;gap:5px}.msg{margin-left:8px;color:#687784}.right{margin-left:auto;color:#7c8993}
+</style></head><body><div class="screen">
+<div class="title"><h1>업체별 가공비 합계</h1><small>원가관리 · 제조원가 &nbsp;|&nbsp; 외주 발주(order_lines) 확정금액을 업체별로 합산 (회의록 6-2)</small></div>
+<section class="filt">
+ <span class="fgrp"><span class="lb">구분</span><select id="cat" class="field" style="width:120px" onchange="search()"><option value="외주가공" selected>외주가공</option><option value="외주설계">외주설계</option><option value="원재료">원재료</option><option value="구매품">구매품</option><option value="">전체(매입)</option></select></span>
+ <span class="fgrp"><span class="lb" title="입고확정일 기준. 확정일이 없으면 발주일">기간</span><input type="date" id="d1" class="field" style="width:140px"><span class="tilde">~</span><input type="date" id="d2" class="field" style="width:140px"></span>
+ <span class="fgrp"><span class="lb">상태</span><select id="st" class="field" style="width:120px" onchange="search()"><option value="입고확정" selected>입고확정만</option><option value="입고">입고 이상</option><option value="">전체(발주 포함)</option></select></span>
+ <span class="fgrp"><span class="lb">집계</span><select id="by" class="field" style="width:120px" onchange="search()"><option value="vendor">업체별</option><option value="month">업체 × 월별</option><option value="job">업체 × 제번별</option></select></span>
+ <span class="fgrp"><span class="lb">업체</span><input id="vq" class="field" style="width:140px" placeholder="업체명" oninput="search()"></span>
+ <span class="fgrp"><span class="lb">관리제번</span><select id="bq" class="field" style="width:180px" onchange="search()"><option value="">전체</option></select></span>
+ <span class="fgrp"><span class="lb">제번</span><input id="jq" class="field" style="width:120px" placeholder="제번/관리제번" oninput="search()"></span>
+ <span class="fgrp"><button class="btn" onclick="setMonth(0)">이번 달</button><button class="btn" onclick="setMonth(-1)">지난 달</button><button class="btn" onclick="setYear()">올해</button></span>
+</section>
+<div class="panes">
+ <div class="pane"><div class="ph">합계 <span class="sp" id="sumInfo"></span></div>
+  <div class="pb"><table style="min-width:900px"><thead><tr><th style="width:44px">No</th><th style="width:200px">협력업체</th><th style="width:90px" id="thKey">월</th><th style="width:70px">건수</th><th style="width:70px">제번수</th><th style="width:120px">견적금액</th><th style="width:120px">확정금액</th><th style="width:90px">네고율</th><th style="width:80px">비중</th><th>비중 그래프</th></tr></thead><tbody id="body"></tbody><tfoot><tr class="gtot"><td colspan="10" class="c" id="totline">조회 0건</td></tr></tfoot></table></div></div>
+ <div class="pane"><div class="ph">발주 내역 <span id="detTitle" style="font-weight:400;color:#2f5f8a"></span><span class="sp" id="detInfo"></span></div>
+  <div class="pb"><table style="min-width:1000px"><thead><tr><th style="width:44px">No</th><th style="width:100px">제번</th><th style="width:110px">품번</th><th style="width:160px">품명</th><th style="width:80px">공정</th><th style="width:70px">상태</th><th style="width:90px">발주일</th><th style="width:90px">입고확정일</th><th style="width:60px">수량</th><th style="width:110px">견적금액</th><th style="width:110px">확정금액</th><th>비고</th></tr></thead><tbody id="dbody"></tbody></table></div></div>
+</div>
+<footer class="foot"><button class="btn" onclick="load()">⌕ 조회</button><button class="btn" onclick="csv()">▤ EXCEL</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">기간과 구분을 정하고 [조회]를 누르세요.</span><span class="right" id="countText"></span></footer>
+</div>
+<script>
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const msg=t=>message.textContent=t;const online=()=>!!(window.MESDB&&MESDB.online);
+const N=v=>Number(v)||0,F=v=>Math.round(N(v)).toLocaleString('ko-KR');
+let LINES=[],GROUPS=[],sel=-1;
+/* 확정금액: 제조원가조회와 같은 규칙 — confirm_price 가 있으면 그 값, 없으면 견적가 × (1 − 네고율) */
+const confAmt=l=>{const q=N(l.quote_price),c=l.confirm_price==null||l.confirm_price===''?null:N(l.confirm_price),n=N(l.nego_rate);return c!=null?c:Math.round(q*(1-n/100))};
+const ym=d=>d?String(d).slice(0,7):'';
+function setMonth(off){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()+off);const y=d.getFullYear(),m=d.getMonth();
+ d1.value=`${y}-${String(m+1).padStart(2,'0')}-01`;const e=new Date(y,m+1,0);d2.value=`${y}-${String(m+1).padStart(2,'0')}-${String(e.getDate()).padStart(2,'0')}`;load()}
+function setYear(){const y=new Date().getFullYear();d1.value=`${y}-01-01`;d2.value=`${y}-12-31`;load()}
+async function load(){
+ for(let i=0;i<80&&!window.MESDB;i++)await new Promise(r=>setTimeout(r,50));
+ if(window.MESDB&&MESDB.ready){try{await Promise.race([MESDB.ready,new Promise(r=>setTimeout(r,3000))])}catch(e){}}
+ if(!online()){msg('DB 미연결 상태입니다.');return}
+ try{
+  let q='select=line_id,category,status,job_no,item_name,vendor_name,part_no,part_name,process_code,process_name,order_qty,quote_price,confirm_price,nego_rate,order_date,receipt_date,confirm_date,remark&order=vendor_name,confirm_date';
+  if(cat.value)q+=`&category=eq.${encodeURIComponent(cat.value)}`;
+  LINES=await MESDB.table('order_lines').select(q);
+  fillBase();search();msg(`${cat.value||'전체'} 발주 ${LINES.length}건을 읽었습니다.`);
+ }catch(e){msg('조회 실패: '+String(e.message||e).slice(0,120))}
+}
+function baseOf(j){try{return MESDB.jobSplit(j).base}catch(e){return String(j||'')}}
+/* v196: 관리제번 드롭 — 읽어 온 발주의 제번을 관리제번(A~F 공정 묶음)으로 */
+function fillBase(){const sel=document.getElementById('bq');if(!sel)return;const cur=sel.value,G=new Map();
+ LINES.forEach(l=>{const j=String(l.job_no||'').trim();if(!j)return;const m=/^(.*\d)([A-Z])$/.exec(j),b=m?m[1]:j;let g=G.get(b);if(!g){g={seq:[],n:0};G.set(b,g)}g.n++;if(m&&!g.seq.includes(m[2]))g.seq.push(m[2])});
+ const rng=a=>{a.sort();return !a.length?'':a.length>2?` (${a[0]}~${a[a.length-1]})`:` (${a.join('·')})`};
+ sel.innerHTML=`<option value="">전체 (${G.size})</option>`+[...G.keys()].sort((a,b)=>b.localeCompare(a)).map(b=>`<option value="${esc(b)}">${esc(b)}${rng(G.get(b).seq)} · ${G.get(b).n}건</option>`).join('');
+ sel.value=G.has(cur)?cur:''}
+function search(){
+ const a=d1.value,b=d2.value,st=st_.value,by=by_.value,vq=(vq_.value||'').trim().toLowerCase(),jq=(jq_.value||'').trim().toUpperCase(),bqv=(document.getElementById('bq')||{}).value||'';
+ const dateOf=l=>l.confirm_date||l.receipt_date||l.order_date||'';
+ const rows=LINES.filter(l=>{
+  if(st==='입고확정'&&l.status!=='입고확정')return false;
+  if(st==='입고'&&!['입고','입고확정'].includes(l.status))return false;
+  const d=String(dateOf(l)).slice(0,10);if(a&&d&&d<a)return false;if(b&&d&&d>b)return false;if((a||b)&&!d)return false;
+  if(vq&&!String(l.vendor_name||'').toLowerCase().includes(vq))return false;
+  if(bqv&&baseOf(l.job_no)!==bqv)return false;
+  if(jq&&!String(l.job_no||'').toUpperCase().includes(jq))return false;
+  return true});
+ thKey.textContent=by==='month'?'월':by==='job'?'제번':'';thKey.style.display=by==='vendor'?'none':'';
+ const mp=new Map();
+ rows.forEach(l=>{const v=l.vendor_name||'(업체 미지정)';const k=by==='month'?ym(dateOf(l)):by==='job'?(l.job_no||''):'';
+  const key=v+'|'+k;if(!mp.has(key))mp.set(key,{vendor:v,key:k,n:0,jobs:new Set(),quote:0,amt:0,lines:[]});
+  const g=mp.get(key);g.n++;g.jobs.add(l.job_no);g.quote+=N(l.quote_price);g.amt+=confAmt(l);g.lines.push(l)});
+ GROUPS=[...mp.values()].sort((x,y)=>x.vendor.localeCompare(y.vendor)||String(x.key).localeCompare(String(y.key)));
+ const tot=GROUPS.reduce((s,g)=>s+g.amt,0),totQ=GROUPS.reduce((s,g)=>s+g.quote,0);
+ sel=-1;render(tot,totQ,rows.length);renderDet(null);
+}
+function render(tot,totQ,n){
+ const by=by_.value;
+ body.innerHTML=GROUPS.length?GROUPS.map((g,i)=>{const pct=tot?g.amt/tot*100:0;
+  return `<tr class="${i===sel?'sel':''}" onclick="pick(${i})"><td class="c">${i+1}</td><td>${esc(g.vendor)}</td><td class="c" style="${by==='vendor'?'display:none':''}">${esc(g.key)}</td><td class="num">${g.n}</td><td class="num">${g.jobs.size}</td><td class="num">${F(g.quote)}</td><td class="num"><b>${F(g.amt)}</b></td><td class="num">${g.quote?(100-g.amt/g.quote*100).toFixed(1)+'%':''}</td><td class="num">${pct.toFixed(1)}%</td><td><span class="bar" style="width:${Math.max(2,Math.round(pct*2))}px"></span></td></tr>`}).join('')
+  :'<tr><td colspan="10" class="c" style="height:90px;color:#8a97a2">조건에 맞는 발주가 없습니다.</td></tr>';
+ const vendors=new Set(GROUPS.map(g=>g.vendor)).size;
+ totline.textContent=GROUPS.length?`업체 ${vendors}곳 · 발주 ${n}건 · 견적 ${F(totQ)} · 확정금액 합계 ${F(tot)}원`:'조회된 자료가 없습니다.';
+ sumInfo.textContent=`${d1.value||'…'} ~ ${d2.value||'…'} · ${cat.value||'전체'} · ${st_.value||'전체 상태'}`;
+ countText.textContent=`${GROUPS.length}행`;
+}
+function pick(i){sel=i;render(GROUPS.reduce((s,g)=>s+g.amt,0),GROUPS.reduce((s,g)=>s+g.quote,0),GROUPS.reduce((s,g)=>s+g.n,0));renderDet(GROUPS[i])}
+function renderDet(g){
+ detTitle.textContent=g?`— ${g.vendor}${g.key?' · '+g.key:''}`:'';
+ const ls=g?g.lines.slice().sort((x,y)=>String(x.job_no).localeCompare(String(y.job_no))||N(x.line_id)-N(y.line_id)):[];
+ dbody.innerHTML=ls.length?ls.map((l,i)=>`<tr><td class="c">${i+1}</td><td>${esc(l.job_no)}</td><td>${esc(l.part_no||'')}</td><td>${esc(l.part_name||l.item_name||'')}</td><td class="c">${esc(l.process_name||l.process_code||'')}</td><td class="c">${esc(l.status)}</td><td class="c">${esc(String(l.order_date||'').slice(0,10))}</td><td class="c">${esc(String(l.confirm_date||l.receipt_date||'').slice(0,10))}</td><td class="num">${l.order_qty??''}</td><td class="num">${F(l.quote_price)}</td><td class="num">${F(confAmt(l))}</td><td>${esc(l.remark||'')}</td></tr>`).join('')
+  :'<tr><td colspan="12" class="c" style="height:70px;color:#8a97a2">위 합계 행을 클릭하면 발주 내역이 나옵니다.</td></tr>';
+ detInfo.textContent=ls.length?`${ls.length}건 · 확정금액 ${F(ls.reduce((s,l)=>s+confAmt(l),0))}원`:'';
+}
+function csv(){
+ const by=by_.value,h=['협력업체',by==='month'?'월':by==='job'?'제번':'','건수','제번수','견적금액','확정금액','네고율','비중'].filter(Boolean);
+ const tot=GROUPS.reduce((s,g)=>s+g.amt,0);
+ const rows=GROUPS.map(g=>[g.vendor,...(by==='vendor'?[]:[g.key]),g.n,g.jobs.size,Math.round(g.quote),Math.round(g.amt),g.quote?(100-g.amt/g.quote*100).toFixed(1):'',tot?(g.amt/tot*100).toFixed(1):'']);
+ const t='﻿'+[h,...rows].map(a=>a.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv;charset=utf-8'}));a.download=`vendor_cost_${cat.value||'all'}_${d1.value||''}_${d2.value||''}.csv`;a.click();URL.revokeObjectURL(a.href);msg(`${GROUPS.length}행을 엑셀로 내보냈습니다.`)}
+const st_=document.getElementById('st'),by_=document.getElementById('by'),vq_=document.getElementById('vq'),jq_=document.getElementById('jq');
+d1.addEventListener('change',search);d2.addEventListener('change',search);
+window.MES={search:load,csv,setMessage:msg,reload:load};
+(function(){const d=new Date();d1.value=`${d.getFullYear()}-01-01`;d2.value=d.toISOString().slice(0,10)})();
+renderDet(null);load();
+</script>
+<script src="mes_db.js?v=171"></script>
+<script>try{MESDB.onChange&&MESDB.onChange(['order_lines'],()=>{clearTimeout(window.__vt);window.__vt=setTimeout(load,400)})}catch(e){}</script>
+<script src="mes_ctx.js?v=169"></script>
+</body></html>

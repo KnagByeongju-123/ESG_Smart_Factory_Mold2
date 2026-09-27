@@ -1,0 +1,175 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>사내가공 실적등록</title><style>
+:root{--line:#98a6b2;--line2:#c5d0d8;--blue:#2f75b5;--ink:#344757;--head1:#e8f1f8;--head2:#c8dbe9}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{font-family:"Malgun Gothic","맑은 고딕",Arial,sans-serif;font-size:12px;color:var(--ink);background:#fff;overflow:hidden}
+button,input,select{font:inherit;color:inherit}.screen{height:100%;display:flex;flex-direction:column;background:#fff}
+.title{height:48px;padding:8px 14px 5px;border-bottom:2px solid #3978ae;display:flex;align-items:center}.title h1{margin:0;font-size:22px;font-weight:500;color:#4b5c6a}.title h1:before{content:'◯';margin-right:6px;color:#8796a1}.title small{font-size:11px;color:#9ca7af;margin-left:12px}
+.field{height:27px;border:1px solid #b5c0c9;background:#fff;padding:0 6px;min-width:0;max-width:100%}
+.filt{padding:7px 14px;background:#fafbfc;border-bottom:1px solid var(--line2);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lb{font-weight:700;white-space:nowrap}
+.btn{height:29px;min-width:62px;padding:0 10px;border:1px solid #9ba8b4;background:linear-gradient(#fff,#dfe6eb);cursor:pointer}.btn:hover{background:#fff}
+.btn.pri{background:linear-gradient(#4a90d9,#2f75b5);color:#fff;border-color:#2c6396}.btn.red{border-color:#b04a4a;color:#a03235}
+.panes{flex:1;min-height:0;display:grid;grid-template-columns:minmax(360px,42%) 1fr;gap:8px;padding:8px 14px}
+.pane{border:1px solid var(--line);background:#fff;display:flex;flex-direction:column;min-height:0}
+.ph{padding:5px 9px;font-weight:700;background:linear-gradient(var(--head1),var(--head2));color:#405266;border-bottom:1px solid var(--line2);display:flex;align-items:center;gap:8px}
+.ph .sp{margin-left:auto;font-weight:400;color:#6b7a86}
+.pb{flex:1;min-height:0;overflow:auto}
+table{border-collapse:collapse;width:100%}th,td{height:27px;border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);padding:0 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+th{position:sticky;top:0;z-index:2;text-align:center;background:linear-gradient(var(--head1),var(--head2));color:#405266}
+tbody tr:hover td{background:#edf6fd}tbody tr.sel td{background:#2d75b7;color:#fff}tbody tr{cursor:pointer}
+.c{text-align:center}.num{text-align:right}
+.step{display:inline-block;padding:0 5px;margin-right:2px;border-radius:3px;font-size:11px;line-height:17px;border:1px solid #b9c8d5;background:#eef3f7}
+.step.in{border-color:#3978ae;background:#dcebfa;color:#1d4f86;font-weight:700}
+tbody tr.sel .step{background:transparent;color:#fff;border-color:#cfe2f4}
+.entry{border-top:1px solid var(--line2);padding:8px;display:grid;grid-template-columns:64px 1fr 64px 1fr;gap:6px 5px;align-items:center;background:#f5f8fa}
+.entry .lb{text-align:right;padding-right:3px}
+.entrybtns{display:flex;flex-wrap:wrap;gap:5px;padding:6px 8px;border-top:1px solid var(--line2);background:#f5f8fa}
+.foot{height:42px;display:flex;align-items:center;padding:5px 14px;border-top:1px solid var(--line);background:#eef2f5;gap:5px}.msg{margin-left:8px;color:#687784}.right{margin-left:auto;color:#7c8993}
+@media(max-width:900px){.panes{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) minmax(0,1fr)}.entry{grid-template-columns:64px 1fr}}
+/* 작업표지 인쇄 */
+#sheet{display:none}
+@media print{body>.screen{display:none}#sheet{display:block;font-size:13px;color:#000}#sheet h2{margin:0 0 8px;font-size:20px}#sheet table{width:100%;border-collapse:collapse}#sheet th,#sheet td{border:1px solid #000;padding:6px 8px;height:auto;white-space:normal;text-align:left}#sheet th{background:#eee;position:static}#sheet .big td{height:40px;font-size:15px}}
+</style></head><body><div class="screen">
+<div class="title"><h1>사내가공 실적등록</h1><small>구매관리 · 가공 &nbsp;|&nbsp; 부품(품번)별 가공시간 → 가공비 자동 계산 (회의록 3-2)</small></div>
+<section class="filt">
+ <span class="lb">제번</span><input id="jobQ" class="field" style="width:200px" placeholder="제번 입력/선택">
+ <span class="lb" style="margin-left:6px">품번</span><input id="partQ" class="field" style="width:160px" placeholder="품번/품명 검색" oninput="renderParts()">
+ <span style="color:#6b7a86">부품을 고르고 오른쪽에서 공정·가공시간을 등록합니다. 가공비 = 가공시간 ÷ 60 × 단가(원/h)</span>
+</section>
+<div class="panes">
+ <div class="pane"><div class="ph">부품 목록 <span class="sp" id="partCnt"></span></div>
+  <div class="pb"><table><thead><tr><th style="width:36px">No</th><th style="width:40px" title="PartList 등록에서 올린 부품 이미지">📷</th><th style="width:110px">품번</th><th>품명</th><th style="width:44px">수량</th><th>가공공정 (■ 사내)</th><th style="width:80px">가공시간</th><th style="width:90px">가공비</th></tr></thead><tbody id="partBody"></tbody></table></div></div>
+ <div class="pane"><div class="ph">가공 실적 <span id="curPart" style="font-weight:400;color:#2f5f8a"></span><span class="sp" id="resCnt"></span></div>
+  <div class="pb"><table><thead><tr><th style="width:36px"></th><th style="width:90px">공정</th><th style="width:90px">설비</th><th style="width:80px">작업자</th><th style="width:88px">작업일</th><th style="width:70px">분</th><th style="width:80px">단가</th><th style="width:90px">가공비</th></tr></thead><tbody id="resBody"></tbody></table></div>
+  <div class="entry">
+   <span class="lb">공정</span><select id="proc" class="field"></select>
+   <span class="lb" title="설비별 단가가 작업단가에 등록돼 있으면 그 단가를 씁니다">설비</span><select id="equip" class="field" onchange="pickRate()"><option value="">(공통)</option></select>
+   <span class="lb">작업자</span><input id="worker" class="field" list="workerList" placeholder="사용자정보에서 선택" autocomplete="off"><datalist id="workerList"></datalist>
+   <span class="lb">작업일</span><input id="workDate" class="field" type="date">
+   <span class="lb">가공시간</span><input id="minutes" class="field" type="number" min="0" placeholder="분" oninput="calcCost()">
+   <span class="lb" title="기준정보 › 단가관리 › 작업단가 (코드 MCH 또는 설비코드)">단가</span><input id="rate" class="field" type="number" min="0" placeholder="원/h" oninput="calcCost()">
+   <span class="lb">가공비</span><input id="laborCost" class="field" readonly style="background:#eef3f7;font-weight:700">
+  </div>
+  <div class="entrybtns"><button class="btn pri" onclick="addResult()">실적 등록</button><button class="btn red" onclick="delResult()">실적 삭제</button><button class="btn" onclick="openDrawing()" title="품번의 도면을 엽니다 (SQ › 도면등록의 파일 위치)">📐 도면</button><button class="btn" onclick="printSheet()" title="부품 정보와 가공공정 순서를 A4 작업표지로 출력합니다 (회의록 4-3)">⎙ 작업표지 출력</button></div>
+ </div>
+</div>
+<footer class="foot"><button class="btn" onclick="search()">⌕ 검 색</button><button class="btn" onclick="exportCsv()">▤ EXCEL</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">제번을 선택하면 부품 목록이 조회됩니다.</span><span class="right" id="countText"></span></footer>
+</div>
+<div id="sheet"></div>
+<script>
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const msg=t=>message.textContent=t;
+const online=()=>!!(window.MESDB&&MESDB.online);
+const N=v=>Number(v)||0, F=v=>N(v).toLocaleString('ko-KR');
+let curJob='',PARTS=[],RES=[],partIdx=-1,resIdx=-1,PROCNAME={},EQUIP=[],WORKERS=[];
+const stepCode=s=>String((s&&typeof s==='object')?(s.process_code||s.code||''):(s??'')).trim();
+const pn=c=>PROCNAME[c]||PROCNAME[String(c).toUpperCase()]||c;
+
+async function waitDB(){for(let i=0;i<80&&!window.MESDB;i++)await new Promise(r=>setTimeout(r,50));
+ if(window.MESDB&&MESDB.ready){try{await Promise.race([MESDB.ready,new Promise(r=>setTimeout(r,3000))])}catch(e){}}}
+async function loadMasters(){
+ try{const ps=await MESDB.table('processes').select('select=process_code,process_name');ps.forEach(p=>PROCNAME[p.process_code]=p.process_name)}catch(e){}
+ try{EQUIP=(await MESDB.table('equipment').select('select=equipment_code,equipment_name,equipment_group,is_active&order=equipment_code')).filter(e=>e.is_active!==false)}catch(e){EQUIP=[]}
+ equip.innerHTML='<option value="">(공통)</option>'+EQUIP.map(e=>`<option value="${esc(e.equipment_code)}">${esc(e.equipment_name||e.equipment_code)}</option>`).join('');
+ try{const us=await MESDB.table('users').select('select=user_id,name,is_active&order=name');WORKERS=us.filter(u=>u.name&&u.is_active!==false&&u.user_id!=='hcsmart').map(u=>u.name)}catch(e){WORKERS=[]}
+ workerList.innerHTML=WORKERS.map(w=>`<option value="${esc(w)}"></option>`).join('');
+ pickRate();
+}
+async function pickRate(){try{rate.value=await MESDB.laborRate('가공',equip.value||'MCH')}catch(e){if(!rate.value)rate.value=30000}calcCost()}
+function calcCost(){const m=N(minutes.value),rt=N(rate.value);laborCost.value=m&&rt?Math.round(m/60*rt).toLocaleString():''}
+
+async function loadJob(job){
+ await waitDB();job=String(job||jobQ.value||'').trim();if(!job)return;
+ curJob=job;PARTS=[];RES=[];partIdx=-1;resIdx=-1;
+ if(!online()){msg('DB 미연결 상태입니다.');renderParts();renderRes();return}
+ try{
+  const j=encodeURIComponent(job);
+  let rs=await MESDB.table('machining_plan_parts').select(`select=*&job_no=eq.${j}&order=row_no`);
+  if(rs.length){rs.forEach(r=>{const st=(Array.isArray(r.steps)?r.steps:[]).map(stepCode).filter(Boolean);
+    PARTS.push({part:r.part_no,name:r.part_name||'',qty:r.qty??'',steps:st,inhouse:st.map((c,i)=>!!(Array.isArray(r.inhouse)&&r.inhouse[i])),jo:r.process_code||''})})}
+  else{const pl=await MESDB.table('partlist_all').select(`select=part_no,part_name,qty,order_type&job_no=eq.${j}&order=part_no`);
+    pl.forEach(r=>PARTS.push({part:r.part_no,name:r.part_name||'',qty:r.qty??'',steps:[],inhouse:[],jo:''}))}
+  try{const im=await MESDB.partImages(job);PARTS.forEach(p=>{if(im[p.part])p.image=im[p.part]})}catch(e){}
+  await loadRes();
+  msg(`${job} 부품 ${PARTS.length}건 · 가공실적 ${RES.length}건`);
+ }catch(e){msg('조회 실패: '+String(e.message||e).slice(0,120))}
+ renderParts();renderRes();
+}
+async function loadRes(){
+ RES=[];if(!curJob||!online())return;
+ const rs=await MESDB.table('design_results').select(`select=*&job_no=eq.${encodeURIComponent(curJob)}&work_type=eq.가공&order=row_no`);
+ RES=rs.map(r=>({id:r.row_no,part:r.part_no||'',proc:r.machining_process_code||'',procName:r.machining_process_name||'',equip:r.equipment_code||'',worker:r.worker_name||'',date:r.work_date||'',min:N(r.work_minutes),rate:N(r.hourly_rate),cost:N(r.labor_cost)}));
+}
+function renderParts(){
+ const q=(partQ.value||'').trim().toLowerCase();
+ const v=PARTS.map((p,i)=>({p,i})).filter(({p})=>!q||p.part.toLowerCase().includes(q)||p.name.toLowerCase().includes(q));
+ partBody.innerHTML=v.length?v.map(({p,i},k)=>{const rs=RES.filter(r=>r.part===p.part),m=rs.reduce((a,r)=>a+r.min,0),c=rs.reduce((a,r)=>a+r.cost,0);
+  return `<tr class="${i===partIdx?'sel':''}" onclick="pickPart(${i})"><td class="c">${k+1}</td><td class="c">${p.image?MESDB.imgBox(p.image,22):''}</td><td>${esc(p.part)}</td><td>${esc(p.name)}</td><td class="c">${esc(p.qty)}</td><td>${p.steps.map((s,j)=>`<span class="step ${p.inhouse[j]?'in':''}" title="${p.inhouse[j]?'사내가공':'외주'}">${esc(pn(s))}</span>`).join('')||'<span style="color:#9aa5ad">가공계획 없음</span>'}</td><td class="num">${m?m+'분':''}</td><td class="num">${c?F(c):''}</td></tr>`}).join('')
+  :`<tr><td colspan="8" class="c" style="height:100px;color:#8a97a2">${curJob?'부품이 없습니다. PartList 또는 가공계획을 먼저 등록하세요.':'제번을 선택하세요.'}</td></tr>`;
+ partCnt.textContent=PARTS.length?`${PARTS.length}건`:'';
+}
+function pickPart(i){partIdx=i;resIdx=-1;const p=PARTS[i];curPart.textContent=p?`— ${p.part} ${p.name}`:'';
+ const steps=p&&p.steps.length?p.steps:Object.keys(PROCNAME);
+ const inh=p&&p.inhouse.some(Boolean)?p.steps.filter((s,j)=>p.inhouse[j]):steps;
+ proc.innerHTML=inh.map(s=>`<option value="${esc(s)}">${esc(pn(s))}${p&&p.steps.includes(s)&&!(p.inhouse[p.steps.indexOf(s)])?' (외주)':''}</option>`).join('')+(p&&p.steps.length&&inh.length<steps.length?'<option disabled>──</option>'+steps.filter(s=>!inh.includes(s)).map(s=>`<option value="${esc(s)}">${esc(pn(s))} (외주)</option>`).join(''):'');
+ renderParts();renderRes();}
+function renderRes(){
+ const p=PARTS[partIdx];const list=p?RES.filter(r=>r.part===p.part):RES;
+ resBody.innerHTML=list.length?list.map((r,k)=>`<tr class="${resIdx===k?'sel':''}" onclick="resIdx=${k};renderRes()"><td class="c">${k+1}</td><td>${esc(r.procName||pn(r.proc))}${!p?' <small style="color:#8a97a2">'+esc(r.part)+'</small>':''}</td><td>${esc((EQUIP.find(e=>e.equipment_code===r.equip)||{}).equipment_name||r.equip)}</td><td>${esc(r.worker)}</td><td class="c">${esc(r.date)}</td><td class="num">${r.min}</td><td class="num">${F(r.rate)}</td><td class="num"><b>${F(r.cost)}</b></td></tr>`).join('')
+  :`<tr><td colspan="8" class="c" style="height:80px;color:#8a97a2">${p?'이 부품의 가공실적이 없습니다.':'부품을 선택하세요.'}</td></tr>`;
+ const m=list.reduce((a,r)=>a+r.min,0),c=list.reduce((a,r)=>a+r.cost,0);
+ resCnt.textContent=list.length?`${list.length}건 · ${m}분 · 가공비 ${F(c)}원`:'';
+ countText.textContent=`부품 ${PARTS.length} · 실적 ${RES.length}건 · 가공비 합계 ${F(RES.reduce((a,r)=>a+r.cost,0))}원`;
+}
+async function addResult(){
+ const p=PARTS[partIdx];if(!curJob)return msg('제번을 선택하세요.');if(!p)return msg('부품을 선택하세요.');
+ const pc=proc.value;if(!pc)return msg('공정을 선택하세요.');
+ const m=N(minutes.value);if(m<=0)return msg('가공시간(분)을 입력하세요.');
+ const wk=worker.value.trim();if(!wk)return msg('작업자를 선택하세요.');
+ if(WORKERS.length&&!WORKERS.includes(wk))return msg(`'${wk}' 은(는) 사용자정보에 없는 작업자입니다.`);
+ const rt=N(rate.value),cost=Math.round(m/60*rt);
+ if(!online())return msg('DB 미연결 상태에서는 등록할 수 없습니다.');
+ try{
+  await MESDB.table('design_results').upsert({work_type:'가공',job_no:curJob,part_no:p.part,process_code:p.jo||null,
+   machining_process_code:pc,machining_process_name:pn(pc),equipment_code:equip.value||null,
+   worker_name:wk,work_date:workDate.value||new Date().toISOString().slice(0,10),
+   work_minutes:m,headcount:1,hourly_rate:rt,labor_cost:cost},'row_no');
+  minutes.value='';calcCost();await loadRes();renderParts();renderRes();
+  try{MESDB.notify&&MESDB.notify(['design_results'])}catch(e){}
+  msg(`${p.part} ${pn(pc)} ${m}분 × ${rt.toLocaleString()}원/h = 가공비 ${cost.toLocaleString()}원을 등록했습니다.`);
+ }catch(e){const t=String(e.message||e);msg(/무결성|foreign key/i.test(t)?'등록 실패: 등록되지 않은 제번입니다.':'등록 실패: '+t.slice(0,120))}
+}
+async function delResult(){
+ const p=PARTS[partIdx];const list=p?RES.filter(r=>r.part===p.part):RES;const r=list[resIdx];
+ if(!r)return msg('삭제할 실적 행을 선택하세요.');
+ if(!confirm(`${r.part} ${r.procName||r.proc} ${r.min}분 실적을 삭제할까요?`))return;
+ try{await MESDB.table('design_results').delete({row_no:r.id});resIdx=-1;await loadRes();renderParts();renderRes();msg('실적을 삭제했습니다.')}
+ catch(e){msg('삭제 실패: '+String(e.message||e).slice(0,110))}
+}
+function openDrawing(){const p=PARTS[partIdx];if(!p)return msg('부품을 선택하세요.');MESDB.openDrawing(p.part,curJob)}
+/* v121 (회의록 4-3): 작업표지 — 부품 정보 + 가공공정 순서를 A4 로 출력 */
+function printSheet(){
+ const p=PARTS[partIdx];if(!p)return msg('출력할 부품을 선택하세요.');
+ const rows=p.steps.length?p.steps.map((s,i)=>`<tr class="big"><td class="c" style="width:50px;text-align:center">${i+1}</td><td>${esc(pn(s))}</td><td style="width:80px;text-align:center">${p.inhouse[i]?'사내':'외주'}</td><td style="width:110px"></td><td style="width:110px"></td><td style="width:110px"></td></tr>`).join('')
+  :'<tr><td colspan="6" style="text-align:center;color:#666">가공계획(공정)이 등록되지 않았습니다.</td></tr>';
+ sheet.innerHTML=`<h2>가공 작업표지</h2>
+  <table><tr><th style="width:90px">제번</th><td>${esc(curJob)}</td><th style="width:90px">품번</th><td>${esc(p.part)}</td><th style="width:90px">수량</th><td>${esc(p.qty)}</td></tr>
+  <tr><th>품명</th><td colspan="3">${esc(p.name)}</td><th>출력일</th><td>${new Date().toISOString().slice(0,10)}</td></tr></table>
+  ${p.image?`<div style="margin:10px 0;text-align:center"><img src="${String(p.image).replace(/"/g,'&quot;')}" style="max-width:300px;max-height:230px;border:1px solid #666"></div>`:''}
+  <br><table><thead><tr><th style="text-align:center">순서</th><th>가공공정</th><th style="text-align:center">구분</th><th style="text-align:center">작업자</th><th style="text-align:center">작업일</th><th style="text-align:center">확인</th></tr></thead><tbody>${rows}</tbody></table>
+  <p style="margin-top:10px;color:#444">※ 도면과 함께 첨부하여 현장에 전달합니다. 공정 순서대로 작업 후 작업자·작업일을 기입하세요.</p>`;
+ window.print();
+}
+function search(){const j=(jobQ.value||'').trim();if(!j)return msg('제번을 입력하세요.');loadJob(j)}
+function exportCsv(){const out=[['제번','품번','품명','공정','설비','작업자','작업일','가공시간(분)','단가(원/h)','가공비'],...RES.map(r=>[curJob,r.part,(PARTS.find(p=>p.part===r.part)||{}).name||'',r.procName||pn(r.proc),r.equip,r.worker,r.date,r.min,r.rate,r.cost])];
+ const csv='﻿'+out.map(a=>a.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download=`machining_result_${curJob||'all'}.csv`;a.click();URL.revokeObjectURL(a.href)}
+workDate.value=new Date().toISOString().slice(0,10);
+window.MES={search,save:addResult,exportCsv,setMessage:msg,reload:loadJob};
+renderParts();renderRes();
+(async()=>{await waitDB();if(online())await loadMasters();const j=(jobQ.value||'').trim();if(j)loadJob(j)})();
+</script>
+<script src="mes_db.js?v=196"></script>
+<script src="mes_ctx.js?v=169"></script>
+<script src="mes_jobpick.js?v=162"></script>
+<script>try{MESJOB.attach("jobQ",{onPick:j=>loadJob(j)})}catch(e){}
+jobQ.addEventListener('keydown',e=>{if(e.key==='Enter')search()});</script>
+</body></html>

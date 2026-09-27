@@ -1,0 +1,159 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>부품 그림보드</title>
+<style>
+body{font-family:'Malgun Gothic','맑은 고딕',Arial,sans-serif;font-size:12px;color:#222;margin:0;background:#e9edf0}
+.wrap{display:flex;gap:10px;padding:10px;align-items:flex-start}
+.sheet{background:#fff;width:277mm;min-height:190mm;box-shadow:0 2px 10px rgba(0,0,0,.2);padding:8mm 10mm;box-sizing:border-box;flex:0 0 auto}
+.side{flex:1 1 520px;min-width:300px;background:#f7f9fb;border:1px solid #cfd8df;border-radius:4px;padding:10px;position:sticky;top:10px}
+.side h3{margin:0 0 6px;font-size:13px;color:#2f5f8a}
+.side .hint{font-size:11px;color:#6b7a86;margin-bottom:8px;line-height:1.45}
+.pbtn{display:flex;align-items:center;gap:6px;width:100%;min-width:0;margin:0;padding:6px 8px;border:1px solid #9fb0bf;background:linear-gradient(#fff,#e9eef2);cursor:pointer;font:inherit;font-size:12.5px;text-align:left;border-radius:3px}
+.pbtn:hover{background:#fff}
+.pbtn.on{border-color:#2f75b5;background:#e3eef8}
+.pbtn .n{display:inline-block;min-width:18px;height:18px;line-height:18px;border-radius:9px;background:#c5ced6;color:#fff;font-weight:700;text-align:center;font-size:11px}
+.pbtn.on .n{background:#2f75b5}
+.pbtn .k{font-weight:700;color:#20456b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.pbtn .v{margin-left:auto;flex:1 1 0;min-width:0;text-align:right;font-size:11px;color:#7c8993;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pbtn .h,.pbtn .p{white-space:nowrap;flex:0 0 auto}
+/* v220: 공정 목록 3열 — 놓을 자리는 칸의 왼쪽(앞)/오른쪽(뒤) 빨간 선으로 표시 */
+#btns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;align-items:stretch}
+@media(max-width:1500px){#btns{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:1100px){#btns{grid-template-columns:minmax(0,1fr)}}
+/* 적용된 공정(위쪽)은 기존처럼 1열, 나머지(아래쪽)만 3열 */
+.pbtn.on{grid-column:1/-1}
+.pbtn.pdb{box-shadow:-3px 0 0 0 #e53935}.pbtn.pda{box-shadow:3px 0 0 0 #e53935}
+.pbtn.on.pdb{box-shadow:0 -3px 0 0 #e53935}.pbtn.on.pda{box-shadow:0 3px 0 0 #e53935}
+.psep.pdb{box-shadow:0 -3px 0 0 #e53935}
+.pdrop{display:none}
+#btns.offdrop .psep{color:#c62828;border-top-color:#e53935;background:#fdecea}
+#btns.offdrop .psep:after{content:'  ← 여기 놓으면 해제'}
+.stdpop{position:fixed;z-index:9000;right:18px;bottom:70px;width:min(460px,92vw);max-height:70vh;display:flex;flex-direction:column;background:#fff;border:1px solid #6f8396;box-shadow:0 10px 30px rgba(0,0,0,.3);border-radius:4px}
+.stdpop .sh{display:flex;align-items:center;padding:7px 10px;background:linear-gradient(#5f7f9f,#3f5f7d);color:#fff}.stdpop .sh button{margin-left:auto;border:0;background:transparent;color:#fff;font-size:18px;cursor:pointer}
+.stdpop .sb{overflow:auto;padding:8px;font-size:12px;color:#5d6e7d}
+.stdpop .srow{display:block;width:100%;text-align:left;margin:0 0 6px;padding:7px 9px;border:1px solid #9fb0bf;border-radius:4px;background:linear-gradient(#fff,#eef3f7);cursor:pointer;font:inherit}
+.stdpop .srow:hover{background:#e3eef8;border-color:#2f75b5}.stdpop .srow b{display:block;color:#1d3f63;margin-bottom:3px}.stdpop .srow span{font-size:11.5px;color:#4b5c6a}
+@media print{.stdpop{display:none!important}}
+.psep{grid-column:1/-1;margin:6px 0 2px;padding:4px 2px 3px;border-top:2px dashed #7f97ad;font-size:11px;color:#5d6e7d;font-weight:700}
+.pbtn.plan{border-color:#6a9ad0;background:linear-gradient(#fff,#e2edf9)}
+.pbtn .p{font-size:10.5px;color:#1d4f86;border:1px solid #9dbbe0;background:#e8f1fb;padding:0 4px;border-radius:2px;white-space:nowrap}
+#btns{max-height:calc(100vh - 190px);overflow:auto;padding-right:2px}
+.pbtn .h input{margin:0 3px 0 0;vertical-align:-2px}
+.pbtn .h{font-size:10.5px;color:#8a6d3b;border:1px solid #d9c9a5;background:#fbf4e3;padding:0 4px;border-radius:2px}
+.tools{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.movetip{flex-basis:100%;font-size:11px;color:#5d6e7d}.movetip:empty{display:none}
+@media print{.movetip{display:none}}
+@media print{[data-noprint]{display:none!important}}   /* v260 */
+.tools button{height:28px;padding:0 10px;border:1px solid #8b9ba9;background:linear-gradient(#fff,#e9eef2);cursor:pointer;font:inherit;border-radius:3px}
+.tools button.go{font-weight:700;color:#fff;border-color:#2a5d95;background:linear-gradient(#4a8ad0,#2f6fb0)}
+/* v213: 다음·이전 품번, 기준공정 불러오기 — 하늘색 */
+.tools #bNext,.tools #bPrev,.tools #bStd{font-weight:700;color:#0b4a6f;border-color:#5aa9d6;background:linear-gradient(#e8f6fe,#bfe3f8)}
+.tools #bNext:hover,.tools #bPrev:hover,.tools #bStd:hover{background:#d6effc}
+.tools #bNext:disabled,.tools #bPrev:disabled{opacity:.6;cursor:wait}
+h1{font-size:18px;margin:0 0 6px;letter-spacing:3px;text-align:center}
+.meta{display:grid;grid-template-columns:auto 1fr auto 1fr auto 1fr;gap:3px 8px;font-size:12px;border:1px solid #444;padding:5px 8px;margin-bottom:6px}
+.meta b{color:#000;white-space:nowrap}
+.strip{border:2px solid #333;display:flex;align-items:stretch;margin-bottom:6px;background:#fff}
+.stripL{flex:1;min-width:0;display:flex;flex-direction:column}
+.strip .lab{display:flex;align-items:baseline;gap:8px;padding:3px 8px 2px;font-size:12.5px;border-bottom:1px solid #333;background:#f4f6f8}
+.strip .lab small{font-weight:400;font-size:10.5px;color:#666}
+.strip .cells{display:flex;flex-wrap:nowrap;align-items:stretch;min-height:64px}   /* v218: 한 줄 — 공정이 많으면 칸이 좁아진다 */
+.strip .empty{color:#999;font-size:11.5px;padding:10px 8px;align-self:center}
+.cell{flex:1 1 0;min-width:0;max-width:150px;display:flex;flex-direction:column;border-right:1px solid #333}
+.cell:last-child{border-right:0}
+.cell .chip{flex:0 0 auto;display:flex;align-items:center;gap:3px;min-height:28px;padding:3px 3px;font-size:var(--fs,11.5px);font-weight:700;color:#1d3f63;background:#f3f8fd;cursor:pointer;border-bottom:1px dashed #9aa}
+.chip .n{flex:0 0 auto;display:inline-block;min-width:18px;height:18px;line-height:18px;border-radius:9px;background:#2f5f8a;color:#fff;text-align:center;font-size:11px}
+.cells.many .chip .n{min-width:15px;height:15px;line-height:15px;font-size:9.5px}
+.chip .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}   /* v219: 공정명 한 줄 */
+.chip small{flex:0 0 auto;font-weight:400;color:#5c6b76;font-size:10px}
+.cell .sign{flex:1;min-height:38px;position:relative;background:#fff}
+.cell .sign i{position:absolute;right:3px;bottom:1px;font-style:normal;font-size:9px;color:#aab}
+.cell .sign .who{position:absolute;left:4px;top:2px;font-size:10.5px;color:#2f5f8a;white-space:nowrap}.cell.house .sign .who{color:#8a6d3b}
+.strip .qr{flex:0 0 auto;width:118px;border-left:2px solid #333;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px;gap:3px}
+.strip .qr svg{width:88px;height:88px;display:block}
+.strip .qr .cap{text-align:center;line-height:1.2}.strip .qr .cap b{display:block;font-size:9.5px;color:#1d3f63}.strip .qr .cap span{font-size:8.5px;color:#666;word-break:break-all}
+.strip .qr .none{color:#999;font-size:11px}
+/* v209: 끌어서 순서 바꾸기 */
+.chip{touch-action:none;user-select:none}.chip:hover{box-shadow:0 0 0 2px rgba(47,95,138,.18)}
+/* v197: 완료 공정 잠금 — 번호 회색 · 클릭/끌기 불가 */
+@media screen{.pbtn.lock{cursor:not-allowed;background:#eef1f3;border-color:#aab6c0}.pbtn.lock .n{background:#9aa6b1}.pbtn.lock .k{color:#5d6b77}
+.pbtn.lock.done .v{color:#2e7d32;font-weight:700}
+.chip.lock{cursor:not-allowed;background:#eef1f3;color:#5d6b77}.chip.lock .n{background:#9aa6b1}.chip.lock:hover{box-shadow:none}}
+.chip.dragsrc,.pbtn.dragsrc{opacity:.35}
+.strip.dropon{background:#f4f9ff;border-style:dashed}
+.dropmark{display:inline-block;width:4px;align-self:stretch;min-height:26px;border-radius:2px;background:#e53935}
+.dragghost{position:fixed;z-index:9999;pointer-events:none;padding:4px 10px;border:1.5px solid #2f5f8a;border-radius:4px;background:#fff;font-weight:700;font-size:13px;color:#1d3f63;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+body.dragging,body.dragging *{user-select:none!important;cursor:grabbing!important}
+.cell.house .chip{color:#5a4400;background:#fbf4e3}.cell.house .chip .n{background:#8a6d3b}
+.dropmark{width:4px!important;min-height:64px}
+.fig{border:1px solid #999;background:#fff;height:150mm;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.fig img{max-width:100%;max-height:100%;object-fit:contain;image-rendering:auto}
+body.portrait .fig{height:200mm}
+.fig .none{color:#999;border:1px dashed #bbb;padding:34px 60px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
+.fig .none .addpic{padding:8px 16px;border:1px solid #2f5f8a;border-radius:4px;background:linear-gradient(#fff,#e6f0f8);color:#1d3f63;font:inherit;font-weight:700;cursor:pointer}
+.fig .none small{font-size:11px;color:#8a97a2}
+@media print{.fig .none .addpic,.fig .none small{display:none}}
+.foot{display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:#555}
+.note{margin-top:6px;border:1px solid #444;padding:4px 8px;min-height:30px;font-size:12px}
+.note[contenteditable]:empty:before{content:'비고 (클릭해 입력)';color:#aaa}
+/* v208: 원본 이미지 보기 — 화면 전체 덮개. 그림 클릭 = 실제 크기 ↔ 화면 맞춤, 실제 크기일 땐 스크롤 */
+.ov{position:fixed;inset:0;background:rgba(20,24,28,.94);z-index:50;display:none;flex-direction:column}
+.ov.show{display:flex}
+.ov .bar{display:flex;gap:8px;align-items:center;padding:8px 12px;color:#e6ecf1;font-size:12.5px;background:#1d2329}
+.ov .bar b{font-size:13.5px}.ov .bar .sp{flex:1}
+.ov .bar button{height:26px;padding:0 10px;border:1px solid #6b7c8b;background:#2c353d;color:#fff;cursor:pointer;font:inherit;border-radius:3px}
+.ov .body{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center}
+.ov .body.real{display:block;text-align:left}
+.ov img{max-width:100%;max-height:100%;object-fit:contain;cursor:zoom-in;background:#fff}
+.ov .body.real img{max-width:none;max-height:none;cursor:zoom-out}
+@media print{.ov{display:none!important}}
+@page{size:A4 landscape;margin:6mm}
+body.portrait .sheet{width:198mm}
+@media print{
+ body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ .wrap{padding:0;display:block}.side{display:none}.chip{cursor:default}
+ .sheet{box-shadow:none;padding:0;margin:0;width:285mm;height:198mm;min-height:0;display:flex;flex-direction:column;overflow:hidden;page-break-after:avoid}
+ body.portrait .sheet{width:198mm;height:285mm}
+ h1{font-size:15px;margin:0 0 3px;letter-spacing:2px}
+ .meta{padding:3px 8px;margin-bottom:4px;font-size:11.5px;gap:2px 8px}
+ .strip{margin-bottom:4px}.strip .empty{display:none}.strip .cells{min-height:0}.cell .sign{min-height:30px}
+ .chip{font-size:11.5px}.chip .n{min-width:16px;height:16px;line-height:16px;font-size:10.5px}
+ .fig{flex:1 1 auto;min-height:0;height:auto}
+ .fig img{width:100%;height:100%;max-width:none;max-height:none;object-fit:contain;image-rendering:auto}
+ .note{margin-top:4px;min-height:0;padding:3px 8px}.note:empty{display:none}
+ .foot{margin-top:3px;font-size:10px}
+}
+@media(max-width:1100px){.wrap{flex-wrap:wrap}.sheet{width:100%}.side{position:static}}
+</style></head><body>
+<div class="wrap">
+ <div class="sheet" id="sheet">
+  <h1>가공 공정 도면</h1>
+  <div class="meta" id="meta"></div>
+  <div class="strip" id="strip"></div>
+  <div class="fig" id="fig"></div>
+  <div class="note" id="note" contenteditable="true"></div>
+  <div class="foot"><span id="footL"></span><span>MOLD · 사내외가공 발주</span></div>
+ </div>
+ <div class="side">
+  <h3 id="sideTitle">가공공정</h3>
+  <div class="hint">공정 마스터 전체입니다. 누르는 순서대로 도면 위 띠에 번호가 붙고, 다시 누르면 빠집니다. 띠나 이 목록 위 칸의 공정을 끌어 놓으면 순서가 바뀌고, 구분선 아래로 끌어 놓으면 빠집니다. 아래 칸 버튼을 띠·위 칸으로 끌어 오면 원하는 자리에 들어갑니다. 파란 「계획」 표시는 이 부품의 가공계획에 있는 공정입니다.</div>
+  <div id="btns"></div>
+  <div class="tools">
+   <button id="bAll" title="이 부품의 가공계획 순서 그대로 넣습니다">▶ 계획 순서대로</button>
+   <button id="bClr">지우기</button>
+   <button id="bStd" title="기준정보 › 가공 기준공정관리의 기준공정을 골라 띠 순서로 넣습니다">📋 기준공정 불러오기</button>
+   <button id="bPic" title="캐드 캡쳐·이미지·PDF 로 부품 그림을 등록합니다. PartList 부품 그림에도 같이 저장됩니다">📷 그림 등록</button>
+   <button id="bImg" title="공정 표시 없이 PartList 에 등록된 이미지만 크게 봅니다">🖼 이미지만 보기</button>
+   <button id="bPrev" title="사내외가공 발주 목록에서 이전 부품을 불러옵니다 (가공계획이 등록된 부품은 등록된 순서, 아니면 띠의 순서 그대로)">◀ 이전 품번</button>
+   <button id="bNext" title="사내외가공 발주 목록에서 다음 부품을 불러옵니다 (가공계획이 등록된 부품은 등록된 순서, 아니면 띠의 순서 그대로)">다음 품번 ▶</button>
+   <div id="moveTip" class="movetip"></div>
+   <button id="bApply" class="go" style="background:linear-gradient(#5aa05a,#3d7f3d);border-color:#2f6a2f" title="띠에 표시된 순서를 이 부품의 부품별 가공공정 리스트(가공계획)에 저장합니다">▣ 가공계획 적용</button>
+   <button id="bOri" title="도면 방향에 맞춰 자동으로 정해집니다. 눌러서 바꿀 수 있습니다">용지: 가로</button>
+   <button class="go" id="bPrint" title="인쇄창에서 대상을 「PDF로 저장」으로 고르면 PDF 파일로 저장됩니다">🖨 인쇄 / PDF 저장</button>
+   <button id="bClose">닫기</button>
+  </div>
+ </div>
+</div>
+<div class="ov" id="ov"><div class="bar"><b id="ovT">원본 이미지</b><span id="ovS"></span><span class="sp"></span><button id="ovFit">화면 맞춤</button><button id="ovReal">실제 크기</button><button id="ovClose">닫기 (Esc)</button></div><div class="body" id="ovB"></div></div>
+<script src="mes_qr.js?v=92"></script>
+<script src="mes_imgedit.js?v=196"></script>
+<script src="drawboard.js?v=260"></script>
+</body></html>

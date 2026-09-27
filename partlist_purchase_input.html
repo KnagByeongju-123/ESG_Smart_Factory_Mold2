@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PartList 등록(구매품)</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;font:12px "Malgun Gothic","맑은 고딕",sans-serif;color:#1f2d3a;background:#fff}
+.screen{display:flex;flex-direction:column;height:100vh}
+.title{display:flex;align-items:baseline;gap:10px;padding:10px 14px 8px;border-bottom:2px solid #2f5f8a}
+.title h1{margin:0;font-size:21px;font-weight:400}
+.title small{color:#7a8894;font-size:11px}
+.filt{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 14px;background:#f4f8fb;border-bottom:1px solid #d5dee6}
+.lb{font-weight:700;color:#34495c;white-space:nowrap}
+.field{height:26px;border:1px solid #aeb9c3;padding:2px 6px;font:inherit;background:#fff}
+.hint{color:#5a6a78;margin-left:8px}
+.hint b{color:#2f75b5}
+.gridbox{flex:1;overflow:auto;border-top:1px solid #c3ccd4}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #d3dbe2;height:27px;padding:0 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+th{position:sticky;top:0;z-index:1;background:#dfe8f0;font-weight:400;color:#2a3b4a}
+tbody tr:nth-child(even){background:#f3f7fb}
+tbody tr:hover{background:#e3eefa;cursor:pointer}
+tbody tr.new td{color:#1d4f86}
+.c{text-align:center}.num{text-align:right}
+.tag{display:inline-block;padding:0 5px;margin-left:4px;border:1px solid #e0b060;background:#fff6df;color:#8a5a00;font-size:10px;line-height:15px}
+.foot{display:flex;align-items:center;gap:4px;padding:6px 8px;border-top:1px solid #c3ccd4;background:#f4f8fb}
+.btn{height:28px;padding:0 10px;border:1px solid #9fb0bf;background:#fff;font:inherit;color:#2a3b4a;cursor:pointer}
+.btn:hover{background:#eaf2fa}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.red{border-color:#c98a8a;color:#a03235}
+.btn.pri{background:#2f75b5;border-color:#2f75b5;color:#fff}
+.msg{margin-left:10px;color:#2f5f8a;font-weight:700}
+.right{margin-left:auto;color:#7a8894}
+.xmask{display:none;position:fixed;inset:0;background:rgba(20,30,40,.35);z-index:50;align-items:center;justify-content:center}
+.xmask.on{display:flex}
+.xdlg{background:#f4f8fb;border:1px solid #7f93a6;box-shadow:0 6px 24px rgba(0,0,0,.25);width:min(900px,96vw);max-height:94vh;overflow:auto}
+.xhead{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:#e3ebf2;border-bottom:1px solid #c3ccd4;font-weight:700}
+.xhead button{border:0;background:#c9474b;color:#fff;width:24px;height:20px;cursor:pointer}
+.xbody{padding:10px}
+.xrow{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+#xMap{font-size:11px;line-height:1.8;color:#3c4a56;background:#eef4f9;border:1px solid #cfdce6;padding:5px 7px;margin:6px 0;min-height:24px}
+#xText{width:100%;height:110px;border:1px solid #aeb9c3;font:12px Consolas,monospace;padding:6px;resize:vertical}
+#xPrev{border:1px solid #c7d1d9;background:#fff;max-height:280px;overflow:auto}
+#xPrev th,#xPrev td{height:24px;font-size:12px}
+#xPrev tr.bad td{color:#b04a4a;background:#fdf1f1}
+/* v232: 엑셀파일 불러오기 */
+.xfile{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:7px 9px;border:2px dashed #9fb8cf;background:#f6fafd;margin-bottom:6px}
+.xfile.drag{border-color:#2f75b5;background:#e3f0fb}
+.xfile .fi{color:#4a5a68;font-size:11.5px;line-height:1.6}
+.xfile select{height:26px;border:1px solid #aeb9c3}
+#xStrike{font-size:11px;color:#8a3a3a;margin:4px 0 0}
+body.drag-on .screen{outline:3px dashed #2f75b5;outline-offset:-6px}
+</style></head><body><div class="screen">
+<div class="title"><h1>PartList 등록(구매품)</h1><small>설계관리 · PARTLIST</small></div>
+
+<section class="filt">
+ <span class="lb">제번</span><input id="q_job" class="field" style="width:190px" autocomplete="off">
+ <span class="lb">품번</span><input id="q_pn" class="field" style="width:170px" placeholder="품번 입력/선택" list="pnDL" autocomplete="off"><datalist id="pnDL"></datalist>
+ <span class="hint"><b>[▤ 엑셀불러오기]</b>에서 PART LIST 엑셀파일 선택(또는 화면에 끌어놓기) · 또는 엑셀 <b>금형번호·품명·형식·규격·수량</b> 복사(<b>Ctrl+C</b>) → <b>Ctrl+V</b> → 리스트에 추가 → 체크 → <b>[▤ 등록]</b></span>
+</section>
+
+<div class="gridbox"><table style="min-width:900px"><thead><tr>
+ <th style="width:36px"><input type="checkbox" id="chkAll" onclick="chkAllRows(this.checked)" title="전체 선택"></th>
+ <th style="width:90px">No</th><th style="width:40px" title="부품 이미지 — 행을 체크하고 [📷 이미지]">📷</th><th style="width:130px">금형번호</th><th style="width:240px">품명</th>
+ <th style="width:120px">형식</th><th>규격</th><th style="width:80px">수량</th>
+</tr></thead><tbody id="body"></tbody></table></div>
+
+<footer class="foot">
+ <button class="btn" onclick="save()">▤ 등록</button>
+ <button class="btn" onclick="del_()">✕ 삭제</button>
+ <button class="btn red" onclick="bulkOpen()" title="제번 단위로 구매품 PartList 전체를 삭제합니다">⌧ 일괄삭제</button>
+ <button class="btn" onclick="manOpen()" title="엑셀 없이 한 행씩 직접 입력합니다">＋ 수동등록</button>
+ <button class="btn" onclick="imgPick()" title="체크한 부품의 그림 — 캐드 캡쳐를 Ctrl+V 로 붙여넣고 흰 바탕·A4 로 정리, 화살표·글자 표시 후 등록">📷 이미지등록</button><button class="btn" onclick="imgDel()" title="체크한 부품(여러 개 가능)의 그림을 지웁니다">🗑 이미지삭제</button>
+ <input type="file" id="imgFile" accept="image/*" style="display:none" onchange="imgUp(this.files[0])">
+ <button class="btn" onclick="xls()">▤ 엑셀불러오기</button>
+ <button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button>
+ <span class="msg" id="message">제번을 선택하면 등록된 구매품 PartList가 표시됩니다.</span><span class="right" id="countText"></span>
+</footer>
+</div>
+
+<!-- 수동등록 -->
+<div class="xmask" id="mMask" onmousedown="mMask._d=(event.target===mMask)" onclick="if(event.target===mMask&&mMask._d)manClose()"><div class="xdlg" style="width:min(580px,94vw)">
+ <div class="xhead"><span>수동등록 - 구매품 · 제번 <b id="mJob"></b></span><button onclick="manClose()">&times;</button></div>
+ <div class="xbody" style="padding:12px">
+  <div class="xrow"><span class="lb" style="width:44px">금형번호</span><input id="mPn" class="field" style="flex:1 1 150px" placeholder="필수" onkeydown="if(event.key==='Enter')mName.focus()"><span class="lb" style="width:44px">품명</span><input id="mName" class="field" style="flex:1 1 150px"></div>
+  <div class="xrow"><span class="lb" style="width:44px">형식</span><input id="mType" class="field" style="flex:1 1 150px"><span class="lb" style="width:44px">규격</span><input id="mSpec" class="field" style="flex:1 1 150px"></div>
+  <div class="xrow"><span class="lb" style="width:44px">수량</span><input id="mQty" class="field" style="width:110px" value="1" onkeydown="if(event.key==='Enter')manAdd()"></div>
+  <div style="padding:6px 8px;background:#eef4f9;border:1px solid #cfdce6;color:#4a5a68;line-height:1.7">추가한 행은 리스트에 <b>미등록</b>으로 올라갑니다. 체크 후 <b>[▤ 등록]</b>을 눌러야 저장됩니다. 창을 열어둔 채 계속 입력할 수 있습니다.</div>
+  <div style="display:flex;justify-content:center;gap:8px;margin-top:10px"><button class="btn pri" onclick="manAdd()">⬇ 리스트에 추가</button><button class="btn" onclick="manClose()">⊠ 닫기</button></div>
+ </div>
+</div></div>
+
+<!-- 엑셀 불러오기 (붙여넣기) -->
+<div class="xmask" id="xMask" onmousedown="xMask._d=(event.target===xMask)" onclick="if(event.target===xMask&&xMask._d)xlsClose()"><div class="xdlg">
+ <div class="xhead"><span>엑셀 불러오기(구매품) - 제번 <b id="xJob"></b></span><button onclick="xlsClose()">×</button></div>
+ <div class="xbody">
+  <div class="xfile" id="xDrop">
+   <button class="btn pri" onclick="xFile.click()" title=".xlsx · .xls · .csv">📂 엑셀파일 선택</button>
+   <input type="file" id="xFile" accept=".xlsx,.xlsm,.xls,.csv" style="display:none" onchange="xlsFile(this.files[0]);this.value=''">
+   <select id="xSheet" style="display:none" onchange="xlsSheet(this.value)" title="시트 선택"></select>
+   <span class="fi" id="xFileInfo">PART LIST(표준품) 엑셀파일을 고르거나 여기로 끌어놓으세요. 관리제번은 파일에서 읽고, <s>취소선</s> 행은 제외합니다.</span>
+  </div>
+  <div style="padding:7px 9px;background:#e9f1f8;border:1px solid #bfd2e2;margin-bottom:6px;line-height:1.7">
+   <b>① 엑셀 열 순서</b> : <b style="color:#2f75b5">금형번호 → 품명 → 형식(TYPE) → 규격(SIZE) → 수량(Q'TY)</b>
+   <span style="color:#5a6a78">(제목행은 있어도 되고 없어도 됩니다)</span><br>
+   <b>② </b>위 <b>[📂 엑셀파일 선택]</b> 또는 엑셀에서 범위를 복사(Ctrl+C) → 아래 칸에 붙여넣기(Ctrl+V)<br>
+   <b>③ </b><b>[⬇ 리스트에 추가]</b> → 리스트에서 등록할 행 체크 → <b>[▤ 등록]</b> → 등록자·등록일자 입력
+   <button class="btn" style="margin-left:8px;height:24px" onclick="tplDown()">⤓ 서식 받기</button>
+  </div>
+  <textarea id="xText" placeholder="여기에 붙여넣기 (Ctrl+V)&#10;예)  D38A	SET,POST-BUSH	BRPK	BRPK50-200	4" oninput="xlsPreview()" onpaste="setTimeout(xlsPreview,30)"></textarea>
+  <div id="xMap">붙여넣으면 읽은 결과가 여기 표시됩니다.</div><div id="xStrike"></div>
+  <div id="xPrev"></div>
+  <div style="display:flex;justify-content:center;gap:8px;margin-top:8px">
+   <button class="btn pri" onclick="xlsAdd()">⬇ 리스트에 추가</button><button class="btn" onclick="xlsClose()">⊠ 취소</button>
+  </div>
+ </div>
+</div></div>
+
+<!-- 일괄 등록 (등록자·등록일자) -->
+<div class="xmask" id="rMask" onmousedown="rMask._d=(event.target===rMask)" onclick="if(event.target===rMask&&rMask._d)regClose()"><div class="xdlg" style="width:min(440px,94vw)">
+ <div class="xhead"><span>PartList 등록 - 구매품</span><button onclick="regClose()">&times;</button></div>
+ <div class="xbody" style="padding:12px">
+  <div id="rInfo" style="padding:8px;background:#fff;border:1px solid #cfd8e0;color:#455;margin-bottom:10px;line-height:1.7"></div>
+  <div class="xrow"><span class="lb" style="width:64px">등록자</span><input id="fBy" class="field" style="width:180px" placeholder="이름 (필수)" onkeydown="if(event.key==='Enter')saveChecked()"></div>
+  <div class="xrow"><span class="lb" style="width:64px">등록일자</span><input id="fDate" type="date" class="field" style="width:180px"></div>
+  <div style="display:flex;justify-content:center;gap:8px;margin-top:10px"><button class="btn pri" onclick="saveChecked()">▤ 등록</button><button class="btn" onclick="regClose()">⊠ 취소</button></div>
+ </div>
+</div></div>
+
+<!-- 일괄삭제 -->
+<div class="xmask" id="dMask" onmousedown="dMask._d=(event.target===dMask)" onclick="if(event.target===dMask&&dMask._d)bulkClose()"><div class="xdlg" style="width:min(520px,94vw)">
+ <div class="xhead"><span>PartList 일괄삭제 - 구매품</span><button onclick="bulkClose()">&times;</button></div>
+ <div class="xbody">
+  <div class="xrow" style="margin-bottom:8px"><span class="lb">제번</span><input id="dJob" class="field" style="width:170px" oninput="bulkReset()" onkeydown="if(event.key==='Enter')bulkCount()"><button class="btn" onclick="bulkCount()">⌕ 건수확인</button></div>
+  <div id="dInfo" style="padding:8px;background:#fff;border:1px solid #cfd8e0;min-height:44px;color:#455;margin-bottom:8px">제번을 입력하고 [건수확인]을 누르세요.</div>
+  <div style="padding:7px 8px;background:#fdecec;border:1px solid #e0b4b4;color:#8a3a3a;margin-bottom:8px">⚠ 제번의 구매품 PartList 전체가 삭제되며 복구할 수 없습니다. 확인을 위해 아래에 제번을 다시 입력하세요.</div>
+  <div class="xrow"><span class="lb">확인 입력</span><input id="dConfirm" class="field" style="width:170px" oninput="bulkChk()" placeholder="위 제번과 동일하게"></div>
+  <div style="display:flex;justify-content:center;gap:8px;margin-top:10px"><button class="btn red" id="dBtn" onclick="bulkRun()" disabled>✕ 일괄삭제 실행</button><button class="btn" onclick="bulkClose()">⊠ 취소</button></div>
+ </div>
+</div></div>
+
+<script>
+/* v115: 구매품 PartList — 원재료 등록과 같은 흐름
+   Ctrl+V(품번·품명·형식·규격·수량) → 리스트에 '미등록'으로 추가 → 체크 → [▤ 등록] → 등록자·등록일자 입력 → 일괄 upsert
+   테이블 partlist_purchases (키 job_no+process_code+part_no, 형식 → type 컬럼) */
+const TBL='partlist_purchases';
+const data=[];
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const msg=t=>message.textContent=t;
+const today=()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)};
+const fmt=v=>v==null||v===''?'':v;
+const XNUM=v=>{const s=String(v??'').replace(/[^0-9.-]/g,'');if(s==='')return null;const x=Number(s);return Number.isNaN(x)?null:x};
+/* 화면에서 공정(조)는 쓰지 않는다. 신규 행은 기본 조('1'), 기존 금형번호은 원래 조 그대로 저장 */
+const DEF_JO='1';
+const JO=v=>window.MESJO?MESJO.norm(v):String(v??'').trim();
+const joSort=(a,b)=>(Number(JO(a))||99)-(Number(JO(b))||99)||String(a).localeCompare(String(b));
+const joOf=pn=>(data.find(x=>x.part_no===pn)||{}).process_code||DEF_JO;
+
+const pend=[];let pendSeq=0;
+const chk=new Set();
+const view=()=>[...data,...pend];
+const rowById=id=>view().find(x=>x.row_no===id);
+function render(){
+ const v=view();
+ body.innerHTML=v.length?v.map((r,i)=>`<tr class="${r._new?'new':''}" onclick="rowClick(${r.row_no},event)"><td class="c"><input type="checkbox" ${chk.has(r.row_no)?'checked':''} onclick="toggleChk(${r.row_no},this.checked)"></td><td class="c">${i+1}${r._new?'<span class="tag">미등록</span>':''}</td><td class="c">${r.image_url?MESDB.imgBox(r.image_url,22):''}</td><td>${esc(r.part_no)}</td><td>${esc(r.part_name||'')}</td><td class="c">${esc(r.type||'')}</td><td>${esc(r.spec||'')}</td><td class="num">${fmt(r.qty)}</td></tr>`).join('')
+  :'<tr><td colspan="8" class="c" style="height:120px;color:#8a97a2">등록된 품목이 없습니다. 엑셀에서 복사(Ctrl+C) 후 이 화면에서 붙여넣기(Ctrl+V) 하세요.</td></tr>';
+ chkAll.checked=v.length>0&&v.every(r=>chk.has(r.row_no));
+ countText.textContent=`${v.length}건`+(pend.length?` (미등록 ${pend.length})`:'')+(chk.size?` · 선택 ${chk.size}`:'');
+}
+function toggleChk(id,on){on?chk.add(id):chk.delete(id);render()}
+function chkAllRows(on){chk.clear();if(on)view().forEach(r=>chk.add(r.row_no));render()}
+function rowClick(no,e){if(e&&e.target&&e.target.type==='checkbox')return;toggleChk(no,!chk.has(no))}
+
+const online=()=>!!(window.MESDB&&MESDB.online);
+async function waitDB(){for(let i=0;i<60&&!window.MESDB;i++)await new Promise(r=>setTimeout(r,50));
+ if(window.MESDB&&MESDB.ready){try{await MESDB.ready}catch(e){}}}
+let curJob=null;
+function curJobNo(){return (q_job.value||curJob||'').trim()}
+async function loadJob(job){
+ await waitDB();if(!online())return;
+ const nj=job||curJob;if(!nj)return;
+ if(nj!==curJob&&pend.length){msg(`제번이 바뀌어 미등록 ${pend.length}건을 비웠습니다.`);pend.length=0;chk.clear()}
+ curJob=nj;
+ try{
+  const rs=await MESDB.table(TBL).select(`select=*&job_no=eq.${encodeURIComponent(curJob)}&order=row_no`);
+  rs.sort((a,b)=>joSort(a.process_code,b.process_code)||(Number(a.row_no)||0)-(Number(b.row_no)||0));
+  data.length=0;data.push(...rs);
+  [...chk].forEach(id=>{if(!rowById(id))chk.delete(id)});
+  render();msg(`${curJob} 구매품 PartList ${rs.length}건`+(pend.length?` · 미등록 ${pend.length}건 — 체크 후 [▤ 등록]`:''));
+ }catch(e){msg('조회 실패: '+String(e.message||e).slice(0,120))}
+}
+const notify=()=>{try{MESDB.notify&&MESDB.notify([TBL])}catch(e){}};
+
+/* [▤ 등록] → 체크한 행 확인 → 등록자·등록일자 입력창 */
+function save(){
+ const job=curJobNo();
+ if(!job){msg('제번을 먼저 선택하세요.');q_job.focus();return}
+ const sel=[...chk].map(rowById).filter(Boolean);
+ if(!sel.length){msg('등록할 행을 체크하세요.');return}
+ const nNew=sel.filter(r=>r._new).length;
+ rInfo.innerHTML=`제번 <b>${esc(job)}</b> · 체크 <b style="color:#2f75b5">${sel.length}건</b><br>`
+  +`<span style="color:#667">미등록 ${nNew}건 · 등록된 행 ${sel.length-nNew}건 (등록된 행은 등록자·등록일자가 바뀝니다)</span>`;
+ if(!fBy.value){try{fBy.value=localStorage.getItem('pl_pur_by')||localStorage.getItem('pl_mat_by')||''}catch(e){}}
+ if(!fDate.value)fDate.value=today();
+ rMask.classList.add('on');setTimeout(()=>fBy.focus(),50);
+}
+function regClose(){rMask.classList.remove('on')}
+async function saveChecked(){
+ const job=curJobNo();
+ if(!job){msg('제번을 먼저 선택하세요.');return}
+ const by=(fBy.value||'').trim(),dt=fDate.value;
+ if(!by){alert('등록자를 입력하세요.');fBy.focus();return}
+ if(!dt){alert('등록일자를 입력하세요.');fDate.focus();return}
+ if(!online()){msg('DB 미연결 상태에서는 등록할 수 없습니다.');return}
+ const sel=[...chk].map(rowById).filter(Boolean);
+ const nNew=sel.filter(r=>r._new).length,nOld=sel.length-nNew;
+ const mp=new Map();
+ for(const r of sel){
+  const jo=r._new?joOf(r.part_no):r.process_code;
+  mp.set(jo+'|'+r.part_no,{job_no:job,process_code:jo,part_no:r.part_no,part_name:r.part_name||'',
+   type:r.type||null,spec:r.spec||null,image_url:r.image_url||null,qty:r.qty??null,registered_by:by,registered_date:dt});
+ }
+ const fin=[...mp.values()];
+ try{localStorage.setItem('pl_pur_by',by)}catch(e){}
+ try{
+  if(MESDB.ensureRefs)await MESDB.ensureRefs(fin.map(r=>({part_no:r.part_no,part_name:r.part_name})));
+  await MESDB.table(TBL).upsert(fin,'job_no,process_code,part_no');
+  for(const r of sel)if(r._new){const i=pend.indexOf(r);if(i>=0)pend.splice(i,1)}
+  chk.clear();regClose();notify();
+  await loadJob(job);
+  const okm=`${job} 구매품 PartList ${fin.length}건을 등록했습니다.\n(미등록 ${nNew} · 기존 ${nOld}) · 등록자 ${by} · ${dt}`;
+  msg(okm.replace('\n',' '));
+  /* v116: 다른 저장·등록 화면과 같은 완료 팝업 */
+  try{(window.MESPOP||window.parent?.MESPOP)?.ok(okm,'등록 완료')}catch(e){}
+ }catch(e){const m=String(e.message||e);
+  alert('등록 실패: '+(/무결성|foreign key/i.test(m)?'등록되지 않은 제번입니다. 수주등록을 먼저 하세요.':m.slice(0,160)))}
+}
+async function del_(){
+ const ids=[...chk];
+ if(!ids.length){msg('삭제할 행을 체크하세요.');return}
+ const loc=ids.filter(id=>id<0),dbIds=ids.filter(id=>id>0);
+ if(dbIds.length&&!online()){msg('DB 미연결 상태에서는 삭제할 수 없습니다.');return}
+ if(!confirm(`선택한 ${ids.length}건을 삭제하시겠습니까?`+(loc.length?`\n(미등록 ${loc.length}건은 리스트에서만 지웁니다)`:'')))return;
+ try{
+  for(const id of loc){const i=pend.findIndex(x=>x.row_no===id);if(i>=0)pend.splice(i,1)}
+  for(const id of dbIds)await MESDB.table(TBL).delete({row_no:id});
+  ids.forEach(id=>chk.delete(id));
+  if(dbIds.length){notify();await loadJob()}else render();
+  msg(`${ids.length}건을 삭제했습니다.`);
+ }catch(e){msg('삭제 실패: '+String(e.message||e).slice(0,120))}
+}
+
+/* 일괄삭제 (제번 단위) */
+let dCnt=0;
+function bulkOpen(){
+ if(!online()){msg('DB 미연결 상태에서는 삭제할 수 없습니다.');return}
+ dJob.value=curJobNo();bulkReset();dConfirm.value='';
+ dMask.classList.add('on');
+ if(dJob.value)bulkCount();else setTimeout(()=>dJob.focus(),50);
+}
+function bulkClose(){dMask.classList.remove('on')}
+function bulkReset(){dCnt=0;dBtn.disabled=true;dInfo.textContent='제번을 입력하고 [건수확인]을 누르세요.'}
+function bulkChk(){const j=(dJob.value||'').trim();dBtn.disabled=!(j&&dCnt&&(dConfirm.value||'').trim()===j)}
+async function bulkCount(){
+ const job=(dJob.value||'').trim();
+ if(!job){dInfo.textContent='제번을 입력하세요.';return}
+ dBtn.disabled=true;dInfo.textContent='조회 중…';
+ try{
+  const rs=await MESDB.table(TBL).select(`select=row_no&job_no=eq.${encodeURIComponent(job)}`);
+  dCnt=rs.length;
+  dInfo.innerHTML=dCnt?`제번 <b>${esc(job)}</b> · 삭제 대상 <b style="color:#a03235">${dCnt}건</b>`:`제번 ${esc(job)} 에 등록된 구매품 PartList가 없습니다.`;
+  bulkChk();
+ }catch(e){dInfo.textContent='조회 실패: '+String(e.message||e).slice(0,120)}
+}
+async function bulkRun(){
+ const job=(dJob.value||'').trim();
+ if(!dCnt){dInfo.textContent='삭제할 대상이 없습니다.';return}
+ if(!confirm(`제번 ${job}\n구매품 PartList ${dCnt}건을 모두 삭제합니다.\n\n복구할 수 없습니다. 진행할까요?`))return;
+ dBtn.disabled=true;dInfo.textContent='삭제 중…';
+ try{
+  await MESDB.table(TBL).delete({job_no:job});
+  notify();
+  dInfo.innerHTML=`<b style="color:#1d6b3a">${dCnt}건을 삭제했습니다.</b>`;
+  msg(`제번 ${job} 구매품 PartList ${dCnt}건 일괄삭제 완료`);
+  dConfirm.value='';dCnt=0;if(curJobNo()===job){pend.length=0;chk.clear()}
+  if(curJobNo()===job)await loadJob(job);
+  setTimeout(bulkClose,800);
+ }catch(e){dInfo.textContent='삭제 실패: '+String(e.message||e).slice(0,120);bulkChk()}
+}
+
+/* ── 엑셀 불러오기 (Ctrl+C → Ctrl+V) ──────────────────────
+ * 열 순서: 품번 · 품명 · 형식(TYPE) · 규격(SIZE) · 수량(Q'TY)
+ * 제목행이 있으면 제목 이름으로 열을 찾고, 없으면 위 순서대로 읽는다. */
+const COLS=[
+ {k:'part_no',  t:'금형번호',re:/금\s*형\s*번\s*호|품\s*번|부품\s*번호|품목\s*번호|part\s*(no|number|code)|^\s*p\/?no\s*$|item\s*no/i},
+ {k:'part_name',t:'품명',re:/품\s*명|부품\s*명|품목\s*명|part\s*name|^\s*name\s*$|description|desc\b/i},
+ {k:'type',     t:'형식',re:/형\s*식|type|타\s*입|종\s*류|maker|메이커/i},
+ {k:'spec',     t:'규격',re:/규\s*격|치\s*수|사\s*양|spec|size|dimension|model/i},
+ {k:'qty',      t:'수량',re:/수\s*량|q'?\s*ty|quantity|^\s*ea\s*$|^\s*pcs\s*$/i}];
+function xls(pasted){
+ const job=curJobNo();
+ /* v232: 엑셀파일은 관리제번을 파일에서 읽으므로 제번 없이도 창을 연다 (붙여넣기는 제번 필요) */
+ if(!job&&pasted){msg('제번을 먼저 선택하세요.');q_job.focus();return false}
+ xJob.textContent=job||'(미선택 — 파일의 관리제번으로 선택)';
+ XF=null;xSheet.style.display='none';xStrike.textContent='';
+ xFileInfo.innerHTML='PART LIST(표준품) 엑셀파일을 고르거나 여기로 끌어놓으세요. 관리제번은 파일에서 읽고, <s>취소선</s> 행은 제외합니다.';
+ xText.value=pasted||'';
+ xMask.classList.add('on');xlsPreview();
+ if(!pasted)setTimeout(()=>xText.focus(),50);
+ return true;
+}
+function xlsClose(){xMask.classList.remove('on')}
+function xlsGrid(){
+ return xText.value.replace(/\r/g,'').split('\n').map(l=>l.split('\t').map(c=>c.replace(/^"|"$/g,'').trim())).filter(r=>r.some(c=>c!==''));
+}
+function xlsMap(){
+ let g=xlsGrid();
+ let head=-1;const idx={};
+ for(let i=0;i<Math.min(g.length,25)&&head<0;i++){   /* v232: PART LIST 양식은 제목·관리제번 칸 아래에 머리행이 있다 */
+  const m={};
+  g[i].forEach((c,j)=>{if(!c)return;const col=COLS.find(x=>m[x.k]==null&&x.re.test(c));if(col)m[col.k]=j});
+  if(m.part_no!=null&&Object.keys(m).length>=3){head=i;Object.assign(idx,m)}
+ }
+ if(head<0){
+  /* 제목행 없음 — 셀 병합 등으로 생긴 '모든 행이 빈 열'을 지우고 순서대로 읽는다 */
+  const w=Math.max(0,...g.map(r=>r.length));
+  const keep=[...Array(w).keys()].filter(j=>g.some(r=>(r[j]||'')!==''));
+  g=g.map(r=>keep.map(j=>r[j]||''));
+  COLS.forEach((x,i)=>{if(i<keep.length)idx[x.k]=i});
+ }
+ return {g,idx,head,start:head+1};
+}
+function xlsRows(){
+ const {g,idx,head,start}=xlsMap();
+ const get=(r,k)=>idx[k]==null?'':String(r[idx[k]]??'').trim();
+ const rows=[],bad=[];let skipNo=0;
+ for(let i=start;i<g.length;i++){
+  const r=g[i],pn=get(r,'part_no');
+  if(/^예\s*\)/.test(pn))continue;
+  if(COLS[0].re.test(pn)&&!XNUM(get(r,'qty')))continue;   /* v232: 다음 쪽 반복 머리행 */
+  if(!pn){skipNo++;bad.push(i);continue}
+  rows.push({part_no:pn,part_name:get(r,'part_name'),type:get(r,'type')||null,spec:get(r,'spec')||null,qty:XNUM(get(r,'qty'))});
+ }
+ return {g,idx,head,rows,skipNo};
+}
+function xlsPreview(){
+ const {g,idx,head,rows,skipNo}=xlsRows();
+ if(!g.length){xMap.textContent='붙여넣으면 읽은 결과가 여기 표시됩니다.';xPrev.innerHTML='';return}
+ const map=COLS.map(x=>`<b>${x.t}</b> ← ${idx[x.k]==null?'<span style="color:#b04a4a">(없음)</span>':(head>=0?esc(g[head][idx[x.k]]):(idx[x.k]+1)+'열')}`).join(' · ');
+ xMap.innerHTML=(head>=0?`<span style="color:#1d6b3a">✔ 제목행 인식</span>`:`<span style="color:#8a5a00">제목행 없음 — 순서대로 읽음</span>`)
+  +` · 읽은 행 <b>${rows.length}</b>`+(skipNo?` · 금형번호 빈 행 ${skipNo} 제외`:'')+'<br>'+map;
+ xPrev.innerHTML=`<table><thead><tr><th style="width:40px">No</th><th>금형번호</th><th>품명</th><th>형식</th><th>규격</th><th style="width:60px">수량</th></tr></thead><tbody>`
+  +rows.map((r,i)=>`<tr class="${r.qty==null?'bad':''}"><td class="c">${i+1}</td><td>${esc(r.part_no)}</td><td>${esc(r.part_name)}</td><td class="c">${esc(r.type||'')}</td><td>${esc(r.spec||'')}</td><td class="num">${r.qty??'?'}</td></tr>`).join('')
+  +'</tbody></table>';
+}
+async function xlsAdd(){
+ const {g,rows}=xlsRows();
+ if(!g.length){alert('붙여넣은 내용이 없습니다.');xText.focus();return}
+ if(!rows.length){alert('추가할 행이 없습니다. 첫 열이 금형번호인지 확인하세요.');return}
+ /* v232: 엑셀파일의 관리제번 ↔ 화면 제번 */
+ const fj=XF&&XF.job,cj=curJobNo();
+ if(fj&&fj!==cj){
+  if(cj&&!confirm(`엑셀파일의 관리제번은 ${fj} 입니다. (화면 제번 ${cj})\n\n[확인] ${fj} 로 바꿔서 추가\n[취소] 화면 제번 ${cj} 에 그대로 추가`)){}
+  else{q_job.value=fj;try{MESJOB.syncSplit('q_job')}catch(e){}await loadJob(fj);try{pnSync(fj)}catch(e){}}
+ }
+ if(!curJobNo()){alert('제번을 선택하세요. (파일에서 관리제번을 찾지 못했습니다)');return}
+ for(const r of rows){
+  const i=pend.findIndex(x=>x.part_no===r.part_no);
+  if(i>=0){chk.delete(pend[i].row_no);pend.splice(i,1)}
+  const id=-(++pendSeq);
+  pend.push({...r,row_no:id,_new:true});chk.add(id);
+ }
+ xlsClose();render();
+ const ex=new Set(data.map(x=>x.part_no)),up=rows.filter(r=>ex.has(r.part_no)).length;
+ msg(`${rows.length}행을 리스트에 추가했습니다`+(up?` (기존 금형번호 ${up}건은 등록 시 수정)`:'')+`. 등록할 행을 체크하고 [▤ 등록]을 누르세요.`);
+}
+/* ── v232: 엑셀파일 불러오기 (.xlsx·.xlsm → ExcelJS : 취소선 행 제외 / .xls·.csv → SheetJS) ──
+ * 시트를 표(행×열)로 읽어 붙여넣기 칸에 넣는다 → 기존 머리행 인식·미리보기·리스트 추가를 그대로 쓴다.
+ * 양식 위쪽의 「관리제번」 칸 오른쪽 값을 제번으로 읽는다. 병합셀은 첫 칸만 값을 둔다. */
+let XF=null;   /* {name, book, kind, sheets:[{name,grid,struck,job}], cur} */
+const _libs={};
+function _lib(src,test){if(test())return Promise.resolve();if(_libs[src])return _libs[src];
+ return _libs[src]=new Promise((ok,ng)=>{const sc=document.createElement('script');sc.src=src;sc.onload=()=>ok();sc.onerror=()=>{delete _libs[src];ng(new Error('라이브러리를 불러오지 못했습니다 (인터넷 연결 확인)'))};document.head.appendChild(sc)})}
+const XLIB={exceljs:()=>_lib('https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js',()=>!!window.ExcelJS),
+ sheetjs:()=>_lib('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',()=>!!window.XLSX)};
+const _ct=v=>String(v??'').replace(/[\t\r\n]+/g,' ').replace(/\s{2,}/g,' ').trim();
+/* ExcelJS 셀 값 → 글자 */
+function xcText(c){
+ let v=c.value;if(v==null)return '';
+ if(typeof v==='object'){
+  if(v instanceof Date){const d=new Date(v.getTime()-v.getTimezoneOffset()*6e4);return d.toISOString().slice(0,10)}
+  if(v.richText)return _ct(v.richText.map(t=>t.text).join(''));
+  if('result' in v||'formula' in v||'sharedFormula' in v){const r=v.result;if(r==null)return '';if(r instanceof Date)return r.toISOString().slice(0,10);if(typeof r==='object')return r.error?'':_ct(r.text||'');return _ct(r)}
+  if(v.text!=null)return _ct(v.text&&v.text.richText?v.text.richText.map(t=>t.text).join(''):v.text);
+  if(v.error)return '';
+ }
+ return _ct(c.text!=null&&typeof v!=='number'?c.text:v);
+}
+/* 취소선: 글꼴 취소선 또는 서식있는 글자 전부가 취소선 */
+function xcStrike(c){try{
+ const v=c.value;
+ if(v&&v.richText&&v.richText.length){const rs=v.richText.filter(t=>String(t.text||'').trim());if(rs.length&&rs.every(t=>t.font&&t.font.strike))return true}
+ return !!(c.font&&c.font.strike)&&xcText(c)!=='';
+}catch(e){return false}}
+/* 관리제번 칸 찾기 — 「관리제번」 글자의 오른쪽 첫 값 */
+function xFindJob(grid){
+ for(const r of grid.slice(0,15))for(let j=0;j<r.length;j++){
+  if(/^관\s*리\s*제\s*번$|^제\s*번$|^job\s*no\.?$/i.test(r[j]||'')){for(let k=j+1;k<r.length;k++){const v=String(r[k]||'').trim();if(v)return v.replace(/\s+/g,'').toUpperCase()}}
+ }
+ return '';
+}
+function xHasHead(grid){return grid.slice(0,25).some(r=>{let n=0,pn=false;r.forEach(c=>{if(!c)return;COLS.forEach((x,i)=>{if(x.re.test(c)){n++;if(i===0)pn=true}})});return pn&&n>=3})}
+async function xlsFile(file){
+ if(!file)return;
+ const nm=file.name||'',ext=(nm.split('.').pop()||'').toLowerCase();
+ if(!['xlsx','xlsm','xls','csv'].includes(ext)){alert('엑셀파일(.xlsx · .xls · .csv)만 불러올 수 있습니다.');return}
+ if(!xMask.classList.contains('on'))xls();
+ xFileInfo.textContent=`${nm} 읽는 중…`;
+ try{
+  const buf=await file.arrayBuffer();
+  const sheets=[];
+  if(ext==='xlsx'||ext==='xlsm'){
+   await XLIB.exceljs();
+   const wb=new ExcelJS.Workbook();await wb.xlsx.load(buf);
+   wb.eachSheet(ws=>{
+    if(ws.state&&ws.state!=='visible')return;
+    const grid=[],struck=[];let w=0;
+    ws.eachRow({includeEmpty:true},(row,rn)=>{
+     const a=[];let st=false;
+     row.eachCell({includeEmpty:true},(c,cn)=>{
+      const slave=c.isMerged&&c.master&&c.master.address!==c.address;
+      a[cn-1]=slave?'':xcText(c);
+      if(!slave&&cn<=3&&xcStrike(c))st=true;   /* 품번·품명 칸 쪽 취소선 */
+     });
+     for(let i=0;i<a.length;i++)if(a[i]==null)a[i]='';
+     w=Math.max(w,a.length);
+     if(st&&a.some(x=>x)){struck.push(a.filter(Boolean).slice(0,2).join(' '));return}
+     grid.push(a);
+    });
+    sheets.push({name:ws.name,grid:grid.filter(r=>r.some(x=>x!=='')),struck});
+   });
+  }else{
+   await XLIB.sheetjs();
+   const wb=XLSX.read(buf,{type:'array',cellDates:true});
+   wb.SheetNames.forEach(n=>{const ws=wb.Sheets[n];
+    const grid=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:'',blankrows:false}).map(r=>r.map(_ct));
+    /* 병합셀은 첫 칸만 값이 있다 (SheetJS 기본) */
+    sheets.push({name:n,grid:grid.filter(r=>r.some(x=>x!=='')),struck:[]});
+   });
+  }
+  if(!sheets.length)throw new Error('읽을 수 있는 시트가 없습니다.');
+  sheets.forEach(sh=>{sh.job=xFindJob(sh.grid);sh.ok=xHasHead(sh.grid)});
+  XF={name:nm,kind:ext,sheets,cur:0};
+  const cj=curJobNo();
+  let pick=sheets.findIndex(sh=>sh.ok&&cj&&sh.job&&(sh.job===cj||sh.job.startsWith(cj)));
+  if(pick<0)pick=sheets.findIndex(sh=>sh.ok);if(pick<0)pick=0;
+  xSheet.innerHTML=sheets.map((sh,i)=>`<option value="${i}">${esc(sh.name)}${sh.job?' · '+esc(sh.job):''}${sh.ok?'':' (머리행 없음)'}</option>`).join('');
+  xSheet.style.display=sheets.length>1?'':'none';xSheet.value=String(pick);
+  xlsSheet(pick);
+ }catch(e){XF=null;xFileInfo.innerHTML=`<span style="color:#b04a4a">불러오기 실패: ${esc(String(e.message||e).slice(0,140))}</span>`}
+}
+function xlsSheet(i){
+ if(!XF)return;i=Number(i)||0;XF.cur=i;const sh=XF.sheets[i];if(!sh)return;
+ XF.job=sh.job||'';
+ xText.value=sh.grid.map(r=>r.join('\t')).join('\n');
+ xlsPreview();
+ const cj=curJobNo();
+ xFileInfo.innerHTML=`📄 <b>${esc(XF.name)}</b>`+(XF.sheets.length>1?` · 시트 <b>${esc(sh.name)}</b>`:'')
+  +(sh.job?` · 관리제번 <b style="color:${cj&&cj!==sh.job?'#b45309':'#1d6b3a'}">${esc(sh.job)}</b>`+(cj&&cj!==sh.job?` <span style="color:#b45309">(화면 제번 ${esc(cj)} 과 다름 — 추가할 때 선택)</span>`:(!cj?' <span style="color:#1d6b3a">(추가할 때 이 제번으로 선택)</span>':'')):' · <span style="color:#8a5a00">관리제번 칸 없음 — 화면 제번으로 추가</span>')
+  +(XF.kind==='xls'||XF.kind==='csv'?' · <span style="color:#8a5a00">.xls·.csv 는 취소선을 읽지 못합니다 — 취소 행은 미리보기에서 확인하세요</span>':'');
+ xStrike.textContent=sh.struck.length?`취소선 ${sh.struck.length}행 제외: ${sh.struck.slice(0,8).join(' · ')}${sh.struck.length>8?' …':''}`:'';
+ if(!curJobNo()&&sh.job)xJob.textContent=sh.job+' (파일)';
+}
+/* 끌어놓기 — 창 안 점선 칸 또는 화면 어디든 */
+(function(){
+ const isF=e=>{try{return [...(e.dataTransfer&&e.dataTransfer.types||[])].includes('Files')}catch(_){return false}};
+ let n=0;
+ document.addEventListener('dragenter',e=>{if(!isF(e))return;n++;document.body.classList.add('drag-on');xDrop.classList.add('drag')});
+ document.addEventListener('dragleave',e=>{if(!isF(e))return;if(--n<=0){n=0;document.body.classList.remove('drag-on');xDrop.classList.remove('drag')}});
+ document.addEventListener('dragover',e=>{if(isF(e))e.preventDefault()});
+ document.addEventListener('drop',e=>{if(!isF(e))return;e.preventDefault();n=0;document.body.classList.remove('drag-on');xDrop.classList.remove('drag');
+  const f=e.dataTransfer.files&&e.dataTransfer.files[0];if(f)xlsFile(f)});
+})();
+function tplDown(){
+ const t='\ufeff'+[['금형번호','품명','형식','규격','수량'],['D38A','SET,POST-BUSH','BRPK','BRPK50-200','4']]
+  .map(a=>a.map(v=>'"'+v.replaceAll('"','""')+'"').join(',')).join('\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv;charset=utf-8'}));
+ a.download='PartList_구매품_서식.csv';a.click();URL.revokeObjectURL(a.href);
+}
+/* 화면 어디서든 Ctrl+V → 붙여넣기 창 (입력칸에서의 붙여넣기는 제외) */
+document.addEventListener('paste',e=>{
+ const t=e.target;
+ if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.isContentEditable))return;
+ if(xMask.classList.contains('on')||rMask.classList.contains('on')||dMask.classList.contains('on'))return;
+ const s=(e.clipboardData||window.clipboardData)?.getData('text')||'';
+ if(!s.trim())return;
+ e.preventDefault();xls(s);
+});
+
+/* v159: 부품 이미지 */
+function imgSel(){const ids=[...chk];if(ids.length!==1){msg('이미지를 올릴 행을 하나만 체크하세요.');return null}
+ const r=rowById(ids[0]);if(!r)return null;return r}
+function imgPick(){const r=imgSel();if(!r)return;
+ const job=curJobNo();if(!job)return msg('제번을 먼저 선택하세요.');
+ /* v170: 그림 편집기 — 캐드 캡쳐 붙여넣기(Ctrl+V) → 흰 바탕 반전 → A4 정리 → 표시·글자 → 등록 */
+ if(window.MESIMG){MESIMG.open({title:'부품 그림 등록',job,part:r.part_no,name:r.part_name||'',mat:r.material||'',spec:(r.spec||r.standard||''),src:r.image_url||'',
+   by:(()=>{try{const a=window.MES_AUTH||window.parent.MES_AUTH;return (a&&a.session&&(a.session.user_name||a.session.name))||''}catch(e){return ''}})(),
+   onSave:async f=>{await imgUp(f,true)}});return}
+ if(r.image_url&&!confirm(`${r.part_no} 에 이미 이미지가 있습니다. 새 이미지로 바꿀까요?\n(취소하면 그대로 둡니다)`))return;
+ imgFile.value='';imgFile.click()}
+async function imgUp(f,strict){
+ const r=imgSel();if(!r||!f)return;
+ const job=curJobNo();if(!job)return msg('제번을 먼저 선택하세요.');
+ msg('이미지 올리는 중…');
+ try{
+  const url=await MESDB.imgUpload(f,job,r.part_no),old=r.image_url||'';
+  r.image_url=url;
+  if(!r._new&&online()){await MESDB.table(TBL).update({row_no:Number(r.row_no)},{image_url:url});notify()}
+  if(old&&old!==url&&!r._new&&online()&&MESDB.imgDelete)MESDB.imgDelete(old).catch(()=>{});   /* v196: 바꾼 옛 그림 파일 정리 */
+  render();msg(`${r.part_no} 이미지를 등록했습니다.`+(r._new?' (미등록 행 — [▤ 등록] 때 함께 저장됩니다)':''));
+ }catch(e){msg('이미지 등록 실패: '+String(e.message||e).slice(0,140));if(strict)throw e}
+}
+/* v196: 이미지삭제 — 체크한 행(여러 개)의 그림을 지운다. DB 를 비우고, 다른 곳에서 안 쓰는 파일이면 저장소에서도 지운다 */
+async function imgDel(){
+ const rows=[...chk].map(rowById).filter(r=>r&&r.image_url);
+ if(!chk.size)return msg('그림을 지울 행을 체크하세요.');
+ if(!rows.length)return msg('체크한 행에 등록된 그림이 없습니다.');
+ if(!confirm(`${rows.map(r=>r.part_no).slice(0,8).join(', ')}${rows.length>8?' …':''}\n${rows.length}건의 부품 그림을 지울까요? (되돌릴 수 없습니다)`))return;
+ msg('그림 지우는 중…');let n=0,fail=0;
+ for(const r of rows){const url=r.image_url;
+  try{if(!r._new&&online())await MESDB.table(TBL).update({row_no:Number(r.row_no)},{image_url:null});
+   r.image_url=null;n++;
+   try{if(MESDB.imgDelete)await MESDB.imgDelete(url)}catch(e){}
+  }catch(e){fail++}
+ }
+ if(n&&online())notify();
+ render();msg(`그림 ${n}건을 지웠습니다.`+(fail?` (${fail}건 실패)`:''));
+}
+/* v117: 수동등록 — 엑셀 없이 한 행씩 리스트에 올린다 (추가 후 체크 → [▤ 등록]) */
+function manOpen(){
+ const job=curJobNo();
+ if(!job){msg('제번을 먼저 선택하세요.');q_job.focus();return}
+ mJob.textContent=job;mMask.classList.add('on');setTimeout(()=>mPn.focus(),50);
+}
+function manClose(){mMask.classList.remove('on')}
+function manAdd(){
+ const job=curJobNo();
+ if(!job)return alert('제번을 먼저 선택하세요.');
+ const pn=(mPn.value||'').trim();
+ if(!pn){alert('금형번호를 입력하세요.');mPn.focus();return}
+ const r={part_no:pn,part_name:(mName.value||'').trim(),type:(mType.value||'').trim()||null,
+  spec:(mSpec.value||'').trim()||null,qty:XNUM(mQty.value)};
+ let rep=false;const i=pend.findIndex(x=>x.part_no===pn);
+ if(i>=0){chk.delete(pend[i].row_no);pend.splice(i,1);rep=true}
+ const id=-(++pendSeq);pend.push({...r,row_no:id,_new:true});chk.add(id);
+ render();
+ [mPn,mName,mType,mSpec].forEach(el=>el.value='');mQty.value='1';mPn.focus();
+ const ex=data.some(x=>x.part_no===pn);
+ msg(`${pn} 을(를) 리스트에 추가했습니다`+(rep?' (미등록 행 교체)':'')+(ex?' (기존 금형번호 — 등록 시 수정)':'')
+  +'. 체크 후 [▤ 등록]을 누르세요.');
+}
+
+
+/* ── v119: 품번(제품 품번)으로도 제번을 찾는다 — job_pool 의 job_no ↔ model ───── */
+const PNMAP=[];
+function pnFillDL(){
+ const dl=document.getElementById('pnDL');if(!dl)return;
+ const seen=new Set(),out=[];
+ PNMAP.forEach(x=>{if(seen.has(x.model))return;seen.add(x.model);out.push(x)});
+ out.sort((a,b)=>a.model.localeCompare(b.model));
+ dl.innerHTML=out.map(o=>`<option value="${o.model.replace(/"/g,'')}">${String(o.job).replace(/</g,'')}</option>`).join('');
+}
+async function pnLoad(){
+ try{
+  for(let i=0;i<60&&!window.MESDB;i++)await new Promise(r=>setTimeout(r,50));
+  if(window.MESDB&&MESDB.ready){try{await MESDB.ready}catch(e){}}
+  for(let i=0;i<20&&!(window.MESDB&&MESDB.online);i++)await new Promise(r=>setTimeout(r,150));
+  if(!(window.MESDB&&MESDB.online))return;
+  const rs=await MESDB.table('job_pool').select('select=job_no,model&order=row_no');
+  PNMAP.length=0;
+  (rs||[]).forEach(r=>{const m=String(r.model||'').trim();if(m)PNMAP.push({model:m,job:r.job_no})});
+  pnFillDL();
+ }catch(e){}
+}
+/* 품번을 고르거나 입력하면 → 그 제번으로 자재표를 연다 */
+function pnPick(){
+ const v=String(q_pn.value||'').trim();
+ if(!v)return;
+ const low=v.toLowerCase();
+ let list=PNMAP.filter(x=>x.model.toLowerCase()===low);
+ if(!list.length)list=PNMAP.filter(x=>x.model.toLowerCase().includes(low));
+ if(!list.length){msg(`품번 ${v} 로 등록된 제번이 없습니다. 수주등록의 품번을 확인하세요.`);return}
+ const jobs=[...new Set(list.map(x=>x.job))];
+ if(jobs.length>1){msg(`품번 ${v} 에 제번이 ${jobs.length}건 있습니다 — ${jobs.slice(0,6).join(', ')}${jobs.length>6?' …':''} · 제번 칸에서 고르세요.`);return}
+ q_job.value=jobs[0];
+ if(typeof loadJob==='function')loadJob(jobs[0]);
+ msg(`품번 ${list[0].model} → 제번 ${jobs[0]} 를 열었습니다.`);
+}
+/* 제번을 고르면 → 품번 칸을 같이 채운다 */
+function pnSync(job){const x=PNMAP.find(y=>y.job===job);q_pn.value=x?x.model:''}
+function search(){const j=curJobNo();if(j&&online())return loadJob(j);render()}
+window.MES={search,save,saveChecked,setMessage:msg,reload:loadJob,manOpen};render();
+(async()=>{await waitDB();const j=curJobNo();if(j)loadJob(j)})();
+</script>
+<script src="mes_sample.js?v=169"></script><script src="mes_scene.js?v=114"></script><script src="mes_demo.js?v=114"></script><script src="mes_db.js?v=196"></script>
+<script>
+/* MESDB.master 자동동기화는 쓰지 않는다 — 화면(선택 제번)과 전체 스냅샷 차이를 '삭제'로 판단해
+   다른 제번의 PartList 를 지우던 문제(원재료 v86과 동일). 저장·삭제는 위 함수가 직접 처리한다. */
+</script>
+<script src="mes_ctx.js?v=169"></script>
+<script src="mes_imgedit.js?v=196"></script>
+<script src="mes_jobpick.js?v=162"></script>
+<script>/* 제번 직접 타이핑 → 등록된 수주 목록에서 선택 */
+try{MESJOB.attach("q_job",{onPick:j=>{loadJob(j);try{pnSync(j)}catch(e){}}})}catch(e){}
+try{pnLoad();q_pn.addEventListener("change",()=>{try{pnPick()}catch(e){}});
+ q_pn.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();try{pnPick()}catch(_){}}});}catch(e){}
+q_job.addEventListener('keydown',e=>{if(e.key==='Enter')search()});</script>
+<script>
+function sampleFill(){
+  if(window.MESDEMO)return MESDEMO.run('partlist_purchase_input',{});
+  var e=document.getElementById('message'); if(e)e.textContent='예제 모듈을 불러오지 못했습니다.';
+}
+</script>
+<script src="mes_go.js?v=196"></script>
+<script>/* v196: 금형원가내역 더블클릭으로 들어왔을 때 — 제번 불러오고 부품 행 표시 */
+MES.go=async function(p){p=p||{};const job=String(p.job||'');if(!job)return;
+ q_job.value=job;try{MESJOB.syncSplit('q_job')}catch(e){}
+ await loadJob(job);try{if(typeof pnSync==='function')pnSync(job)}catch(e){}
+ if(!p.part)return;
+ const r=await MESGO.wait(()=>view().find(x=>x.part_no===p.part),5000);
+ if(!r)return msg(job+' PartList 에서 부품 '+p.part+' 을(를) 찾지 못했습니다.');
+ const tr=[...body.querySelectorAll('tr')].find(t=>(t.getAttribute('onclick')||'').includes('rowClick('+r.row_no+','));
+ MESGO.hold(()=>[...body.querySelectorAll('tr')].find(t=>(t.getAttribute('onclick')||'').includes('rowClick('+r.row_no+',')));msg(`${job} · ${p.part} — 금형원가내역에서 이동했습니다.`)};
+</script>
+</body></html>

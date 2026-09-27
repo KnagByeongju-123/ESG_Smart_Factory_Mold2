@@ -1,0 +1,155 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>설계/조립/검사 실적조회</title><style>
+
+:root{--line:#98a6b2;--line2:#c5d0d8;--blue:#2f75b5;--ink:#344757;--head1:#e8f1f8;--head2:#c8dbe9}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{font-family:"Malgun Gothic","맑은 고딕",Arial,sans-serif;font-size:12px;color:var(--ink);background:#fff;overflow:hidden}
+button,input,select{font:inherit;color:inherit}.screen{height:100%;display:flex;flex-direction:column;background:#fff}
+.title{height:48px;padding:8px 14px 5px;border-bottom:2px solid #3978ae;display:flex;align-items:center}.title h1{margin:0;font-size:22px;font-weight:500;color:#4b5c6a}.title h1:before{content:'◯';margin-right:6px;color:#8796a1}.title small{font-size:11px;color:#9ca7af;margin-left:12px}
+.form{padding:7px 14px;background:#fafbfc;border-bottom:1px solid var(--line2)}.formrow{display:grid;grid-template-columns:78px 140px 78px 150px 90px 150px 90px minmax(160px,1fr);gap:5px;align-items:center}.formrow+.formrow{margin-top:5px}.label{font-weight:700}.field{height:27px;border:1px solid #b5c0c9;background:#fff;padding:0 6px;min-width:0}
+.entrybox,.gridbox{margin:0 14px;border:1px solid var(--line);overflow:auto;background:#fff}.entrybox{height:190px}.gridbox{flex:1;min-height:0}
+.searchline{height:39px;margin:0 14px;display:flex;align-items:center;gap:5px;border-left:1px solid var(--line);border-right:1px solid var(--line);padding:4px 8px;background:#f6f8fa}.searchline input{width:min(430px,48vw);height:27px;border:1px solid #aeb9c3;padding:0 7px}
+.btn{height:29px;min-width:62px;border:1px solid #9ba8b4;background:linear-gradient(#fff,#dfe6eb);cursor:pointer}.btn:hover{background:#fff}
+table{border-collapse:collapse;min-width:1040px;width:100%;table-layout:fixed}th,td{height:27px;border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);padding:0 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}th{position:sticky;top:0;z-index:2;text-align:center;background:linear-gradient(var(--head1),var(--head2));color:#405266}tbody tr:nth-child(even) td{background:#fafcfd}tbody tr:hover td{background:#edf6fd}tbody tr.sel td{background:#2d75b7;color:#fff}.c{text-align:center}.num{text-align:right}.toolbar{height:40px;display:flex;align-items:center;gap:5px;padding:4px 14px;background:#f5f7f8;border-bottom:1px solid var(--line2)}
+.foot{height:42px;display:flex;align-items:center;padding:5px 14px;border-top:1px solid var(--line);background:#eef2f5;gap:5px}.msg{margin-left:8px;color:#687784}.right{margin-left:auto;color:#7c8993}
+.split{flex:1;min-height:0;display:grid;grid-template-rows:1fr 1fr;gap:10px;padding:0 14px 8px}.split .gridbox{margin:0}
+@media(max-width:900px){.formrow{grid-template-columns:78px 1fr 78px 1fr}.entrybox,.gridbox,.searchline{margin-left:6px;margin-right:6px}}
+
+.filt{padding:7px 14px;background:#fafbfc;border-bottom:1px solid var(--line2)}
+.fr{display:grid;gap:5px;align-items:center}
+.lb{font-weight:700;text-align:right;padding-right:3px}
+.opts{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.opts label{display:flex;align-items:center;gap:3px;cursor:pointer}
+.gtot td{background:#dfe9f2;font-weight:700}
+.grp th{background:linear-gradient(#dbe9f5,#b9d2e6)}
+.tag{display:inline-block;min-width:34px;padding:0 5px;border-radius:3px;font-size:11px;line-height:17px;text-align:center;border:1px solid}
+.tag.in{background:#eef3f7;border-color:#b9c8d5;color:#4a5c6b}
+.tag.out{background:#fdefe2;border-color:#e0a86a;color:#9a5410;font-weight:700}
+tbody tr.sel .tag{background:transparent;border-color:#cfe2f4;color:#fff}
+#srcWrap{display:flex;align-items:center;gap:8px;padding-left:10px;border-left:1px solid #c5d0d8}
+/* v21 입력란 배치 보정: 좁은 폭에서 필드를 숨기지 않고 단계적으로 줄바꿈 */
+.field,.formrow input,.formrow select,.formgrid input,.formgrid select,.detail-grid input,.detail-grid select{min-width:0;max-width:100%}
+.lab,.label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:1400px){.formrow{grid-template-columns:78px minmax(0,1fr) 78px minmax(0,1fr)}}
+@media(max-width:880px){.formrow{grid-template-columns:78px minmax(0,1fr)}}
+.formrow>*{min-width:0}
+</style></head><body><div class="screen"><div class="title"><h1>설계/조립실적조회</h1><small>설계관리</small></div><section class="filt"><div class="opts"><span class="lb" style="width:44px">구분</span><label><input type="radio" name="k" value="전체" checked>전체</label><label><input type="radio" name="k" value="설계">설계</label><label><input type="radio" name="k" value="조립">조립</label><label><input type="radio" name="k" value="검사">검사</label><label><input type="radio" name="k" value="가공">가공</label><span id="srcWrap"><span class="lb" style="width:56px">설계구분</span><label><input type="radio" name="src" value="전체" checked>전체</label><label><input type="radio" name="src" value="사내">사내</label><label><input type="radio" name="src" value="외주">외주</label></span><span class="lb" style="width:60px">관리제번</span><select id="q_base" class="field" style="width:200px"><option value="">전체</option></select><span class="lb" style="width:44px">제번</span><input id="q_job" class="field cbo" style="width:160px" list="dl_job" autocomplete="off" placeholder="입력 또는 선택"><span class="lb" style="width:56px">작업자</span><input id="q_w" class="field cbo" style="width:120px" list="dl_worker" autocomplete="off" placeholder="입력 또는 선택"><span class="lb" style="width:44px" id="lb_p">공정</span><input id="q_p" class="field cbo" style="width:130px" list="dl_proc" autocomplete="off" placeholder="입력 또는 선택"><span class="lb" style="width:70px">작업일자</span><input id="d1" type="date" class="field" style="width:130px"><span>~</span><input id="d2" type="date" class="field" style="width:130px"></div></section><div class="gridbox"><table style="min-width:1180px"><thead><tr><th style="width:70px">NO</th><th style="width:64px">구분</th><th style="width:80px">사내/외주</th><th style="width:110px" title="수주등록 › 설계업체 (제작계획 설계처)">설계업체</th><th style="width:90px">작업자</th><th style="width:150px">제번</th><th style="width:60px">공정</th><th style="width:110px">부품</th><th style="width:110px">가공공정코드</th><th style="width:140px">가공공정명</th><th style="width:110px">작업일자</th><th style="width:100px">작업시간(분)</th><th style="width:60px">인원</th><th style="width:100px">노무비</th></tr></thead><tbody id="body"></tbody><tfoot><tr class="gtot"><td colspan="13" class="c" id="totline">조회 0건</td></tr></tfoot></table></div><footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn" onclick="csv()">▤ EXCEL</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">설계실적등록에서 등록한 실적이 조회됩니다.</span><span class="right" id="countText"></span></footer></div>
+<datalist id="dl_job"></datalist>
+<datalist id="dl_worker"></datalist>
+<datalist id="dl_proc"></datalist>
+<script>/* v60: 진입 메뉴에 따라 제목·기본 구분을 분기 (설계관리→설계, 조립관리→조립) */
+/* v68: ?src=외주 → '외주설계실적조회' (설계관리 › 외주설계발주 메뉴). 설계구분이 외주로 고정된다 */
+(function(){const q=new URLSearchParams(location.search),m=q.get('mode'),src=q.get('src');
+ let cfg=m==='design'?{t:'설계실적조회',s:'설계관리',k:'설계'}:m==='assembly'?{t:'조립실적조회',s:'조립관리 · 사내조립',k:'조립'}:m==='inspection'?{t:'검사실적조회',s:'조립관리 · 검사',k:'검사'}:null;
+ if(cfg&&cfg.k==='설계'&&(src==='외주'||src==='사내'))cfg={...cfg,t:src+'설계실적조회',s:'설계관리 · '+(src==='외주'?'외주설계발주':'사내설계'),src};
+ if(!cfg)return; document.title=cfg.t;
+ /* v196: 조립·검사 조회는 구분을 메뉴로 고정하고 공정 필터를 뺀다 */
+ if(cfg.k==='조립'||cfg.k==='검사'){
+  document.querySelectorAll('input[name=k]').forEach(x=>{x.closest('label').style.display='none'});
+  document.querySelectorAll('.filt .lb').forEach(e=>{if(e.textContent.trim()==='구분')e.style.display='none'});
+  ['lb_p','q_p'].forEach(id=>{const e=document.getElementById(id);if(e){e.style.display='none';e.setAttribute('data-nocombo','1')}});
+  const m2=document.getElementById('message');if(m2)m2.textContent=cfg.k+'실적등록에서 등록한 실적이 조회됩니다.';
+ }
+ const h=document.querySelector('.title h1'),sm=document.querySelector('.title small');
+ if(h)h.textContent=cfg.t; if(sm)sm.textContent=cfg.s;
+ const r=document.querySelector('input[name=k][value="'+cfg.k+'"]'); if(r)r.checked=true;
+ document.querySelectorAll('input[name=k]').forEach(x=>{if(x.value==='전체')x.closest('label').style.display='none'});
+ if(cfg.src){
+  const sr=document.querySelector('input[name=src][value="'+cfg.src+'"]');if(sr)sr.checked=true;
+  /* 구분·설계구분은 메뉴로 정해졌으니 바꿀 수 없게 숨긴다 */
+  document.querySelectorAll('input[name=k],input[name=src]').forEach(x=>x.closest('label').style.display='none');
+  const lb=[...document.querySelectorAll('.filt .lb')].find(e=>/구 분|설계구분/.test(e.textContent));
+  document.querySelectorAll('.filt .lb').forEach(e=>{if(/^(구 분|설계구분)$/.test(e.textContent.trim()))e.style.display='none'});
+  const w=document.getElementById('srcWrap');if(w)w.style.display='none';
+  const m2=document.getElementById('message');if(m2)m2.textContent=cfg.src+'설계 실적만 조회됩니다. (제작계획에서 설계구분='+cfg.src+' 인 제번)';
+ }
+})();
+/* v68: 사내/외주 구분 — design_results.design_source (실적등록 시 제작계획의 설계구분을 따라 기록됨) */
+const data=[];const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const n=v=>v==null?'':Number(v).toLocaleString();const p=v=>v==null?'':Number(v).toFixed(2)+'%';
+const msg=t=>message.textContent=t;
+let view=[...data];
+const PLAN={};   /* job_no → '사내'|'외주' (옛 실적에 design_source 가 없을 때 대체) */
+const srcOf=r=>r.work_type!=='설계'?'':(r.design_source||PLAN[r.job_no]||'사내');
+/* v243: 설계업체 — 수주등록 설계업체(sale_orders) → 제작계획 설계처/외주업체(sales_plans) */
+const VEN={};const venOf=r=>r.work_type!=='설계'?'':(VEN[r.job_no]||'');
+const tag=v=>v?`<span class="tag ${v==='외주'?'out':'in'}">${v}</span>`:'';
+const FIXED_SRC=new URLSearchParams(location.search).get('src');
+/* v115: 제번·작업자·공정 드롭다운+직접입력 겸용 콤보(datalist) — 조회된 실적에서 후보를 만든다 */
+const baseOf=j=>{const m=/^(.*\d)([A-Z])$/.exec(String(j||'').trim());return m?m[1]:String(j||'').trim()};
+const seqOf=j=>{const m=/^(.*\d)([A-Z])$/.exec(String(j||'').trim());return m?m[2]:''};
+/* v196: 관리제번 드롭 — 조회된 실적의 제번을 관리제번으로 묶는다 */
+function fillBase(list){
+ const sel=document.getElementById('q_base');if(!sel)return;const cur=sel.value,G=new Map();
+ (list||[]).forEach(r=>{const j=String(r.job_no??'').trim();if(!j)return;const b=baseOf(j);let g=G.get(b);if(!g){g={n:0,seq:[]};G.set(b,g)}g.n++;const q=seqOf(j);if(q&&!g.seq.includes(q))g.seq.push(q)});
+ const bs=[...G.keys()].sort((a,b)=>b.localeCompare(a));
+ const rng=a=>{a.sort();return !a.length?'':a.length>2?` (${a[0]}~${a[a.length-1]})`:` (${a.join('·')})`};
+ sel.innerHTML=`<option value="">전체 (${bs.length})</option>`+bs.map(b=>`<option value="${esc(b)}">${esc(b)}${rng(G.get(b).seq)} · ${G.get(b).n}건</option>`).join('');
+ sel.value=G.has(cur)?cur:'';
+}
+function fillCombo(list){
+ const jm=new Map(),wm=new Map(),pm=new Map();
+ (list||[]).forEach(r=>{
+  const j=String(r.job_no??'').trim(),w=String(r.worker_name??'').trim(),
+        pc=String(r.machining_process_code??'').trim(),pn=String(r.machining_process_name??'').trim();
+  if(j)jm.set(j,(jm.get(j)||0)+1);
+  if(w)wm.set(w,(wm.get(w)||0)+1);
+  if(pc&&!pm.has(pc))pm.set(pc,pn);
+ });
+ const opt=(v,l)=>`<option value="${esc(v)}">${esc(l)}</option>`;
+ dl_job.innerHTML=[...jm].map(([v,c])=>opt(v,c+'건')).join('');
+ dl_worker.innerHTML=[...wm].map(([v,c])=>opt(v,c+'건')).join('');
+ dl_proc.innerHTML=[...pm].map(([v,l])=>opt(v,l)).join('');
+}
+const procHit=(r,pc)=>(String(r.machining_process_code??'')+' '+String(r.machining_process_name??'')+' '+String(r.process_code??'')).toLowerCase().includes(pc);
+function toggleSrc(){if(FIXED_SRC)return;const k=document.querySelector('input[name="k"]:checked').value;srcWrap.style.display=(k==='설계'||k==='전체')?'flex':'none'}   /* v196: 설계구분은 설계·전체일 때만 */
+
+function renderTotal(){
+  const money=v=>Number(v||0).toLocaleString('ko-KR');
+  const src=(typeof view!=='undefined'&&view)||[];
+  const sum=k=>src.reduce((a,r)=>a+(Number(r[k])||0),0);
+  const el=document.getElementById('totline'); if(!el)return;
+  const inM=src.filter(r=>srcOf(r)==='사내').reduce((a,r)=>a+(Number(r.work_minutes)||0),0);
+  const outM=src.filter(r=>srcOf(r)==='외주').reduce((a,r)=>a+(Number(r.work_minutes)||0),0);
+  el.textContent = src.length ? `조회 ${src.length}건 · 작업시간(분) ${money(sum('work_minutes'))}`+((inM||outM)?` (사내 ${money(inM)} / 외주 ${money(outM)})`:'') : '조회된 자료가 없습니다.';
+}
+function render(){body.innerHTML=view.length?view.map((r,i)=>`<tr><td class="c">${i+1}</td><td class="c">${esc(r.work_type)}</td><td class="c">${tag(srcOf(r))}</td><td>${esc(venOf(r))}</td><td class="c">${esc(r.worker_name)}</td><td>${esc(r.job_no)}</td><td class="c">${esc(r.process_code||'')}</td><td>${esc(r.part_no||'★ 전체')}</td><td class="c">${esc(r.machining_process_code||'')}</td><td>${esc(r.machining_process_name||'')}</td><td class="c">${esc(r.work_date||'')}</td><td class="num">${n(r.work_minutes)}</td><td class="c">${n(r.headcount)||1}</td><td class="num">${n(r.labor_cost)}</td></tr>`).join('')
+ :'<tr><td colspan="14" class="c" style="height:100px;color:#8a97a2">조회된 실적이 없습니다. 설계실적등록/조립실적등록에서 실적을 등록하세요.</td></tr>';countText.textContent=view.length+'건';}
+function search(){const k=document.querySelector('input[name="k"]:checked').value,sv=(document.querySelector('input[name="src"]:checked')||{}).value||'전체',j=q_job.value.trim().toLowerCase(),w=q_w.value.trim().toLowerCase(),pc=q_p.value.trim().toLowerCase(),a=d1.value,b=d2.value;
+ toggleSrc();
+ const base=data.filter(r=>(k==='전체'||r.work_type===k)
+  &&(k==='조립'||sv==='전체'||r.work_type!=='설계'||srcOf(r)===sv)
+  &&(!a||(r.work_date&&r.work_date>=a))&&(!b||(r.work_date&&r.work_date<=b)));
+ fillBase(base);
+ const bq=(document.getElementById('q_base')||{}).value||'';
+ fillCombo(bq?base.filter(r=>baseOf(r.job_no)===bq):base);
+ view=base.filter(r=>(!bq||baseOf(r.job_no)===bq)&&(!j||String(r.job_no||'').toLowerCase().includes(j))
+  &&(!w||String(r.worker_name||'').toLowerCase().includes(w))
+  &&(!pc||procHit(r,pc)));
+ render();msg(`조회결과 ${view.length}건입니다.`+(k!=='조립'&&sv!=='전체'?` (설계 ${sv})`:''));}
+function csv(){const h=['구분','사내/외주','설계업체','작업자','제번','공정','부품','가공공정코드','가공공정명','작업일자','작업시간(분)','인원','노무비'];
+ const rs=view.map(r=>[r.work_type,srcOf(r),venOf(r),r.worker_name,r.job_no,r.process_code,r.part_no||'',r.machining_process_code,r.machining_process_name,r.work_date,r.work_minutes,r.headcount||1,r.labor_cost||0]);
+ const c='\ufeff'+[h,...rs].map(x=>x.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:'text/csv;charset=utf-8'}));a.download='design_results.csv';a.click();}
+document.querySelectorAll('input[name="k"],input[name="src"]').forEach(x=>x.addEventListener('change',search));
+/* v115: 목록에서 고르거나 Enter 치면 즉시 조회, 칸을 비우면 전체 재조회 */
+document.getElementById('q_base').addEventListener('change',()=>{q_job.value='';search()});
+[q_job,q_w,q_p,d1,d2].forEach(el=>{
+ el.addEventListener('change',search);
+ el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();search()}});
+ el.addEventListener('input',()=>{if(!el.value.trim())search()});
+});
+toggleSrc();
+window.MES={search,exportCsv:csv,setMessage:msg};render();</script><script src="mes_db.js?v=171"></script>
+<script>
+/* 제작계획의 설계구분(사내/외주) — design_source 가 비어 있는 옛 실적용 */
+(async function(){try{if(MESDB.ready)await MESDB.ready;if(!MESDB.online)return;
+ const ps=await MESDB.table('sales_plans').select('select=job_no,design_outsourced,design_vendor,design_partner');
+ ps.forEach(x=>{PLAN[x.job_no]=x.design_outsourced===true?'외주':'사내';const v=x.design_vendor||x.design_partner;if(v)VEN[x.job_no]=v});
+ try{const so=await MESDB.table('sale_orders').select('select=job_no,design_vendor_name,development_type');
+  (so||[]).forEach(o=>{if(o.design_vendor_name)VEN[o.job_no]=VEN[o.job_no]||o.design_vendor_name;if(!PLAN[o.job_no]&&/외주설계/.test(String(o.development_type||'')))PLAN[o.job_no]='외주'})}catch(e){}
+ search()}catch(e){}})();
+MESDB.master({page:"design_result_inquiry:data",table:"design_results",pk:"row_no",map:{"row_no": {"col": "row_no", "type": "num"}, "work_type": "work_type", "design_source": "design_source", "worker_name": "worker_name", "job_no": "job_no", "process_code": "process_code", "machining_process_code": "machining_process_code", "machining_process_name": "machining_process_name", "work_date": {"col": "work_date", "type": "date"}, "work_minutes": {"col": "work_minutes", "type": "num"}, "part_no": "part_no", "headcount": {"col": "headcount", "type": "num"}, "labor_cost": {"col": "labor_cost", "type": "num"}},get:()=>data,render:()=>{if(typeof view!=="undefined")view=[...data];(window.MES&&window.MES.search||window.search||window.render||function(){})()}});
+/* 표가 다시 그려질 때마다 합계 갱신 */
+(function(){const tb=document.querySelector('tbody');if(!tb||typeof renderTotal!=='function')return;new MutationObserver(()=>renderTotal()).observe(tb,{childList:true});renderTotal()})();
+</script>
+<script src="mes_ctx.js?v=169"></script>
+</body></html>

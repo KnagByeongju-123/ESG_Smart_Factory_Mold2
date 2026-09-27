@@ -1,0 +1,136 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>알림등록</title><style>
+:root{--line:#9ba8b4;--line2:#c7d1d9;--blue:#2f75b5;--ink:#344757;--amber:#b86b00}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{font-family:"Malgun Gothic","맑은 고딕",Arial,sans-serif;font-size:12px;color:var(--ink);background:#fff}
+button,input,select{font:inherit;color:inherit}
+.screen{min-height:100%;display:flex;flex-direction:column}
+.title{min-height:49px;padding:9px 14px 5px;border-bottom:2px solid #3978ae;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.title h1{margin:0;font-size:22px;font-weight:500;color:#4b5c6a}.title h1:before{content:'◯';margin-right:6px;color:#8796a1}.title small{color:#687784}
+.wrap{flex:1;padding:10px 14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:10px;align-content:start}
+.card{border:1px solid var(--line);background:#fafbfc}
+.card h2{margin:0;padding:7px 10px;font-size:14px;background:linear-gradient(#e9f1f8,#d3e1ee);border-bottom:1px solid var(--line2);display:flex;align-items:center;gap:8px}
+.card h2 .sw{margin-left:auto;font-size:12px;font-weight:400}
+.card .bd{padding:8px 10px;display:grid;grid-template-columns:110px 1fr;gap:6px 8px;align-items:center}
+.card .bd label.k{font-weight:700;color:#4d5c69;text-align:right}
+.card .bd .v{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;min-width:0}
+.card .bd .v label{display:flex;align-items:center;gap:4px;cursor:pointer}
+.field{height:27px;border:1px solid #b7c2cb;background:#fff;padding:0 7px;min-width:0;width:100%}.field.n{width:70px}
+.btn{height:27px;padding:0 10px;border:1px solid #8b9ba9;background:linear-gradient(#fff,#e9eef2);cursor:pointer;border-radius:2px;white-space:nowrap}.btn:hover{background:#e3ebf2}
+.btn.go{background:linear-gradient(#e9f3fc,#c9def0);border-color:#6f9cc4;font-weight:700}
+.note{grid-column:1/-1;padding:6px 8px;border:1px solid #e1e7ec;background:#fff;border-radius:3px;color:#5d6d7b;line-height:1.55}
+.note b{color:#1d5da3}
+.sub{grid-column:1/-1;border-top:1px dashed var(--line2);margin:2px 0}
+.qrbox{display:flex;gap:10px;align-items:center}.qrbox .q{width:92px;height:92px;border:1px solid var(--line2);background:#fff;padding:4px;flex:0 0 auto}.qrbox .q svg{width:100%;height:100%}
+.qrbox .t{line-height:1.6;word-break:break-all}
+.hist{grid-column:1/-1;border:1px solid var(--line)}
+.hist h2{margin:0;padding:7px 10px;font-size:14px;background:linear-gradient(#e9f1f8,#d3e1ee);border-bottom:1px solid var(--line2);display:flex;gap:8px;align-items:center}
+.hist .tb{max-height:360px;overflow:auto}
+table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid var(--line2);border-right:1px solid var(--line2);padding:4px 6px;text-align:left;vertical-align:top}
+th{position:sticky;top:0;background:#eef3f8;text-align:center;white-space:nowrap}td.c{text-align:center;white-space:nowrap}
+.foot{height:43px;display:flex;align-items:center;padding:5px 14px;border-top:1px solid var(--line);background:#eef2f5;gap:5px;position:sticky;bottom:0}
+.msg{margin-left:10px;color:#1d5da3;font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag{display:inline-block;padding:0 6px;border-radius:9px;font-size:11px;line-height:17px}.tag.qr{background:#dbeaf8;color:#1a4f7a}.tag.plan{background:#ffe9c2;color:#8a4f08}
+@media(max-width:760px){.wrap{grid-template-columns:1fr;padding:8px 6px}.card .bd{grid-template-columns:1fr}.card .bd label.k{text-align:left}.title h1{font-size:18px}
+ .hist td:nth-child(5),.hist th:nth-child(5){display:none}}
+</style></head><body><div class="screen">
+<div class="title"><h1>알림등록</h1><small>앱 상단 🔔 알림과 휴대폰 ntfy 알림을 설정합니다. — 가공 공정 도면 QR 등록 · 제작계획 목표 대비 지연</small></div>
+<div class="wrap">
+ <!-- QR -->
+ <section class="card" data-kind="qr_receive">
+  <h2>📦 사내외가공 QR 등록<label class="sw"><input type="checkbox" data-f="enabled"> 사용</label></h2>
+  <div class="bd">
+   <div class="note">가공 공정 도면의 QR 로 협력업체·작업자가 <b>작업완료</b>를 누르면 알립니다. 외주 공정은 입고 처리, 사내 공정은 가공 실적입니다.</div>
+   <label class="k">알릴 것</label><div class="v"><label><input type="checkbox" data-p="out"> 외주 입고</label><label><input type="checkbox" data-p="in"> 사내가공 완료</label></div>
+   <div class="sub"></div>
+   <label class="k">🔔 앱 알림</label><div class="v"><label><input type="checkbox" data-f="bell"> 상단 종에 표시</label></div>
+   <label class="k">받는 사람</label><div class="v"><input class="field" data-f="recipients" placeholder="사용자 이름 (쉼표로 여럿) — 비우면 전원"></div>
+   <label class="k">📱 ntfy</label><div class="v"><label><input type="checkbox" data-f="ntfy"> 휴대폰으로 보내기</label></div>
+   <label class="k">ntfy 서버</label><div class="v"><input class="field" data-f="ntfy_server" placeholder="https://ntfy.sh"></div>
+   <label class="k">토픽</label><div class="v" style="flex-wrap:nowrap"><input class="field" data-f="ntfy_topic" placeholder="예: tjd-qr-7k3m9x"><button class="btn" data-a="rand" title="남이 추측하기 어려운 이름을 만듭니다">🎲</button><button class="btn" data-a="test">테스트</button></div>
+   <div class="note qrbox"><div class="q" data-qr></div><div class="t" data-sub></div></div>
+  </div>
+ </section>
+ <!-- 제작계획 -->
+ <section class="card" data-kind="plan_delay">
+  <h2>⚠ 제작계획 목표 대비 지연<label class="sw"><input type="checkbox" data-f="enabled"> 사용</label></h2>
+  <div class="bd">
+   <div class="note">제작계획등록 EVENT 표에서 <b>가능일정</b>이 <b>목표일정</b>보다 늦은 단계를 알립니다. 관리제번 단위로 한 번만 알리고, 날짜가 바뀌면 다시 알립니다. 제작계획을 저장할 때와 매일 아침 8시에 점검합니다.</div>
+   <label class="k">단계</label><div class="v">
+    <label><input type="checkbox" data-st="receipt"> 접수</label><label><input type="checkbox" data-st="design"> 설계</label><label><input type="checkbox" data-st="machining"> 가공</label>
+    <label><input type="checkbox" data-st="assembly"> 조립</label><label><input type="checkbox" data-st="tryout"> 초품(T/O)</label><label><input type="checkbox" data-st="complete"> 완료</label></div>
+   <label class="k">며칠 이상 늦으면</label><div class="v"><input class="field n" type="number" min="1" data-p="min_days"> 일 <button class="btn" data-a="check" title="지금 전체 제작계획을 점검해 새 지연을 알립니다">⟳ 지금 점검</button></div>
+   <div class="sub"></div>
+   <label class="k">🔔 앱 알림</label><div class="v"><label><input type="checkbox" data-f="bell"> 상단 종에 표시</label></div>
+   <label class="k">받는 사람</label><div class="v"><input class="field" data-f="recipients" placeholder="사용자 이름 (쉼표로 여럿) — 비우면 전원"></div>
+   <label class="k">📱 ntfy</label><div class="v"><label><input type="checkbox" data-f="ntfy"> 휴대폰으로 보내기</label></div>
+   <label class="k">ntfy 서버</label><div class="v"><input class="field" data-f="ntfy_server" placeholder="https://ntfy.sh"></div>
+   <label class="k">토픽</label><div class="v" style="flex-wrap:nowrap"><input class="field" data-f="ntfy_topic" placeholder="예: tjd-plan-4q8w2z"><button class="btn" data-a="rand">🎲</button><button class="btn" data-a="test">테스트</button></div>
+   <div class="note qrbox"><div class="q" data-qr></div><div class="t" data-sub></div></div>
+  </div>
+ </section>
+ <div class="note" style="grid-column:1/-1"><b>ntfy 받는 법</b> — 휴대폰에 <b>ntfy</b> 앱(플레이스토어·앱스토어, 무료) 설치 → <b>＋</b> 구독 → 위 <b>토픽</b> 이름 입력(서버를 바꿨으면 서버도). 또는 위 QR 을 휴대폰 카메라로 읽으세요. 토픽 이름을 아는 사람은 누구나 받을 수 있으니 🎲 로 추측하기 어려운 이름을 쓰세요. 두 알림을 한 토픽으로 받아도 됩니다.</div>
+ <section class="hist"><h2>최근 알림 <small style="font-weight:400;color:#687784">100건</small><button class="btn" style="margin-left:auto" onclick="loadHist()">⟳</button></h2>
+  <div class="tb"><table><thead><tr><th style="width:120px">시각</th><th style="width:80px">종류</th><th>제목</th><th>내용</th><th style="width:60px">ntfy</th><th style="width:120px">읽은 사람</th></tr></thead><tbody id="histBody"></tbody></table></div></section>
+</div>
+<div class="foot"><button class="btn go" onclick="save()">▣ 저장</button><button class="btn" onclick="load()">⌕ 조회</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">알림 설정을 불러오는 중…</span></div>
+</div>
+<script src="mes_db.js?v=171"></script>
+<script src="mes_qr.js?v=92"></script>
+<script>
+/* v230: 알림등록 — mes_alert_rules (sql_v230_alerts.sql) */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const msg=t=>{$('#message').textContent=t};
+const OWNER=(function(){try{return (window.MES_AUTH||window.parent.MES_AUTH)?.name||''}catch(e){return ''}})();
+const DEF={qr_receive:{enabled:true,bell:true,ntfy:false,ntfy_server:'https://ntfy.sh',ntfy_topic:'',recipients:'',params:{out:true,in:true}},
+           plan_delay:{enabled:true,bell:true,ntfy:false,ntfy_server:'https://ntfy.sh',ntfy_topic:'',recipients:'',params:{stages:['receipt','design','machining','assembly','tryout','complete'],min_days:1}}};
+let RULES={};
+const cards=()=>[...document.querySelectorAll('section.card')];
+async function waitDB(){for(let i=0;i<60&&!window.MESDB;i++)await new Promise(r=>setTimeout(r,50));try{await MESDB.ready}catch(e){}return !!(window.MESDB&&MESDB.online)}
+function fill(){
+ cards().forEach(c=>{const k=c.dataset.kind,r=Object.assign({},DEF[k],RULES[k]||{});r.params=Object.assign({},DEF[k].params,r.params||{});
+  c.querySelectorAll('[data-f]').forEach(e=>{const f=e.dataset.f;if(e.type==='checkbox')e.checked=!!r[f];else e.value=r[f]??''});
+  c.querySelectorAll('[data-p]').forEach(e=>{const f=e.dataset.p;if(e.type==='checkbox')e.checked=r.params[f]!==false;else e.value=r.params[f]??''});
+  c.querySelectorAll('[data-st]').forEach(e=>{e.checked=(r.params.stages||[]).includes(e.dataset.st)});
+  subQR(c)})}
+function read(c){const k=c.dataset.kind,o={kind:k,params:{}};
+ c.querySelectorAll('[data-f]').forEach(e=>{const f=e.dataset.f;o[f]=e.type==='checkbox'?e.checked:(e.value||'').trim()});
+ c.querySelectorAll('[data-p]').forEach(e=>{const f=e.dataset.p;o.params[f]=e.type==='checkbox'?e.checked:Math.max(1,Math.round(Number(e.value)||1))});
+ const st=[...c.querySelectorAll('[data-st]')].filter(e=>e.checked).map(e=>e.dataset.st);if(c.querySelector('[data-st]'))o.params.stages=st;
+ o.ntfy_server=o.ntfy_server||'https://ntfy.sh';o.ntfy_topic=o.ntfy_topic.replace(/[^A-Za-z0-9_-]/g,'');o.recipients=o.recipients||null;
+ o.updated_at=new Date().toISOString();o.updated_by=OWNER||null;return o}
+function subQR(c){const srv=(c.querySelector('[data-f=ntfy_server]').value||'https://ntfy.sh').replace(/\/+$/,''),tp=(c.querySelector('[data-f=ntfy_topic]').value||'').trim();
+ const q=c.querySelector('[data-qr]'),t=c.querySelector('[data-sub]');
+ if(!tp){q.innerHTML='';t.innerHTML='토픽을 넣으면 휴대폰 구독용 QR 이 나옵니다.';return}
+ const url=srv+'/'+encodeURIComponent(tp);
+ try{const g=qrcode(0,'M');g.addData(url);g.make();q.innerHTML=g.createSvgTag({cellSize:2,margin:0,scalable:true})}catch(e){q.innerHTML=''}
+ t.innerHTML=`휴대폰 카메라로 QR → ntfy 앱에서 <b>구독</b><br><a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a>`}
+async function load(){
+ if(!await waitDB()){fill();msg('DB 에 연결되지 않았습니다.');return}
+ try{const rs=await MESDB.table('mes_alert_rules').select('select=*',{fresh:true});RULES={};(rs||[]).forEach(r=>RULES[r.kind]=r);fill();
+  msg(rs&&rs.length?'알림 설정을 불러왔습니다.':'저장된 설정이 없어 기본값을 보였습니다. [저장]하세요.')}
+ catch(e){fill();msg('불러오기 실패 — sql_v230_alerts.sql 을 실행했는지 확인하세요. ('+String(e.message||e).slice(0,80)+')')}
+ loadHist()}
+async function save(){
+ const rows=cards().map(read);
+ for(const r of rows)if(r.ntfy&&!r.ntfy_topic)return msg(`${r.kind==='qr_receive'?'QR 등록':'제작계획 지연'} — ntfy 를 켜려면 토픽을 넣으세요.`);
+ if(!(window.MESDB&&MESDB.online))return msg('DB 미연결 — 저장할 수 없습니다.');
+ try{await MESDB.table('mes_alert_rules').upsert(rows,'kind');rows.forEach(r=>RULES[r.kind]=r);msg('알림 설정을 저장했습니다.')}
+ catch(e){msg('저장 실패: '+String(e.message||e).slice(0,110))}}
+async function ntfyTest(c){const r=read(c);if(!r.ntfy_topic)return msg('토픽을 먼저 넣으세요.');
+ try{const res=await fetch(r.ntfy_server.replace(/\/+$/,''),{method:'POST',body:JSON.stringify({topic:r.ntfy_topic,title:'MOLD 알림 테스트',message:`${r.kind==='qr_receive'?'사내외가공 QR 등록':'제작계획 지연'} 알림이 이 휴대폰으로 옵니다. (${new Date().toLocaleString('ko-KR')})`,tags:['bell']})});
+  msg(res.ok?`ntfy 테스트를 보냈습니다 → ${r.ntfy_topic}. 휴대폰에 안 오면 ntfy 앱에서 이 토픽을 구독했는지 확인하세요.`:'ntfy 전송 실패: HTTP '+res.status)}
+ catch(e){msg('ntfy 전송 실패: '+String(e.message||e).slice(0,90))}}
+async function planCheck(){if(!(window.MESDB&&MESDB.online))return msg('DB 미연결');
+ try{await save();const n=await MESDB.rpc('fn_alert_plan_check',{});msg(n?`새 지연 ${n}건을 알렸습니다.`:'새로 알릴 지연이 없습니다. (이미 알린 건은 날짜가 바뀌어야 다시 알립니다)');loadHist();try{window.parent?.MESBELL?.poll()}catch(e){}}
+ catch(e){msg('점검 실패: '+String(e.message||e).slice(0,110))}}
+async function loadHist(){const tb=$('#histBody');if(!(window.MESDB&&MESDB.online)){tb.innerHTML='';return}
+ try{const rs=await MESDB.table('mes_alerts').select('select=id,kind,title,message,ntfy_sent,read_by,created_at&order=id.desc&limit=100',{fresh:true});
+  tb.innerHTML=(rs||[]).map(a=>`<tr><td class="c">${esc(new Date(a.created_at).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}))}</td><td class="c"><span class="tag ${a.kind==='qr_receive'?'qr':'plan'}">${a.kind==='qr_receive'?'QR 등록':'계획 지연'}</span></td><td>${esc(a.title)}</td><td>${esc(a.message||'')}</td><td class="c">${a.ntfy_sent?'✔':''}</td><td>${esc((a.read_by||[]).join(', '))}</td></tr>`).join('')||'<tr><td colspan="6" class="c" style="color:#8a97a2;height:50px">아직 알림이 없습니다.</td></tr>'}
+ catch(e){tb.innerHTML=''}}
+document.addEventListener('click',e=>{const b=e.target.closest('button[data-a]');if(!b)return;const c=b.closest('section.card');
+ if(b.dataset.a==='rand'){const t=c.querySelector('[data-f=ntfy_topic]');t.value='tjd-'+(c.dataset.kind==='qr_receive'?'qr':'plan')+'-'+Math.random().toString(36).slice(2,8)+Math.random().toString(36).slice(2,6);subQR(c)}
+ if(b.dataset.a==='test')ntfyTest(c);if(b.dataset.a==='check')planCheck()});
+document.addEventListener('input',e=>{if(e.target.matches('[data-f=ntfy_topic],[data-f=ntfy_server]'))subQR(e.target.closest('section.card'))});
+window.MES={search:load,save,setMessage:msg};
+load();
+</script></body></html>

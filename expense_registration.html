@@ -1,0 +1,228 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>경비 등록</title><style>
+:root{--line:#98a6b2;--line2:#c5d0d8;--blue:#2f75b5;--ink:#344757;--head1:#e8f1f8;--head2:#c8dbe9}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{font-family:"Malgun Gothic","맑은 고딕",Arial,sans-serif;font-size:12px;color:var(--ink);background:#fff;overflow:hidden}
+button,input,select{font:inherit;color:inherit}.screen{height:100%;display:flex;flex-direction:column;background:#fff}
+.title{height:48px;padding:8px 14px 5px;border-bottom:2px solid #3978ae;display:flex;align-items:center}.title h1{margin:0;font-size:22px;font-weight:500;color:#4b5c6a}.title h1:before{content:'◯';margin-right:6px;color:#8796a1}.title small{font-size:11px;color:#9ca7af;margin-left:12px}
+.form{padding:7px 14px;background:#fafbfc;border-bottom:1px solid var(--line2)}.formrow{display:grid;grid-template-columns:78px 140px 78px 150px 90px 150px 90px minmax(160px,1fr);gap:5px;align-items:center}.formrow+.formrow{margin-top:5px}.label{font-weight:700}.field{height:27px;border:1px solid #b5c0c9;background:#fff;padding:0 6px;min-width:0}
+.entrybox,.gridbox{margin:0 14px;border:1px solid var(--line);overflow:auto;background:#fff}.entrybox{height:190px}.gridbox{flex:1;min-height:0}
+.searchline{height:39px;margin:0 14px;display:flex;align-items:center;gap:5px;border-left:1px solid var(--line);border-right:1px solid var(--line);padding:4px 8px;background:#f6f8fa}.searchline input{width:min(430px,48vw);height:27px;border:1px solid #aeb9c3;padding:0 7px}
+.btn{height:29px;min-width:62px;border:1px solid #9ba8b4;background:linear-gradient(#fff,#dfe6eb);cursor:pointer}.btn:hover{background:#fff}
+table{border-collapse:collapse;min-width:1040px;width:100%;table-layout:fixed}th,td{height:27px;border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);padding:0 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}th{position:sticky;top:0;z-index:2;text-align:center;background:linear-gradient(var(--head1),var(--head2));color:#405266}tbody tr:nth-child(even) td{background:#fafcfd}tbody tr:hover td{background:#edf6fd}tbody tr.sel td{background:#2d75b7;color:#fff}.c{text-align:center}.num{text-align:right}.toolbar{height:40px;display:flex;align-items:center;gap:5px;padding:4px 14px;background:#f5f7f8;border-bottom:1px solid var(--line2)}
+.foot{height:42px;display:flex;align-items:center;padding:5px 14px;border-top:1px solid var(--line);background:#eef2f5;gap:5px}.msg{margin-left:8px;color:#687784}.right{margin-left:auto;color:#7c8993}
+.split{flex:1;min-height:0;display:grid;grid-template-rows:1fr 1fr;gap:10px;padding:0 14px 8px}.split .gridbox{margin:0}
+@media(max-width:900px){.formrow{grid-template-columns:78px 1fr 78px 1fr}.entrybox,.gridbox,.searchline{margin-left:6px;margin-right:6px}}
+
+.filt{padding:7px 14px;background:#fafbfc;border-bottom:1px solid var(--line2)}
+.fr{display:grid;gap:5px;align-items:center}
+.lb{font-weight:700;text-align:right;padding-right:3px}
+.opts{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.opts label{display:flex;align-items:center;gap:3px;cursor:pointer}
+.gtot td{background:#dfe9f2;font-weight:700}
+.grp th{background:linear-gradient(#dbe9f5,#b9d2e6)}
+.panes{flex:1;min-height:0;display:grid;gap:8px;padding:0 14px 8px}
+.pane{border:1px solid var(--line);background:#fff;display:flex;flex-direction:column;min-height:0}
+.ph{padding:5px 9px;font-weight:700;background:linear-gradient(var(--head1),var(--head2));color:#405266;border-bottom:1px solid var(--line2)}
+.pb{flex:1;min-height:0;overflow:auto}
+.f2{display:grid;grid-template-columns:repeat(4,72px minmax(110px,1fr));gap:5px;align-items:center}
+.mask{position:fixed;inset:0;background:rgba(40,50,60,.3);display:none;align-items:flex-start;justify-content:center;z-index:50}
+.mask.on{display:flex}
+.dlg{margin-top:40px;width:min(1000px,96vw);background:#f3f6f8;border:1px solid #7d8d99;box-shadow:0 8px 26px rgba(0,0,0,.25)}
+.dh{display:flex;align-items:center;height:30px;padding:0 6px 0 10px;background:linear-gradient(#eef4f9,#dbe6ef);border-bottom:1px solid #b9c6d0;font-weight:700}
+.dh button{margin-left:auto;width:26px;height:20px;border:1px solid #b04a4a;background:#c9484a;color:#fff;cursor:pointer}
+.db{padding:10px}
+.kv{display:grid;grid-template-columns:repeat(4,84px minmax(90px,1fr));gap:4px;align-items:center;margin-bottom:8px}
+.kv .lb{text-align:right}
+.kv .v{border:1px solid #c3ccd4;background:#fff;height:26px;line-height:24px;padding:0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar{height:14px;background:#3f7fbf;border-radius:2px}
+
+/* v21 입력란 배치 보정: 좁은 폭에서 필드를 숨기지 않고 단계적으로 줄바꿈 */
+.field,.formrow input,.formrow select,.formgrid input,.formgrid select,.detail-grid input,.detail-grid select{min-width:0;max-width:100%}
+.lab,.label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:1400px){.formrow{grid-template-columns:78px minmax(0,1fr) 78px minmax(0,1fr)}}
+@media(max-width:880px){.formrow{grid-template-columns:78px minmax(0,1fr)}}
+.formrow>*{min-width:0}
+
+/* v210 경비등록 — 위 양식 / 아래 목록 */
+.ent{display:grid;grid-template-columns:62px 150px 62px 130px 62px 130px 62px minmax(210px,1.2fr) 62px minmax(210px,1.2fr) 62px 120px;gap:5px;align-items:center;padding:8px 10px;border:1px solid #b9c9d6;background:#f3f8fc;border-radius:3px}
+.ent .wide{grid-column:span 7}
+.ent .pair{display:flex;gap:4px;min-width:0}.ent .pair .cd{width:64px;flex:0 0 64px;text-align:center}.ent .pair input:not(.cd){flex:1}
+.ent .field{width:100%}.ent .num{text-align:right}
+.ent .acts{grid-column:span 4;display:flex;gap:5px;justify-content:flex-end}
+.btn.pri{background:linear-gradient(#5fa8e6,#2f75b5);color:#fff;border-color:#2b679c;font-weight:700;min-width:96px}.btn.pri:hover{background:linear-gradient(#74b6ec,#3a82c4)}
+.btn.pri.edit{background:linear-gradient(#f4b95a,#e08a1e);border-color:#b96f12}
+.ent.editing{background:#fff6e6;border-color:#e0a24a}
+.sb{height:22px;padding:0 8px;margin:0 2px;border:1px solid #9ba8b4;background:linear-gradient(#fff,#e3e9ee);cursor:pointer;font-size:11px}.sb:hover{background:#fff}.sb.del{color:#b03030;border-color:#c98585}
+tbody tr.sel td .sb{color:#333}
+@media(max-width:1500px){.ent{grid-template-columns:62px 150px 62px 130px 62px 130px 62px minmax(180px,1fr)}.ent .wide{grid-column:span 3}.ent .acts{grid-column:span 8}}
+</style></head><body><div class="screen"><div class="title"><h1>경비등록</h1><small>원가관리 · 경비</small></div>
+<section class="filt">
+ <div class="f2" style="margin-bottom:6px"><div class="lb">관리제번</div><div><select id="base_job" class="field" title="관리제번 (공정 문자를 뺀 제번)"><option value="">관리제번 선택</option></select><input id="job_no" type="hidden"></div><div class="lb">품명</div><div><input id="item_name" class="field" readonly></div><div></div><div></div><div></div><div></div></div>
+ <div class="ent" id="ent">
+  <div class="lb">공정</div><div><select id="f_job" class="field" title="이 경비가 속하는 공정 제번"></select></div>
+  <div class="lb">등록일자</div><div><input id="f_reg" type="date" class="field"></div>
+  <div class="lb">사유일자</div><div><input id="f_rsn" type="date" class="field"></div>
+  <div class="lb">경비사유</div><div class="pair"><input id="f_rcode" class="field cd" placeholder="코드" title="경비사유 코드 (사유를 고르면 자동)"><input id="f_reason" class="field" list="reasonDL" autocomplete="off" placeholder="사유 선택/입력"><datalist id="reasonDL"></datalist></div>
+  <div class="lb">고객사</div><div class="pair"><input id="f_ccode" class="field cd" placeholder="코드" title="고객사 코드 (고객사를 고르면 자동)"><input id="f_cust" class="field" list="custDL" autocomplete="off" placeholder="고객사 선택/입력"><datalist id="custDL"></datalist></div>
+  <div class="lb">금액</div><div><input id="f_amt" class="field num" inputmode="numeric" placeholder="0"></div>
+  <div class="lb">비고</div><div class="wide"><input id="f_rmk" class="field"></div>
+  <div class="acts"><button class="btn pri" id="bSave" onclick="submit()">＋ 등록</button><button class="btn" id="bCancel" onclick="resetForm()" style="display:none">취소</button><button class="btn" id="bClear" onclick="resetForm()">↺ 초기화</button></div>
+ </div>
+</section>
+<div class="gridbox"><table style="min-width:1100px"><thead><tr><th style="width:44px">NO</th><th style="width:70px">공정</th><th style="width:105px">등록일자</th><th style="width:105px">사유일자</th><th style="width:80px">사유코드</th><th style="width:150px">경비사유</th><th style="width:80px">고객사코드</th><th style="width:160px">고객사명</th><th style="width:120px">금액</th><th>비고</th><th style="width:118px" data-nosort="1">수정/삭제</th></tr></thead><tbody id="ebody"></tbody><tfoot><tr class="gtot"><td colspan="8" class="c">합계</td><td class="num" id="gsum">0</td><td colspan="2" id="gcnt"></td></tr></tfoot></table></div>
+<footer class="foot"><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">관리제번을 고르고 위 양식을 채운 뒤 「등록」을 누르세요.</span></footer></div>
+<script>const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const n=v=>v==null?'':Number(v).toLocaleString();
+const msg=t=>message.textContent=t;
+const online=()=>!!(window.MESDB&&MESDB.online);
+const waitDB=async()=>{for(let i=0;i<60&&!window.MESDB;i++)await new Promise(r=>setTimeout(r,50));
+ if(window.MESDB&&MESDB.ready){try{await MESDB.ready}catch(e){}}};
+const today=()=>new Date().toISOString().slice(0,10);
+const numv=v=>{const x=Number(String(v??'').replace(/[^0-9.-]/g,''));return Number.isNaN(x)?0:x};
+let rows=[],REASONS=[],CUSTS=[];
+let EDIT=null;   /* 수정 중인 expense_id */
+const splitJob=j=>{const m=/^(.*\d)([A-Z])$/.exec(String(j||'').trim());return m?{base:m[1],seq:m[2]}:{base:String(j||'').trim(),seq:''}};
+let GROUPS=new Map(),JOBS=[];
+const seqLab=j=>{const h=JOBS.find(x=>x.job===j);return h?(h.seq||'단일'):(j||'')};
+async function initBases(){
+ const rs=(window.MESJOB&&MESJOB.list)?await MESJOB.list():[];
+ GROUPS=new Map();
+ rs.forEach(r=>{const sp=splitJob(r.job_no);let g=GROUPS.get(sp.base);if(!g){g={base:sp.base,jobs:[],item:'',cust:''};GROUPS.set(sp.base,g)}
+  g.jobs.push({job:String(r.job_no),seq:sp.seq});if(!g.item&&r.item_name)g.item=String(r.item_name);if(!g.cust&&r.customer_name)g.cust=String(r.customer_name)});
+ GROUPS.forEach(g=>g.jobs.sort((a,b)=>a.seq.localeCompare(b.seq)));
+ const bases=[...GROUPS.values()].sort((a,b)=>b.base.localeCompare(a.base));
+ const cur=base_job.value;
+ base_job.innerHTML=`<option value="">${bases.length?`관리제번 선택 (${bases.length}건)`:'등록된 수주가 없습니다'}</option>`+
+  bases.map(g=>`<option value="${esc(g.base)}">${esc(g.base)}${g.item?' · '+esc(g.item):''}${g.jobs.length>1||g.jobs[0].seq?' ('+g.jobs.map(j=>j.seq||'단일').join('·')+')':''}</option>`).join('');
+ if(cur)base_job.value=cur;
+ /* 고객사 목록 (수주에 적힌 고객사) */
+ const C=new Map();rs.forEach(r=>{const c=String(r.customer_name||'').trim();if(c&&!C.has(c))C.set(c,'')});
+ CUSTS=[...C.keys()].map(k=>({name:k,code:''}));fillCustDL();
+}
+function fillCustDL(){custDL.innerHTML=CUSTS.slice().sort((a,b)=>a.name.localeCompare(b.name,'ko')).map(c=>`<option value="${esc(c.name)}">${c.code?esc(c.code):''}</option>`).join('')}
+function fillJobSel(v){f_job.innerHTML=JOBS.map(j=>`<option value="${esc(j.job)}"${j.job===v?' selected':''}>${j.seq?j.seq+' · '+esc(j.job):'단일 · '+esc(j.job)}</option>`).join('')+(v&&!JOBS.some(j=>j.job===v)?`<option value="${esc(v)}" selected>${esc(v)}</option>`:'')}
+
+/* ── 양식 ── */
+function resetForm(){
+ EDIT=null;
+ const keep=f_job.value;fillJobSel(JOBS.some(j=>j.job===keep)?keep:(JOBS[0]&&JOBS[0].job));
+ f_reg.value=today();f_rsn.value=today();
+ f_rcode.value='';f_reason.value='';f_ccode.value='';f_cust.value='';f_amt.value='';f_rmk.value='';
+ const g=GROUPS.get(base_job.value);if(g&&g.cust){f_cust.value=g.cust;custPick()}
+ bSave.textContent='＋ 등록';bSave.classList.remove('edit');bCancel.style.display='none';
+ ent.classList.remove('editing');
+ [...ebody.querySelectorAll('tr.sel')].forEach(t=>t.classList.remove('sel'));
+}
+function fillForm(r){
+ EDIT=r.expense_id;fillJobSel(r.job_no);
+ f_reg.value=r.reg_date||'';f_rsn.value=r.reason_date||'';
+ f_rcode.value=r.reason_code||'';f_reason.value=r.reason_name||'';
+ f_ccode.value=r.customer_code||'';f_cust.value=r.customer_name||'';
+ f_amt.value=r.amount==null?'':String(r.amount);f_rmk.value=r.remark||'';
+ bSave.textContent='▤ 수정저장';bSave.classList.add('edit');bCancel.style.display='';
+ ent.classList.add('editing');
+ [...ebody.querySelectorAll('tr')].forEach(t=>t.classList.toggle('sel',String(t.dataset.id)===String(r.expense_id)));
+ f_reason.focus();
+}
+function reasonPick(){const v=f_reason.value.trim();
+ let r=REASONS.find(x=>x.expense_reason_name===v)||REASONS.find(x=>x.expense_reason_code===v);
+ if(r){f_reason.value=r.expense_reason_name;f_rcode.value=r.expense_reason_code}}
+function reasonCodePick(){const v=f_rcode.value.trim();const r=REASONS.find(x=>String(x.expense_reason_code).toUpperCase()===v.toUpperCase());
+ if(r){f_rcode.value=r.expense_reason_code;f_reason.value=r.expense_reason_name}}
+function custPick(){const v=f_cust.value.trim();const c=CUSTS.find(x=>x.name===v);if(c&&c.code)f_ccode.value=c.code}
+function formData(){
+ return {job_no:(f_job.value||'').trim()||null,reg_date:f_reg.value||null,reason_date:f_rsn.value||null,
+  reason_code:f_rcode.value.trim()||null,reason_name:f_reason.value.trim()||null,
+  customer_code:f_ccode.value.trim()||null,customer_name:f_cust.value.trim()||null,
+  amount:numv(f_amt.value)||null,remark:f_rmk.value.trim()||null};
+}
+async function submit(){
+ if(!JOBS.length){msg('관리제번을 먼저 고르세요.');base_job.focus();return}
+ const d=formData();
+ if(!d.job_no){msg('공정을 고르세요.');f_job.focus();return}
+ if(!d.reason_name){msg('경비사유를 넣으세요.');f_reason.focus();return}
+ if(!d.amount){msg('금액을 넣으세요.');f_amt.focus();return}
+ if(!online()){msg('DB 미연결 - 저장할 수 없습니다.');return}
+ try{
+  if(EDIT!=null){await MESDB.table('expenses').update({expense_id:EDIT},{...d,updated_at:new Date().toISOString()});msg(`수정했습니다. (${seqLab(d.job_no)} · ${d.reason_name} ${n(d.amount)}원)`)}
+  else{await MESDB.table('expenses').upsert([{...d,updated_at:new Date().toISOString()}],'expense_id');msg(`등록했습니다. (${seqLab(d.job_no)} · ${d.reason_name} ${n(d.amount)}원)`)}
+  const keepJob=d.job_no;await loadJob(true);
+  resetForm();fillJobSel(keepJob);
+ }catch(e){const m=String(e.message||e);
+  msg(/무결성|foreign key/i.test(m)?'저장 실패: 등록되지 않은 제번입니다.':'저장 실패: '+m.slice(0,120))}
+}
+function edit(id){const r=rows.find(x=>String(x.expense_id)===String(id));if(r)fillForm(r)}
+async function del1(id){
+ const r=rows.find(x=>String(x.expense_id)===String(id));if(!r)return;
+ if(!confirm(`삭제하시겠습니까?\n${seqLab(r.job_no)} · ${r.reason_name||''} · ${n(r.amount)}원`))return;
+ if(!online()){msg('DB 미연결 - 삭제할 수 없습니다.');return}
+ try{await MESDB.table('expenses').delete({expense_id:r.expense_id})}
+ catch(e){msg('삭제 실패: '+String(e.message||e).slice(0,120));return}
+ if(EDIT!=null&&String(EDIT)===String(id))resetForm();
+ await loadJob(true);msg('삭제했습니다.');
+}
+
+/* ── 목록 ── */
+function render(){
+ ebody.innerHTML=rows.length?rows.map((r,i)=>`<tr data-id="${esc(r.expense_id)}"${EDIT!=null&&String(EDIT)===String(r.expense_id)?' class="sel"':''} ondblclick="edit('${esc(r.expense_id)}')">
+  <td class="c">${i+1}</td>
+  <td class="c">${esc(seqLab(r.job_no))}</td>
+  <td class="c">${esc(r.reg_date||'')}</td>
+  <td class="c">${esc(r.reason_date||'')}</td>
+  <td class="c">${esc(r.reason_code||'')}</td>
+  <td>${esc(r.reason_name||'')}</td>
+  <td class="c">${esc(r.customer_code||'')}</td>
+  <td>${esc(r.customer_name||'')}</td>
+  <td class="num">${n(r.amount)}</td>
+  <td title="${esc(r.remark||'')}">${esc(r.remark||'')}</td>
+  <td class="c"><button class="sb" onclick="edit('${esc(r.expense_id)}')">수정</button><button class="sb del" onclick="del1('${esc(r.expense_id)}')">삭제</button></td></tr>`).join('')
+  :'<tr><td colspan="11" class="c" style="height:120px;color:#8a97a2">등록된 경비가 없습니다. 위 양식을 채우고 「등록」을 누르세요.</td></tr>';
+ gsum.textContent=n(rows.reduce((a,r)=>a+numv(r.amount),0));
+ gcnt.textContent=rows.length?`${rows.length}건`:'';
+}
+async function loadJob(keepMsg){
+ const base=(base_job.value||'').trim();
+ const g=GROUPS.get(base);JOBS=g?g.jobs.slice():[];job_no.value=JOBS.length?JOBS[0].job:'';
+ if(!keepMsg)resetForm();
+ if(!base){rows=[];item_name.value='';render();return}
+ if(!online()){msg('DB 미연결 - 조회할 수 없습니다.');return}
+ try{
+  const inq='in.('+JOBS.map(j=>encodeURIComponent(j.job)).join(',')+')';
+  const so=await MESDB.table('sale_orders').select(`select=job_no,item_name,customer_code,customer_name&job_no=${inq}&limit=20`);
+  item_name.value=(so&&so[0]&&so[0].item_name)||(g&&g.item)||'';
+  (so||[]).forEach(o=>{const nm=String(o.customer_name||'').trim();if(!nm)return;const c=CUSTS.find(x=>x.name===nm);
+   if(c){if(o.customer_code&&!c.code)c.code=o.customer_code}else CUSTS.push({name:nm,code:o.customer_code||''})});
+  fillCustDL();
+  if(!EDIT){if(!f_cust.value&&so&&so[0]&&so[0].customer_name)f_cust.value=so[0].customer_name;custPick()}
+  rows=await MESDB.table('expenses').select(`select=*&job_no=${inq}&order=job_no,reg_date,expense_id`);
+  render();
+  if(!keepMsg){const byJob=JOBS.map(j=>{const s=rows.filter(r=>r.job_no===j.job);return s.length?`${j.seq||'단일'} ${s.length}건 ${n(s.reduce((a,r)=>a+numv(r.amount),0))}원`:null}).filter(Boolean);
+   msg(`${base} (${JOBS.map(j=>j.seq||'단일').join('·')}) 경비 ${rows.length}건 · 합계 ${n(rows.reduce((a,r)=>a+numv(r.amount),0))}원${byJob.length?' — '+byJob.join(' / '):''}`)}
+ }catch(e){msg('조회 실패: '+String(e.message||e).slice(0,120))}
+}
+(async function initReasons(){
+ await waitDB();
+ try{if(online())REASONS=await MESDB.table('expense_reasons').select('select=*&order=expense_reason_code')}catch(e){}
+ reasonDL.innerHTML=REASONS.map(r=>`<option value="${esc(r.expense_reason_name)}">${esc(r.expense_reason_code)}</option>`).join('');
+})();
+base_job.addEventListener('change',()=>loadJob());
+['input','change'].forEach(ev=>{f_reason.addEventListener(ev,reasonPick);f_cust.addEventListener(ev,custPick)});f_rcode.addEventListener('change',reasonCodePick);
+f_amt.addEventListener('keydown',e=>{if(e.key==='Enter')submit()});f_rmk.addEventListener('keydown',e=>{if(e.key==='Enter')submit()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&EDIT!=null)resetForm()});
+render();resetForm();
+(async()=>{for(let i=0;i<60&&!window.MESJOB;i++)await new Promise(r=>setTimeout(r,50));await initBases()})();
+window.MES={save:submit,search:loadJob,setMessage:msg,
+ go:async function(p){p=p||{};const base=String(p.base||p.job||'');if(!base)return;
+  for(let i=0;i<80&&base_job.options.length<=1;i++)await new Promise(r=>setTimeout(r,100));
+  const sp=splitJob(base);base_job.value=GROUPS.has(base)?base:sp.base;await loadJob();}};
+</script><script src="mes_sample.js?v=169"></script><script src="mes_scene.js?v=67"></script><script src="mes_demo.js?v=67"></script><script src="mes_db.js?v=171"></script>
+<script src="mes_ctx.js?v=196"></script>
+<script src="mes_jobpick.js?v=162"></script>
+
+
+<script>
+function sampleFill(){
+  if(window.MESDEMO)return MESDEMO.run('expense_registration',{});
+  var e=document.getElementById('message'); if(e)e.textContent='예제 모듈을 불러오지 못했습니다.';
+}
+</script>
+</body></html>

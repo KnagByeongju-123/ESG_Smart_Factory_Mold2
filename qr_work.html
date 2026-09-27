@@ -1,0 +1,138 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><title>QR 작업완료</title>
+<style>
+:root{--bg:#eef2f7;--card:#fff;--line:#dbe3ec;--ink:#243342;--ink2:#5a6b7c;--ink3:#8d9aa8;--blue:#2f75b5;--done:#2f7d4f;--doneb:#e4f2ea;--in:#d97a00;--inb:#fdf1dd;--house:#8a6d3b;--houseb:#fbf4e3;--ng:#c0392b;--sh:0 1px 3px rgba(30,45,60,.08),0 4px 14px rgba(30,45,60,.06);--r:12px}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}
+body{font-family:Pretendard,-apple-system,"Malgun Gothic","맑은 고딕",sans-serif;font-size:15px;color:var(--ink);background:var(--bg);-webkit-tap-highlight-color:transparent}
+button,input{font:inherit;color:inherit}button{cursor:pointer;touch-action:manipulation}
+.wrap{max-width:560px;margin:0 auto;padding:12px 12px 40px}
+.hd{display:flex;align-items:center;gap:10px;padding:6px 2px 10px}.hd h1{margin:0;font-size:19px;font-weight:800}.hd .live{margin-left:auto;font-size:11px;color:var(--ink3)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);padding:12px 14px;margin-bottom:12px}
+.job{font-size:20px;font-weight:800;color:var(--blue)}.job b{color:var(--ink);margin-left:8px}.sub{color:var(--ink2);font-size:13px;margin-top:3px}
+.who{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.who label{flex:1;min-width:130px;font-size:12px;color:var(--ink2)}
+.who input{display:block;width:100%;height:42px;border:1px solid #b9c6d2;border-radius:9px;padding:0 10px;font-size:16px;margin-top:3px;background:#fff}
+.who input:focus{border-color:var(--blue);outline:none}
+.hint{font-size:12px;color:var(--ink3);margin-top:8px;line-height:1.5}
+.step{display:flex;flex-direction:column;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);padding:12px 14px;margin-bottom:10px}
+.step.done{border-color:#b7d9c3;background:#f6fbf7}.step.cur{border-color:var(--blue);box-shadow:0 0 0 3px rgba(47,117,181,.15)}
+.step .top{display:flex;align-items:center;gap:8px}
+.step .n{flex:0 0 auto;width:28px;height:28px;border-radius:14px;background:#c3cdd6;color:#fff;font-weight:800;text-align:center;line-height:28px;font-size:13px}
+.step.done .n{background:var(--done)}.step.cur .n{background:var(--blue)}
+.step .nm{font-size:17px;font-weight:800}.step .kind{font-size:11px;padding:2px 7px;border-radius:9px;background:#e7f1fa;color:#1d5a92;font-weight:700}
+.step.house .kind{background:var(--houseb);color:var(--house)}
+.step .st{margin-left:auto;font-size:12px;font-weight:700;padding:3px 9px;border-radius:9px;background:#f1f4f7;color:var(--ink2)}
+.step.done .st{background:var(--doneb);color:var(--done)}.step .st.wait{background:var(--inb);color:var(--in)}
+.step .det{font-size:12.5px;color:var(--ink2)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row label{font-size:12px;color:var(--ink2)}.row input{width:96px;height:40px;border:1px solid #b9c6d2;border-radius:9px;padding:0 10px;font-size:16px;text-align:center}
+.act{display:flex;gap:8px}
+.abtn{flex:1;min-height:52px;border:0;border-radius:10px;font-size:16px;font-weight:800;color:#fff;background:linear-gradient(180deg,#3b83c4,#2f75b5)}
+.abtn.house{background:linear-gradient(180deg,#a98446,#8a6d3b)}
+.abtn:disabled{opacity:.45}
+.lock{font-size:12.5px;color:var(--ink3);padding:6px 0}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#243342;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;font-weight:700;box-shadow:var(--sh);opacity:0;transition:opacity .2s;pointer-events:none;max-width:92vw;text-align:center}
+.toast.on{opacity:1}.toast.ok{background:var(--done)}.toast.ng{background:var(--ng)}
+.empty{padding:26px 10px;text-align:center;color:var(--ink3)}
+.foot{font-size:11px;color:var(--ink3);text-align:center;margin-top:16px}
+.cyc{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:10px;background:#fbe6c8;color:#7a4a12;font-size:13px;font-weight:700;vertical-align:middle}.cyc.end{background:#e3e7ea;color:#5d6b77;text-decoration:line-through}.cyc.old{background:#f4f1ea;color:#8a8073;text-decoration:none}
+</style></head><body><div class="wrap">
+ <div class="hd"><h1>✅ QR 작업완료</h1><span class="live" id="live">연결 확인 중…</span></div>
+ <div class="card" id="head"><div class="empty">QR 을 읽어 들어오면 부품 정보가 보입니다.</div></div>
+ <div id="steps"></div>
+ <div class="foot">MOLD · 가공 공정 도면 QR</div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+/* ── v196: QR 작업완료 — 로그인 없이 쓰는 현장 화면 ─────────────────────────────
+ * 가공 공정 도면(그림보드)의 QR: qr_work.html?key=제번_공정_품번~차수   (v228: ~차수 — 없으면 현재 차수)
+ * DB 는 sql_v196_qr_work.sql 의 두 함수(fn_qr_part · fn_qr_done)로만 읽고 쓴다 — anon 키로 실행. 작업 PIN 은 기본 없음(설정에서 켤 수 있음).
+ *   외주 공정 → 작업완료 = 입고 처리(fn_osp_receive)   ·   사내 공정 → 작업완료 = 가공 실적 1건(design_results) */
+const CFG={url:'https://jgvikmakenpllwxwdugk.supabase.co',key:'sb_publishable_sKp-6nz2PQ9LxQ5pF-nYkg_YwoEJN6S'};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const n0=v=>Number(v)||0;
+let KEY='',D=null,BUSY=false;
+function toast(t,k){const e=$('toast');e.textContent=t;e.className='toast on '+(k||'');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),2600)}
+async function rpc(fn,body){
+ const r=await fetch(CFG.url+'/rest/v1/rpc/'+fn,{method:'POST',headers:{apikey:CFG.key,Authorization:'Bearer '+CFG.key,'Content-Type':'application/json'},body:JSON.stringify(body||{})});
+ const t=await r.text();let j=null;try{j=JSON.parse(t)}catch(e){}
+ if(!r.ok)throw new Error((j&&(j.message||j.hint))||t.slice(0,120)||('HTTP '+r.status));
+ return j}
+/* 작업자·PIN 은 이 휴대폰에 기억 (다음 QR 부터 다시 안 침) */
+const mem={get(k){try{return localStorage.getItem('qrw.'+k)||''}catch(e){return ''}},set(k,v){try{localStorage.setItem('qrw.'+k,v)}catch(e){}}};
+
+async function load(){
+ if(!KEY){$('head').innerHTML='<div class="empty">QR 값이 없습니다. 가공 공정 도면의 QR 을 다시 읽어 주세요.</div>';return}
+ $('head').innerHTML='<div class="empty">조회 중…</div>';
+ try{D=await rpc('fn_qr_part_c',{p_key:KEY})}catch(e){$('live').textContent='연결 실패';$('head').innerHTML=`<div class="empty">조회 실패<br><small>${esc(e.message)}</small><br><small>DB 에 sql_v196_qr_work.sql · sql_v228_qr_cycle.sql 이 실행되어 있어야 합니다.</small></div>`;return}
+ $('live').textContent='● 연결됨';
+ if(!D||!D.ok){$('head').innerHTML=`<div class="empty">${esc(D&&D.err||'조회 실패')}</div>`;return}
+ render()}
+
+function steps(){
+ const plan=D.plan||{},st=(Array.isArray(plan.steps)?plan.steps:[]).map(c=>String(c||'').trim().toUpperCase()).filter(Boolean);
+ const inh=Array.isArray(plan.inhouse)?plan.inhouse:[];
+ const lines=D.lines||[],res=D.results||[],P=D.procs||{};
+ /* v260: 가공계획 순서 + 계획에 없는데 발주된 공정도 뒤에 붙인다 (계획이 발주보다 짧아 공정이 빠져 보이던 문제) */
+ const lc=[...new Set(lines.slice().sort((a,b)=>(Number(a.step_no)||99)-(Number(b.step_no)||99)).map(l=>String(l.machining_process_code||'').toUpperCase()).filter(Boolean))];
+ const codes=st.length?st.concat(lc.filter(c=>!st.includes(c))):lc;
+ return codes.map((c,i)=>{
+  const house=!!inh[i]&&!lines.some(l=>String(l.machining_process_code||'').toUpperCase()===c);
+  const ls=lines.filter(l=>String(l.machining_process_code||'').toUpperCase()===c);
+  const l=ls.find(x=>x.status&&x.status!=='입고확정'&&x.status!=='취소')||ls[ls.length-1]||null;
+  const rs=res.filter(r=>String(r.machining_process_code||'').toUpperCase()===c);
+  const name=P[c]||P[c.toLowerCase()]||c;
+  let state='';
+  if(house)state=rs.length?'완료':'대기';
+  else if(!l)state='미발주';
+  else state=l.status==='입고확정'||l.status==='입고'?'완료':l.status==='발주'||l.status==='요청'||l.status==='출고'?'진행':l.status||'';
+  return {i,code:c,name,house,line:l,res:rs,state}})}
+
+function render(){
+ const S=steps();
+ $('head').innerHTML=`<div class="job">${esc(D.job)}<b>${esc(D.part)}</b>${(n0(D.cycle)>1||D.cycle_ended)?`<span class="cyc${D.cycle_ended?' end':''}">${n0(D.cycle)||1}차${D.cycle_ended?' 종료':''}</span>`:''}${D.cycle_old?'<span class="cyc old">이전 차수</span>':''}</div>${D.cycle_ended?'<div class="empty" style="color:#b3261e">종료된 차수입니다 — 이 도면으로는 작업완료를 할 수 없습니다. 새 차수 도면의 QR 을 읽어 주세요.</div>':D.cycle_old?'<div class="empty" style="color:#8a4f08">이전 차수 도면입니다 — 남은 입고 처리만 할 수 있습니다.</div>':''}
+  <div class="sub">${esc((D.plan&&D.plan.part_name)||'')}${D.item?' · '+esc(D.item):''} · 공정 ${esc(D.jo)}조${D.plan&&D.plan.qty!=null?' · 수량 '+esc(D.plan.qty):''}</div>
+  <div class="who"><label>작업자 <small id="workerSaved" style="color:#2f7d4f">${mem.get('worker')?'· 이 휴대폰에 기억됨':''}</small><input id="worker" placeholder="이름 또는 업체명" value="${esc(mem.get('worker'))}" oninput="remember(this)" autocomplete="off"></label>
+  ${D.require_pin?`<label>작업 PIN<input id="pin" type="password" inputmode="numeric" placeholder="PIN" value="${esc(mem.get('pin'))}" oninput="remember(this)"></label>`:''}</div>
+  <div class="hint">작업자 이름(또는 업체명)을 넣고, 끝낸 공정의 <b>[작업완료]</b> 를 누르세요. 외주 공정은 입고 처리로, 사내 공정은 가공 실적으로 기록됩니다.${D.require_pin?' 작업 PIN 은 관리자에게 받으세요.':''}</div>`;
+ const cur=S.find(s=>s.state==='진행'||s.state==='대기');
+ $('steps').innerHTML=S.length?S.map(s=>{
+  const done=s.state==='완료',isCur=cur&&cur.i===s.i;
+  const det=s.house?(s.res.length?`가공 실적 ${s.res.length}건 · ${s.res.map(r=>`${esc(r.work_date||'')} ${esc(r.worker_name||'')} ${n0(r.work_minutes)?n0(r.work_minutes)+'분':''}`).join(' / ')}`:'사내 가공 — 아직 실적 없음')
+   :(s.line?`${esc(s.line.vendor_name||'업체 미지정')} · 발주 ${n0(s.line.order_qty)||1} · 기입고 ${n0(s.line.receipt_qty)}${s.line.required_date?' · 납기 '+esc(s.line.required_date):''}${s.line.receipt_date?' · 입고 '+esc(s.line.receipt_date):''}`:'외주 공정 — 아직 발주 전');
+  let act='';
+  if(D.cycle_ended){act='<div class="lock">종료된 차수</div>'}
+  else if(s.house&&done){const r0=s.res[s.res.length-1]||{};act=`<div class="lock">작업완료 등록됨${r0.work_date?' · '+esc(r0.work_date):''}${r0.worker_name?' · '+esc(r0.worker_name):''} — 다시 등록할 수 없습니다. 고칠 것은 사무실(PC)에 말씀해 주세요.</div>`}   /* v230: 사내도 한 번 등록하면 버튼 잠금 (헷갈림 방지) */
+  else if(s.house){act=`<div class="row"><label>가공시간(분)</label><input type="number" inputmode="numeric" id="min_${s.i}" placeholder="분"></div>
+    <div class="act"><button class="abtn house" onclick="doneIn(${s.i})">✅ 작업완료 (사내 가공 실적)</button></div>`}
+  else if(s.line&&!done&&s.state==='진행'){const rem=Math.max((n0(s.line.order_qty)||1)-n0(s.line.receipt_qty),0);
+   act=`<div class="row"><label>입고수량</label><input type="number" inputmode="numeric" id="qty_${s.i}" value="${rem}" min="1" max="${rem}"><span class="det">잔량 ${rem}</span></div>
+    <div class="act"><button class="abtn" onclick="doneOut(${s.i})">✅ 작업완료 (입고 처리)</button></div>`}
+  else if(!s.line)act='<div class="lock">발주가 나면 작업완료를 누를 수 있습니다.</div>';
+  else if(done)act=`<div class="lock">${esc(s.line.status)} 처리됨${s.line.confirm_date?' · 확정 '+esc(s.line.confirm_date):''}</div>`;
+  return `<div class="step${done?' done':''}${isCur?' cur':''}${s.house?' house':''}" id="st_${s.i}">
+   <div class="top"><span class="n">${s.i+1}</span><span class="nm">${esc(s.name)}</span><span class="kind">${s.house?'사내':'외주'}</span><span class="st${s.state==='진행'||s.state==='대기'?' wait':''}">${esc(s.state)}</span></div>
+   <div class="det">${det}</div>${act}</div>`}).join('')
+  :'<div class="empty">이 부품에 가공계획(공정)이 없습니다. PC 의 사내외가공 발주에서 공정을 먼저 등록하세요.</div>';
+ if(cur){const e=$('st_'+cur.i);if(e)setTimeout(()=>e.scrollIntoView({block:'center',behavior:'smooth'}),100)}}
+
+/* 작업자·PIN 은 치는 대로 이 휴대폰(localStorage)에 저장 — 다음 QR 을 읽어도 그대로 채워진다 */
+function remember(el){const v=(el.value||'').trim();mem.set(el.id==='pin'?'pin':'worker',v);const t=$('workerSaved');if(t&&el.id==='worker')t.textContent=v?'· 이 휴대폰에 기억됨':''}
+function who(){const w=($('worker')?.value||'').trim(),p=($('pin')?.value||'').trim();
+ if(!w){toast('작업자(이름 또는 업체명)를 넣어 주세요.','ng');$('worker')?.focus();return null}
+ if(D.require_pin&&!p){toast('작업 PIN 을 넣어 주세요.','ng');$('pin')?.focus();return null}
+ mem.set('worker',w);mem.set('pin',p);return {w,p}}
+async function doneOut(i){if(BUSY)return;const s=steps()[i];if(!s||!s.line)return;const u=who();if(!u)return;
+ const rem=Math.max((n0(s.line.order_qty)||1)-n0(s.line.receipt_qty),0),q=Math.max(0,Number($('qty_'+i)?.value)||0);
+ if(!(q>0))return toast('입고수량을 넣어 주세요.','ng');if(q>rem)return toast(`잔량 ${rem} 을 넘었습니다.`,'ng');
+ if(!confirm(`${s.name} 공정 작업완료 → 입고 ${q}개 처리할까요?`))return;
+ BUSY=true;try{const r=await rpc('fn_qr_done_c',{p_key:KEY,p_pin:u.p,p_kind:'out',p_line_id:Number(s.line.line_id),p_qty:q,p_worker:u.w});
+  if(!r||!r.ok)throw new Error((r&&r.err)||'처리 실패');toast(`${s.name} 작업완료 — 입고 ${q}개 처리`,'ok');await load()}
+ catch(e){toast('실패: '+String(e.message||e).slice(0,90),'ng')}finally{BUSY=false}}
+async function doneIn(i){if(BUSY)return;const s=steps()[i];if(!s)return;if(s.state==='완료')return toast('이미 작업완료가 등록된 공정입니다.','ng');const u=who();if(!u)return;
+ const m=Math.max(0,Number($('min_'+i)?.value)||0);
+ if(!confirm(`${s.name} 사내 가공 작업완료로 기록할까요?${m?' ('+m+'분)':' (시간 미입력)'}`))return;
+ BUSY=true;try{const r=await rpc('fn_qr_done_c',{p_key:KEY,p_pin:u.p,p_kind:'in',p_proc:s.code,p_minutes:m,p_worker:u.w});
+  if(!r||!r.ok)throw new Error((r&&r.err)||'처리 실패');toast(`${s.name} 사내 가공 실적을 기록했습니다.`,'ok');await load()}
+ catch(e){toast('실패: '+String(e.message||e).slice(0,90),'ng')}finally{BUSY=false}}
+(function(){const q=new URLSearchParams(location.search);KEY=(q.get('key')||decodeURIComponent(location.hash.slice(1))||'').trim();load()})();
+</script></body></html>

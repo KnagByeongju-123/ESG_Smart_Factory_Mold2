@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>가공공정관리</title>
+<style>
+:root{--line:#9daab6;--line2:#c6d0d8;--blue:#2d73af;--ink:#344757;--head:#d9e7f2}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{font-family:"Malgun Gothic","맑은 고딕",Arial,sans-serif;font-size:12px;color:var(--ink);overflow:hidden;background:#fff}button,input,select{font:inherit;color:inherit}.screen{height:100%;display:flex;flex-direction:column;background:#fff}
+.title{height:48px;padding:10px 14px 5px;border-bottom:2px solid #3978ae}.title h1{margin:0;font-size:22px;font-weight:500;color:#4b5c6a}.title h1:before{content:'◯';margin-right:6px;color:#8796a1}.title small{font-size:11px;color:#9ca7af;margin-left:12px}
+.form{padding:7px 14px;border-bottom:1px solid var(--line2);background:#fafbfc}.form-grid{display:grid;grid-template-columns:105px 170px 95px minmax(170px,1fr) 82px 160px;gap:5px;align-items:center}.form-grid+.form-grid{margin-top:5px}.label{font-weight:700}.field{height:27px;border:1px solid #b5c0c9;background:#fff;padding:0 6px}.memo{grid-column:2/7}.searchline{height:38px;margin:0 14px;display:flex;align-items:center;gap:5px;border-left:1px solid var(--line);border-right:1px solid var(--line);padding:4px 8px;background:#f6f8fa}.searchline input{width:min(420px,50vw);height:27px;border:1px solid #aeb9c3;padding:0 7px}.btn{height:28px;min-width:62px;border:1px solid #9ba8b4;background:linear-gradient(#fff,#dfe6eb)}.btn:hover{background:#fff}
+.gridbox{flex:1;min-height:0;margin:0 14px;border:1px solid var(--line);overflow:auto;background:#fff}table{border-collapse:collapse;min-width:620px;width:100%;table-layout:fixed}th,td{height:27px;border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);padding:0 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}th{position:sticky;top:0;z-index:2;text-align:center;background:linear-gradient(#dce9f4,#c7d9e8);color:#405266}tbody tr:nth-child(even) td{background:#fafcfd}tbody tr:hover td{background:#edf6fd}tbody tr.sel td{background:#2d75b7;color:white}.c{text-align:center}.num{text-align:right}.code{width:110px}.name{width:210px}.group{width:105px}.order{width:70px}.progress{width:120px}.yn{width:120px}.remark{width:200px}
+.foot{height:43px;display:flex;align-items:center;padding:5px 14px;border-top:1px solid var(--line);background:#eef2f5;gap:5px}.msg{margin-left:10px;color:#687784}.foot .right{margin-left:auto;color:#7c8993}@media(max-width:850px){.form-grid{grid-template-columns:95px 1fr 95px 1fr}.memo{grid-column:2/5}.form-grid .hide-sm{display:none}}
+
+/* v196: 표 열 정리 — No · 코드 · 공정명 · 순번 · 비고 */
+thead th:nth-child(1){width:56px}th.code{width:150px}th.name{width:320px}th.remark{width:auto}
+/* v196: 머리글 정렬 */
+th.srt{cursor:pointer;user-select:none}th.srt:hover{background:#d9e7f3}
+th.srt:after{content:attr(data-s);margin-left:4px;font-size:10px;color:#2f75b5}
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="title"><h1>가공공정관리 <small>가공 공정코드 · 공정명을 관리합니다.</small></h1></div>
+  <section class="form">
+    <div class="form-grid"><div class="label">가공공정코드</div><input id="code" class="field"><div class="label">가공공정명</div><input id="name" class="field"></div>
+    <div class="form-grid"><div class="label">비고</div><input id="remark" class="field memo"></div>
+    <!-- v196: 잘 안 쓰는 항목은 화면에서 숨김 — 값은 그대로 저장된다 (선택한 공정의 기존 값 유지, 신규는 기본값) -->
+    <div style="display:none"><input id="order" class="field" type="number" value="0"><select id="group" class="field"><option>가공</option><option>설계</option><option>조립</option></select><select id="useProgress" class="field"><option>Y</option><option>N</option></select><select id="usePlan" class="field"><option>Y</option><option>N</option></select><input id="completeProgress" class="field" type="number" min="0" max="100" value="0"></div>
+  </section>
+  <div class="searchline"><input id="query" placeholder="Enter text to search..."><button class="btn" onclick="search()">찾기</button><button class="btn" onclick="clearSearch()">지우기</button></div>
+  <div class="gridbox"><table><colgroup><col style="width:56px"><col style="width:150px"><col style="width:320px"><col style="width:480px"></colgroup><thead><tr><th style="width:56px">No</th><th class="code srt" data-k="code" style="width:150px">가공공정코드</th><th class="name srt" data-k="name" style="width:300px">가공공정명</th><th class="remark srt" data-k="remark" style="width:420px">비고</th></tr></thead><tbody id="body"></tbody></table></div>
+  <footer class="foot"><button class="btn" onclick="save()">▣ 저장</button><button class="btn" onclick="add()">＋ 신규</button><button class="btn" onclick="window.remove()">✖ 삭제</button><button class="btn" onclick="exportCsv()">▤ EXCEL</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫기</button><span class="msg" id="message">가공공정 데이터를 조회했습니다.</span><span class="right" id="countText"></span></footer>
+</div>
+<script>
+const data=[];
+let view=[...data],selected=-1;
+/* v196: 머리글 클릭 정렬 — 오름차순 ▲ → 내림차순 ▼ → 원래 순서. No 는 정렬과 상관없이 보이는 순서대로 1,2,3…
+ *   숫자 열(정렬·완료시진척률)은 숫자로, 「정렬」의 0(미지정)은 오름·내림 모두 맨 아래로 */
+let SORT={k:'name',dir:1};   /* v196: 기본은 가공공정명 가나다순 */
+const NUMK={order:1,complete:1};
+function sortView(){if(!SORT.k||!SORT.dir)return;const k=SORT.k,d=SORT.dir;
+ view.sort((a,b)=>{let x=a[k],y=b[k];
+  if(NUMK[k]){x=Number(x)||0;y=Number(y)||0;if(k==='order'){if(!x&&y)return 1;if(x&&!y)return -1}return (x-y)*d}
+  return String(x??'').localeCompare(String(y??''),'ko',{numeric:true})*d})}
+function sortMark(){document.querySelectorAll('th.srt').forEach(th=>{const on=th.dataset.k===SORT.k&&SORT.dir;th.dataset.s=on?(SORT.dir>0?'▲':'▼'):''})}
+document.querySelectorAll('th.srt').forEach(th=>th.addEventListener('click',()=>{const k=th.dataset.k;
+ if(SORT.k!==k)SORT={k,dir:1};else SORT.dir=SORT.dir===1?-1:SORT.dir===-1?0:1;
+ if(!SORT.dir){SORT={k:'name',dir:1};const q=query.value.trim().toLowerCase();view=!q?[...data]:data.filter(r=>Object.values(r).some(v=>String(v).toLowerCase().includes(q)))}
+ render();msg(SORT.k==='name'&&SORT.dir>0?'가공공정명 가나다순으로 정렬했습니다.':`${th.textContent.trim()} ${SORT.dir>0?'오름차순':'내림차순'}으로 정렬했습니다.`)}));
+function render(){sortView();sortMark();body.innerHTML=view.map((r,i)=>`<tr onclick="select('${r.code}',this)"><td class="c">${i+1}</td><td>${r.code}</td><td>${r.name}</td><td>${r.remark}</td></tr>`).join('');countText.textContent=`${view.length}건`}
+function select(c,tr){selected=data.findIndex(x=>x.code===c);document.querySelectorAll('tbody tr').forEach(x=>x.classList.remove('sel'));tr?.classList.add('sel');const r=data[selected];if(!r)return;code.value=r.code;document.getElementById('name').value=r.name;group.value=r.group;order.value=r.order;completeProgress.value=r.complete;useProgress.value=r.progress;usePlan.value=r.plan;remark.value=r.remark;msg(`${r.code} ${r.name} 공정을 선택했습니다.`)}
+function search(){const q=query.value.trim().toLowerCase();view=!q?[...data]:data.filter(r=>Object.values(r).some(v=>String(v).toLowerCase().includes(q)));render();msg(`검색 결과 ${view.length}건입니다.`)}
+function clearSearch(){query.value='';view=[...data];render();msg('검색조건을 초기화했습니다.')}
+function add(){selected=-1;code.value='';document.getElementById('name').value='';group.value='가공';order.value=0;completeProgress.value=0;useProgress.value='N';usePlan.value='Y';remark.value='';const c=window.MESCODE?MESCODE.fill('code',data.map(x=>x.code)):'';msg(c?`신규 가공공정을 입력하세요. 코드는 ${c} 로 자동 생성했습니다.`:'신규 가공공정을 입력하세요. 코드는 도면·QR 에 그대로 쓰이므로 직접 정하세요.')}
+function save(){const c=code.value.trim().toUpperCase(),n=document.getElementById('name').value.trim();if(!c||!n)return msg('가공공정코드와 공정명을 입력하세요.');let r=selected>=0?data[selected]:data.find(x=>x.code===c);if(!r){r={};data.push(r)}r.code=c;r.name=n;r.group=group.value;r.order=Number(order.value)||0;r.complete=Number(completeProgress.value)||0;r.progress=useProgress.value;r.plan=usePlan.value;r.remark=remark.value.trim();selected=data.indexOf(r);view=[...data];render();msg(`${c} 공정을 저장했습니다.`)}
+function remove(){if(selected<0)return msg('삭제할 공정을 선택하세요.');if(!confirm('선택한 공정을 삭제하시겠습니까?'))return;const c=data[selected].code;data.splice(selected,1);selected=-1;view=[...data];render();add();msg(`${c} 공정을 삭제했습니다.`)}
+function exportCsv(){const out=[['가공공정코드','가공공정명','공정그룹','정렬','완료시진척률','진척률 사용여부','계획 사용여부','비고'],...data.map(r=>[r.code,r.name,r.group,r.order,r.complete,r.progress,r.plan,r.remark])];const csv='\ufeff'+out.map(a=>a.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='machining_process_management.csv';a.click();URL.revokeObjectURL(a.href);msg('CSV 파일을 생성했습니다.')}
+function msg(t){message.textContent=t}window.MES={search,add,delete:remove,save,exportCsv,setMessage:msg};render();
+
+function sampleFill(){
+  if(window.MESDEMO)return MESDEMO.run('machining_process_management',{keyId:'code'});
+  if(!window.MESSAMPLE)return (window.MES&&MES.setMessage?MES.setMessage:console.warn)('예제 모듈을 불러오지 못했습니다.');
+  const r=MESSAMPLE.fill('machining_process_management',{keyId:'code'}); if(window.MES&&MES.setMessage)MES.setMessage(r.msg);
+}
+window.sampleFill=sampleFill;
+</script>
+<script src="mes_sample.js?v=169"></script><script src="mes_demo.js?v=67"></script>
+<script src="mes_autocode.js?v=114"></script><script src="mes_db.js?v=171"></script>
+<script src="mes_paste.js?v=67"></script>
+<script>MESDB.master({page:"machining_process_management",table:"processes",pk:"code",map:{"code": "process_code", "name": "process_name", "group": "process_group", "order": {"col": "sort_order", "type": "num"}, "complete": {"col": "completion_progress", "type": "num"}, "progress": {"col": "use_progress", "type": "ynbool"}, "plan": {"col": "use_plan", "type": "ynbool"}, "remark": "remark"},get:()=>data,render:()=>{view=[...data];render()}});</script>
+<script src="mes_ctx.js?v=169"></script>
+</body>
+</html>
