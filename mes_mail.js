@@ -13,7 +13,10 @@ const won=v=>Math.round(Number(v)||0).toLocaleString('ko-KR');
 const T0=()=>new Date().toLocaleDateString('sv-SE');
 let O=null,VEND=null;
 /* v171: 발주서 메일 발송 — 구글 앱스 스크립트 웹앱 (doPost) */
-const GAS_URL='https://script.google.com/macros/s/AKfycbxWmPpH0vNtK5Abuk5fAvY1Se0OwRsv24lEXtKVWZ6m0PuzFtCWz3SeKFnCMgtbxxAf/exec';
+/* TJD: 메일 발송 사용 안 함 — [✉ 보내기] 비활성화. 발주서(A4) 보기·인쇄는 그대로.
+   다시 쓰려면 MAIL_OFF=false 로 바꾸고 GAS_URL 에 태진다이텍 구글 앱스 스크립트 주소를 넣는다. */
+const MAIL_OFF=true;
+const GAS_URL='';
 
 function ensureUI(){
  if($('mlMask'))return;
@@ -29,13 +32,13 @@ function ensureUI(){
 #mlPop .note{margin:4px 12px;padding:5px 8px;border:1px solid #e1e7ec;background:#f7f9fb;border-radius:3px;color:#5d6d7b;font-size:11px;line-height:1.5}
 #mlPop .note.warn{border-color:#e5ad62;background:#fff7ea;color:#8a4f08}
 #mlPop .mf{display:flex;gap:6px;align-items:center;padding:8px 12px 12px;flex-wrap:wrap}#mlPop .mf .msg{flex:1;color:#1d5da3;font-weight:700}
-#mlPop .mf button{height:28px;padding:0 12px;border:1px solid #8b9ba9;background:linear-gradient(#fff,#e9eef2);cursor:pointer;border-radius:2px;font:inherit}#mlPop .mf button.go{background:linear-gradient(#e9f3fc,#c9def0);border-color:#6f9cc4;font-weight:700}
+#mlPop .mf button:disabled{opacity:.45;cursor:not-allowed}#mlPop .mf button{height:28px;padding:0 12px;border:1px solid #8b9ba9;background:linear-gradient(#fff,#e9eef2);cursor:pointer;border-radius:2px;font:inherit}#mlPop .mf button.go{background:linear-gradient(#e9f3fc,#c9def0);border-color:#6f9cc4;font-weight:700}
 `;document.head.appendChild(st);
  const m=document.createElement('div');m.id='mlMask';document.body.appendChild(m);
  const p=document.createElement('div');p.id='mlPop';p.innerHTML=`<div class="mh"><span id="mlTitle">발주서 메일</span><button class="x" onclick="MESMAIL.close()">×</button></div>
  <div class="g"><label>받는 사람</label><input id="mlTo" placeholder="업체 이메일 (기준정보 › 협력업체관리의 이메일)"><label>참조</label><input id="mlCc" placeholder="선택"><label>제목</label><input id="mlSubj"><label>본문</label><textarea id="mlBody"></textarea></div>
  <div id="mlLines"></div><div class="note" id="mlNote"></div>
- <div class="mf"><span class="msg" id="mlMsg"></span><button onclick="MESMAIL.preview()">🖨 발주서(A4)</button><button onclick="MESMAIL.mailto()" title="메일 앱으로 열기 (그림은 링크로)">📨 메일 앱</button><button class="go" id="mlSend" onclick="MESMAIL.send()">✉ 보내기</button><button onclick="MESMAIL.close()">닫기</button></div>`;
+ <div class="mf"><span class="msg" id="mlMsg"></span><button onclick="MESMAIL.preview()">🖨 발주서(A4)</button><button onclick="MESMAIL.mailto()" title="메일 앱으로 열기 (그림은 링크로)">📨 메일 앱</button><button class="go" id="mlSend" onclick="MESMAIL.send()" disabled>✉ 보내기 (사용 안 함)</button><button onclick="MESMAIL.close()">닫기</button></div>`;
  document.body.appendChild(p);
 }
 const say=t=>{const m=$('mlMsg');if(m)m.textContent=t};
@@ -76,7 +79,7 @@ window.MESMAIL={
   $('mlNote').className='note'+(v.email?'':' warn');
   $('mlNote').innerHTML=(v.email?`업체 이메일: <b>${esc(v.email)}</b>${v.contact_name?' ('+esc(v.contact_name)+')':''}`:`<b>${esc(O.vendor)}</b> 의 이메일이 기준정보 › 협력업체관리에 없습니다. 받는 사람을 직접 넣거나 업체관리에 등록하세요.`)
    +` · 부품 그림 ${ni}장 ${ni?'본문 아래에 A4 로 첨부':'(PartList [📷 이미지]로 등록하면 함께 갑니다)'}`;
-  {const sb=$('mlSend');sb.disabled=false;sb.textContent='✉ 보내기'}   /* v172: 직전 전송의 '보내는 중…' 상태가 남지 않게 */
+  {const sb=$('mlSend');sb.disabled=MAIL_OFF;sb.textContent=MAIL_OFF?'✉ 보내기 (사용 안 함)':'✉ 보내기';sb.title=MAIL_OFF?'메일 발송은 사용하지 않습니다':''}   /* v172: 직전 전송의 '보내는 중…' 상태가 남지 않게 */
   $('mlMask').classList.add('on');$('mlPop').classList.add('on');say('');
  },
  close(){if($('mlMask'))$('mlMask').classList.remove('on');if($('mlPop'))$('mlPop').classList.remove('on');O=null},
@@ -84,7 +87,7 @@ window.MESMAIL={
  mailto(){if(!O)return;O.message=$('mlBody').value;
   const u=`mailto:${encodeURIComponent($('mlTo').value)}?${$('mlCc').value?'cc='+encodeURIComponent($('mlCc').value)+'&':''}subject=${encodeURIComponent($('mlSubj').value)}&body=${encodeURIComponent(textBody(O))}`;
   location.href=u;MESMAIL.preview();say('메일 앱을 열었습니다. 발주서 창을 PDF 로 저장해 첨부하세요.')},
- async send(){if(!O)return;O.message=$('mlBody').value;
+ async send(){if(!O)return;if(MAIL_OFF||!GAS_URL)return say('메일 발송은 사용하지 않습니다.');O.message=$('mlBody').value;
   const to=$('mlTo').value.trim();if(!to)return say('받는 사람 이메일을 넣으세요.');
   const b=$('mlSend');b.disabled=true;b.textContent='보내는 중…';
   try{
