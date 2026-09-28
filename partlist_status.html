@@ -37,6 +37,8 @@ tbody tr.sel{background:#d6e7f8}
 <section class="filt">
  <span class="lb">구분</span>
  <select id="q_kind" class="field" style="width:110px"><option>전체</option><option>원재료</option><option>구매품</option></select>
+ <span class="lb" style="margin-left:8px">관리제번</span>
+ <select id="q_base" class="field" style="width:170px" title="관리제번(공정 문자 A·B·C 를 뺀 것)으로 전체 공정 제번을 함께 봅니다. 맨 위 빈칸은 전체검색"><option value=""></option></select>
  <span class="lb" style="margin-left:8px">제번</span>
  <select id="q_job" class="field" style="width:210px" title="맨 위 빈칸은 전체검색"><option value=""></option></select>
  <span class="lb" style="margin-left:8px">품번</span>
@@ -79,6 +81,9 @@ async function waitDB(){for(let i=0;i<60&&!window.MESDB;i++)await new Promise(r=
  if(window.MESDB&&MESDB.ready){try{await MESDB.ready}catch(e){}}}
 let loaded=false,sortKey='job_no',sortDir=1;
 const curJobNo=()=>String(q_job.value||'').trim();
+/* TJD: 관리제번 검색 */
+const curBase=()=>String(q_base.value||'').trim();
+const baseOf=j=>{try{return MESDB.jobSplit?MESDB.jobSplit(j).base:String(j||'').replace(/[A-Z]$/,'')}catch(e){return String(j||'')}};
 const selectedPn=()=>String(q_pn.value||'').trim();
 const rowById=id=>data.find(r=>r._id===id);
 const PNMAP=[]; /* {model, job} */
@@ -91,8 +96,8 @@ function jobsForPn(pn){
 /* v121 (회의록 4-2): 품번 → 도면 열기 */
 function openDrawing(){const ids=[...chk];if(ids.length!==1)return msg('도면을 볼 품번 행을 하나만 체크하세요.');const r=rowById(ids[0]);if(!r)return;MESDB.openDrawing(r.part_no,r.job_no)}
 function view(){
- const k=q_kind.value,j=curJobNo(),p=selectedPn(),pJobs=jobsForPn(p);
- const v=data.filter(r=>(k==='전체'||r.order_type===k)&&(!j||String(r.job_no||'')===j)&&(!p||(pJobs&&pJobs.has(String(r.job_no||'')))));
+ const k=q_kind.value,j=curJobNo(),bs=curBase(),p=selectedPn(),pJobs=jobsForPn(p);
+ const v=data.filter(r=>(k==='전체'||r.order_type===k)&&(!j||String(r.job_no||'')===j)&&(!bs||baseOf(r.job_no)===bs)&&(!p||(pJobs&&pJobs.has(String(r.job_no||'')))));
  return v.slice().sort((a,b)=>{
   const av=String(a[sortKey]??''),bv=String(b[sortKey]??'');
   return av.localeCompare(bv,'ko',{numeric:true,sensitivity:'base'})*sortDir;
@@ -117,6 +122,9 @@ function fillFilters(){
  const jv=curJobNo(),pv=selectedPn();
  const jobs=[...new Set(PNMAP.map(x=>String(x.job||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ko',{numeric:true}));
  const pns=[...new Set(PNMAP.map(x=>String(x.model||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ko',{numeric:true}));
+ const bv=curBase(),bases=[...new Set(jobs.map(baseOf).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ko',{numeric:true}));
+ q_base.innerHTML='<option value=""></option>'+bases.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+ if(bases.includes(bv))q_base.value=bv;
  q_job.innerHTML='<option value=""></option>'+jobs.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
  q_pn.innerHTML='<option value=""></option>'+pns.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
  if(jobs.includes(jv))q_job.value=jv;
@@ -142,7 +150,13 @@ function pnPick(){
 }
 
 async function fetchRows(){
- const job=curJobNo(),pn=selectedPn();
+ const job=curJobNo(),pn=selectedPn(),bs=curBase();
+ if(!job&&bs){
+  const jobs=[...new Set(PNMAP.map(x=>String(x.job||'').trim()).filter(j=>j&&baseOf(j)===bs))];
+  if(!jobs.length)return [];
+  const sets=await Promise.all(jobs.map(j=>MESDB.table('partlist_all').select(`select=*&job_no=eq.${encodeURIComponent(j)}&order=job_no,order_type,part_no`,{fresh:true})));
+  return sets.flat();
+ }
  if(job)return await MESDB.table('partlist_all').select(`select=*&job_no=eq.${encodeURIComponent(job)}&order=job_no,order_type,part_no`,{fresh:true});
  if(pn){
   const jobs=[...jobsForPn(pn)];
@@ -169,7 +183,7 @@ async function search(){
   }catch(e){}
   chk.clear();loaded=true;render();
   const v=view(),nm=v.filter(r=>r.order_type==='원재료').length,np=v.filter(r=>r.order_type==='구매품').length;
-  const cond=[curJobNo()?`제번 ${curJobNo()}`:'전체 제번',selectedPn()?`품번 ${selectedPn()}`:'전체 품번',q_kind.value].join(' · ');
+  const cond=[curJobNo()?`제번 ${curJobNo()}`:curBase()?`관리제번 ${curBase()}`:'전체 제번',selectedPn()?`품번 ${selectedPn()}`:'전체 품번',q_kind.value].join(' · ');
   msg(`${cond} : ${v.length}건 (원재료 ${nm} / 구매품 ${np})`);
  }catch(e){loaded=true;msg('조회 실패: '+String(e.message||e).slice(0,120));render()}
 }
@@ -222,7 +236,8 @@ window.MES={search,setMessage:msg,reload:loadJob};render();
 <script src="mes_ctx.js?v=169"></script>
 <script>/* v158: 제번/품번 드롭다운 — 맨 위 빈칸=전체 */
 (async()=>{await pnLoad();})();
-q_job.addEventListener('change',()=>{const j=curJobNo();if(j)pnSync(j)});
+q_job.addEventListener('change',()=>{const j=curJobNo();if(j){pnSync(j);if(curBase()&&baseOf(j)!==curBase())q_base.value=''}});
+q_base.addEventListener('change',()=>{const bs=curBase();if(bs&&curJobNo()&&baseOf(curJobNo())!==bs)q_job.value='';if(bs){q_pn.value=''}if(loaded)search()});
 q_pn.addEventListener('change',()=>{try{pnPick()}catch(e){}});
 q_kind.addEventListener('change',()=>{if(loaded)render()});</script>
 </body></html>
