@@ -544,7 +544,7 @@ model.addEventListener('change',()=>{if(!document.querySelector('.oriRow.off'))o
    if(!String(origin_base.value||'').trim()&&!confirm(`${typ} 수주인데 원 관리제번이 비어 있습니다.\n원 금형과 연결하지 않고 저장할까요? (금형원가내역 「금형 전체」에 묶이지 않습니다)`)){msg('원 관리제번을 고른 뒤 저장하세요.');return false}
    if(b&&!/\d$/.test(b)&&!confirm(`관리제번 ${b} 이(가) 숫자로 끝나지 않습니다.\n공정 제번(A·B·C)을 나눌 수 없게 됩니다. (예: ${b}1, ${origin_base.value||'원관리제번'}-R1)\n그래도 저장할까요?`)){msg('관리제번을 숫자로 끝나게 고친 뒤 저장하세요.');return false}
   }
-  if(typ==='수리'&&String(comp_date.value||'').trim()&&!confirm(`수리 제번에 정산완료일(${comp_date.value})이 들어가 있습니다.\n양산 중 수리 제번은 금형이 끝날 때(폐기·단종)까지 열어 두어야 합니다.\n정산완료일을 넣으면 제번 목록에서 빠져 수리 발주를 낼 수 없습니다.\n그래도 저장할까요?`)){msg('정산완료일을 비우고 저장하세요.');return false}
+  if(typ==='수리'&&String(comp_date.value||'').trim()&&status.value!=='진행'&&!confirm(`수리 제번에 정산완료일(${comp_date.value})이 있고 수주상태가 「${status.value}」입니다.\n이대로 저장하면 제번 목록에서 빠져 수리 발주를 낼 수 없습니다.\n양산 중 계속 수리할 제번이면 수주상태를 「진행」으로 두세요.\n그래도 저장할까요?`)){msg('계속 수리할 제번이면 수주상태를 「진행」으로 두고 저장하세요.');return false}
   const r=await _s.apply(this,arguments);if(r===true)ORI.at=0;return r};
  window.MES.save=window.save;window.MES.load=window.load;window.MES.clearForm=window.clearForm;
 })();
@@ -575,7 +575,7 @@ oriToggle();
  return ok};
  window.MES.save=window.save;})();
 </script><script src="mes_sample.js?v=169"></script><script src="mes_demo.js?v=116"></script><script src="mes_db.js?v=171"></script>
-<script src="mes_ctx.js?v=242"></script>
+<script src="mes_ctx.js?v=271"></script>
 
 <script>
 function sampleFill(){
