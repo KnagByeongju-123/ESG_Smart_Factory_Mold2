@@ -55,6 +55,12 @@ tfoot tr:not(:last-child) td{bottom:var(--grandH,27px)}
  <span class="lb" style="margin-left:6px">품번</span><input id="partQ" class="field" style="width:150px" placeholder="품번/부품명" oninput="render()">
  <label style="display:flex;align-items:center;gap:4px" title="원재료·가공 기록이 하나도 없는 부품을 숨깁니다"><input type="checkbox" id="hideEmpty" onchange="render()"> 기록 있는 부품만</label>
  <button class="btn" onclick="load()">⌕ 조회</button>
+ <span id="otBox" style="display:flex;align-items:center;gap:8px;margin-left:10px;padding:2px 8px;border:1px solid #c9d8e6;background:#f4f8fc;border-radius:3px" title="수주유형(수주등록)으로 관리제번 목록을 거릅니다">
+  <span class="lb" style="margin:0">수주유형</span>
+  <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" class="otChk" value="신작" checked onchange="otApply()"> 신작</label>
+  <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" class="otChk" value="개조" checked onchange="otApply()"> 개조</label>
+  <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" class="otChk" value="수리" checked onchange="otApply()"> 수리</label>
+  <small id="otCnt" style="color:#6b7a86"></small></span>
  <span style="color:#6b7a86">공정 열은 공정명 가나다순입니다. 셀 위 =<b style="color:#1d5da3">사내 시간</b>, 아래 =<b style="color:#7a4a12">외주 금액</b>, <span style="color:#9aa5ad">(회색)</span> = 미확정 · <b>칸을 우클릭하면 근거 화면으로 이동</b></span>
 </section>
 <div class="tabs">
@@ -333,7 +339,24 @@ render();
 <script src="mes_jobpick.js?v=196"></script>
 <script src="mes_go.js?v=196"></script>
 <script>/* v196: 관리제번 ▼ | 제번 ▼ 두 칸 선택 (금형원가(내역)과 같은 방식) */
-try{MESJOB.attachSplit("jobQ",{onPick:()=>load()}).then(()=>{document.querySelectorAll('span.lb').forEach(e=>{if(e.textContent==='공정')e.textContent='제번'});const ss=document.getElementById('jobQ_seq');if(ss)ss.style.width='150px'})}catch(e){}
+try{MESJOB.attachSplit("jobQ",{onPick:()=>load()}).then(()=>{document.querySelectorAll('span.lb').forEach(e=>{if(e.textContent==='공정')e.textContent='제번'});const ss=document.getElementById('jobQ_seq');if(ss)ss.style.width='150px';otLoad()})}catch(e){}
+/* TJD v267: 수주유형(신작·개조·수리) 체크로 관리제번 목록 거르기 — sale_orders.order_type 기준. 유형이 없는 제번은 항상 보인다 */
+const OT=new Map();   /* 관리제번 → Set(수주유형) */
+async function otLoad(){
+ try{await waitDB();if(!online())return;
+  const rs=await MESDB.table('sale_orders').select('select=job_no,order_type');
+  OT.clear();(rs||[]).forEach(r=>{const b=MESDB.jobSplit?MESDB.jobSplit(r.job_no).base:String(r.job_no||'');if(!OT.has(b))OT.set(b,new Set());if(r.order_type)OT.get(b).add(String(r.order_type))});
+  otApply();
+ }catch(e){}
+}
+function otApply(){
+ const on=new Set([...document.querySelectorAll('.otChk:checked')].map(c=>c.value));
+ const sb=document.getElementById('jobQ_base');if(!sb)return;
+ let shown=0,total=0;
+ [...sb.options].forEach(o=>{if(!o.value)return;total++;const ts=OT.get(o.value);const ok=!ts||!ts.size||[...ts].some(t=>on.has(t));o.hidden=!ok;o.disabled=!ok;if(ok)shown++});
+ const c=document.getElementById('otCnt');if(c)c.textContent=total?`${shown}/${total}`:'';
+ if(sb.value&&sb.options[sb.selectedIndex]&&sb.options[sb.selectedIndex].hidden){sb.value='';}
+}
 jobQ.addEventListener('keydown',e=>{if(e.key==='Enter')load()});
 try{MESDB.onChange&&MESDB.onChange(['order_lines','design_results','machining_plan_parts'],()=>{clearTimeout(window.__jt);window.__jt=setTimeout(()=>{if(CURJOB)load()},500)})}catch(e){}</script>
 </body></html>
