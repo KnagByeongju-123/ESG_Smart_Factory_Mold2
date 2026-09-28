@@ -377,6 +377,9 @@ function renderRoutes(){
      return `<td class="route ${cls}" title="${_esc(t)} · 우클릭: 발주 · 입고 · 입고확정 · 취소" ondblclick="return ctxMenu(event,${ri},${i})" oncontextmenu="return ctxMenu(event,${ri},${i})"${click}>${_esc(procName(c))}${qline}${lab?`<span class="st">${lab}</span>`:''}</td>`}).join('')+
    '<td></td>'.repeat(Math.max(0,MAXSTEP-(r.steps||[]).length))+   /* v149: 남는 공정 칸도 그려 표 선이 어긋나지 않게 */
    `</tr>`}).join('');
+ /* TJD: 부품은 있는데 전부 '최종완료 제외' 로 숨겨지면 빈 표만 보여 부품이 없는 줄 안다 → 안내줄을 넣는다 */
+ try{const total=routeBody.querySelectorAll('tr').length,hid=[...routeBody.querySelectorAll('tr')].filter(t=>t.style.display==='none').length;
+  if(total&&hid===total)routeBody.insertAdjacentHTML('beforeend',`<tr><td colspan="30" style="height:70px;text-align:center;color:#1a4f7a;background:#eef5fb;white-space:normal;padding:10px">부품 ${total}건 모두 <b>전 공정 입고 완료</b>라 숨겨져 있습니다. 상단 <b>최종완료 → [포함]</b> 으로 바꾸면 보입니다. (입고확정이 남은 공정은 그 칸을 우클릭해 확정하세요)</td></tr>`)}catch(e){}
 }
 function renderReq(){reqBody.innerHTML=REQ.map((r,i)=>`<tr><td class="c">${i+1}</td><td class="c"><input type="checkbox" data-no="${r.no}"></td><td>${r.vendor}</td><td>${r.job}</td><td>${r.item}</td><td class="c">${r.proc}</td><td class="c">${r.procName}</td><td>${r.part}</td><td>${r.partName}</td><td class="c">${r.sn||""}${r.snOf?"/"+r.snOf:""}</td><td class="c">${r.mp}</td><td>${r.mpName}</td><td class="c"><input value="${r.qty??1}" style="width:52px;text-align:right;padding:1px 4px;border:1px solid #b7c2cb" onclick="event.stopPropagation()" onchange="setQty(${r.no},this.value)"></td><td class="c">${r.odate}</td><td class="c">${r.rdate}</td><td>${r.remark}</td><td class="c">${r.writer}</td></tr>`).join('');countText.textContent=`제번 ${jobView.length}건 / 요청 ${REQ.length}건`}
 /* v85: 발주수량 — 분할반출·부분입고의 기준값 */
