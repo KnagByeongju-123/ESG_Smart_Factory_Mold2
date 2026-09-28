@@ -37,11 +37,10 @@ tbody tr:nth-child(even) td{background:#fafcfd}tbody tr:hover td{background:#edf
 <div class="title"><h1>PartList 등록(원재료)</h1><small>설계관리 · PARTLIST</small></div>
 
 <section class="filt">
- <span class="lb" title="제번 일부를 넣고 [검색] — 관리제번을 비워 두면 전체에서 찾습니다">제번</span><input id="q_jobf" class="field" style="width:120px" placeholder="제번 검색" autocomplete="off" title="제번 일부(예 26RDE) 를 넣고 [검색] 하면 그 글자가 든 제번의 PartList 를 모두 보입니다">
- <span class="lb" title="관리제번을 고르고 공정(A·B·C)을 고르면 그 공정 제번의 PartList 가 열립니다. 비워 두고 [검색] 하면 전체검색">관리제번</span><input id="q_job" class="field" style="width:190px" autocomplete="off">
+ <span class="lb" title="관리제번을 고르면 그 관리제번 전체, 제번까지 고르면 그 제번의 PartList 가 열립니다. 둘 다 비우고 [검색] 하면 전체검색">관리제번</span><input id="q_job" class="field" style="width:190px" autocomplete="off">
  <span class="lb">품번</span><input id="q_pn" class="field" style="width:150px;background:#f4f7f9" placeholder="자동" readonly title="고른 제번의 품번(수주등록)">
- <button class="btn" onclick="search()" title="관리제번이 비어 있으면 전체(또는 제번 검색어) 조회">⌕ 검색</button>
- <span class="hint">관리제번 · 공정 선택 → 엑셀 <b>금형번호·품명·재질·규격·두께·수량</b> 복사(<b>Ctrl+C</b>) → <b>Ctrl+V</b> → 리스트에 추가 → 체크 → <b>[▤ 등록]</b></span>
+ <button class="btn" onclick="search()" title="관리제번·제번이 비어 있으면 전체 조회, 관리제번만 고르면 그 관리제번 전체">⌕ 검색</button>
+ <span class="hint">관리제번 · 제번 선택 → 엑셀 <b>금형번호·품명·재질·규격·두께·수량</b> 복사(<b>Ctrl+C</b>) → <b>Ctrl+V</b> → 리스트에 추가 → 체크 → <b>[▤ 등록]</b></span>
 </section>
 
 <div class="gridbox"><table style="min-width:980px"><thead><tr>
@@ -176,17 +175,18 @@ let curJob=null;
 function curJobNo(){return (q_job.value||curJob||'').trim()}
 /* TJD v268: 관리제번을 비우고 [검색] → 전체(또는 제번 검색어) PartList 조회 */
 let ALLMODE=false;
-async function loadAll(){
+const curBase=()=>{const b=document.getElementById('q_job_base');return b?String(b.value||'').trim():''};
+async function loadAll(base){
  await waitDB();if(!online())return;
- const t=(q_jobf.value||'').trim();
+ const t=(base!=null?String(base):curBase()).trim();
  if(pend.length){msg(`전체검색으로 바꿔 미등록 ${pend.length}건을 비웠습니다.`);pend.length=0;chk.clear()}
  curJob='';ALLMODE=true;
  try{
-  let q='select=*&order=job_no,row_no&limit=3000';if(t)q+=`&job_no=ilike.*${encodeURIComponent(t)}*`;
+  let q='select=*&order=job_no,row_no&limit=3000';if(t)q+=`&job_no=like.${encodeURIComponent(t)}*`;
   const rs=await MESDB.table('partlist_materials').select(q,{fresh:true});
   rs.sort((a,b)=>String(a.job_no||'').localeCompare(String(b.job_no||''),'ko',{numeric:true})||joSort(a.process_code,b.process_code)||(Number(a.row_no)||0)-(Number(b.row_no)||0));
   data.length=0;data.push(...rs);[...chk].forEach(id=>{if(!rowById(id))chk.delete(id)});
-  render();msg(`${t?`제번 '${t}' 포함 `:'전체 '}원재료 PartList ${rs.length}건 · 제번 ${new Set(rs.map(r=>r.job_no)).size}개${rs.length>=3000?' (3000건까지만 표시)':''} — 등록·붙여넣기는 관리제번·공정을 고른 뒤 하세요.`);
+  render();msg(`${t?`관리제번 ${t} `:'전체 '}원재료 PartList ${rs.length}건 · 제번 ${new Set(rs.map(r=>r.job_no)).size}개${rs.length>=3000?' (3000건까지만 표시)':''} — 등록·붙여넣기는 제번까지 고른 뒤 하세요.`);
  }catch(e){msg('조회 실패: '+String(e.message||e).slice(0,120))}
 }
 async function loadJob(job){
@@ -620,9 +620,7 @@ function pnPick(){
 }
 /* 제번을 고르면 → 품번 칸을 같이 채운다 */
 function pnSync(job){const x=PNMAP.find(y=>y.job===job);q_pn.value=x?x.model:''}
-function search(){if((q_jobf.value||'').trim()&&!(q_job.value||'').trim()){return loadAll()}const j=(q_job.value||'').trim();if(j&&online())return loadJob(j);if(online())return loadAll();render()}
-function clearBase(){q_job.value='';const b=document.getElementById('q_job_base'),q=document.getElementById('q_job_seq');if(b)b.value='';if(q)q.innerHTML='<option value="">-</option>';q_pn.value=''}
-q_jobf.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();clearBase();search()}});
+function search(){const j=(q_job.value||'').trim();if(j&&online())return loadJob(j);if(online())return loadAll();render()}
 window.MES={search,save,saveChecked,setMessage:msg,reload:loadJob,manOpen};render();
 (async()=>{await waitDB();const j=curJobNo();if(j)loadJob(j)})();
 </script>
@@ -633,10 +631,10 @@ window.MES={search,save,saveChecked,setMessage:msg,reload:loadJob,manOpen};rende
 </script>
 <script src="mes_ctx.js?v=169"></script>
 <script src="mes_imgedit.js?v=196"></script>
-<script src="mes_jobpick.js?v=268"></script>
+<script src="mes_jobpick.js?v=269"></script>
 <script>/* 제번 직접 타이핑 → 등록된 수주 목록에서 선택 */
 /* v180: 관리제번 ▼ | 공정 ▼ 두 칸 — 공정을 고르면 그 제번을 열고 품번을 자동으로 채운다 */
-try{MESJOB.attachSplit("q_job",{onPick:j=>{if(typeof loadJob==="function")loadJob(j);try{pnSync(j)}catch(e){}}}).then(()=>{try{pnSync(curJobNo())}catch(e){}})}catch(e){}
+try{MESJOB.attachSplit("q_job",{seqAll:true,seqLabel:"제번",onBase:b=>{try{loadAll(b)}catch(e){}},onPick:j=>{if(typeof loadJob==="function")loadJob(j);try{pnSync(j)}catch(e){}}}).then(()=>{try{pnSync(curJobNo())}catch(e){}})}catch(e){}
 try{pnLoad();
  q_pn.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();try{pnPick()}catch(_){}}});}catch(e){}</script>
 <script>

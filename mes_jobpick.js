@@ -70,8 +70,8 @@ async function attachSplit(inputId,opt){
   const esc=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const w=el.style.width||'';
   const sb=document.createElement('select');sb.id=el.id+'_base';sb.className=el.className||'field';sb.style.width=(parseInt(w,10)>=240?w:'250px');sb.title='관리제번 (공정 문자를 뺀 제번)';
-  const ss=document.createElement('select');ss.id=el.id+'_seq';ss.className=el.className||'field';ss.style.width='118px';ss.title='공정 (A·B·C…). 공정 제번이 없으면 「단일」';
-  const lb=document.createElement('span');lb.className='lb';lb.textContent='공정';lb.style.marginLeft='6px';
+  const ss=document.createElement('select');ss.id=el.id+'_seq';ss.className=el.className||'field';ss.style.width=opt.seqAll?'150px':'118px';ss.title=opt.seqAll?'제번 — 빈칸이면 관리제번 전체(관리제번도 빈칸이면 전체)':'공정 (A·B·C…). 공정 제번이 없으면 「단일」';
+  const lb=document.createElement('span');lb.className='lb';lb.textContent=opt.seqLabel||'공정';lb.style.marginLeft='6px';
   sb.title+=bases.length?` · 등록 ${bases.length}건 · 빈칸 = 전체`:'';
   sb.innerHTML=`<option value="">${bases.length?'':'등록된 수주가 없습니다'}</option>`+   /* TJD: 처음은 빈칸 (빈칸 + 검색 = 전체검색) */
     bases.map(g=>`<option value="${esc(g.base)}">${esc(g.base)}${g.item?' · '+esc(g.item):''}${g.jobs.length>1||g.jobs[0].seq?' ('+g.jobs.map(j=>j.seq||'단일').join('·')+')':''}</option>`).join('');
@@ -80,7 +80,15 @@ async function attachSplit(inputId,opt){
   let anchor=el;const wrap=el.parentNode&&el.parentNode.classList&&el.parentNode.classList.contains('mescb')?el.parentNode:null;
   if(wrap){wrap.style.display='none';anchor=wrap}
   anchor.parentNode.insertBefore(sb,anchor);anchor.parentNode.insertBefore(lb,anchor);anchor.parentNode.insertBefore(ss,anchor);
+  /* TJD v269: opt.seqAll — 둘째 칸을 「제번」 선택으로 (맨 위 빈칸 = 관리제번 전체, 관리제번이 비면 전 제번 목록) */
+  function fillSeqAll(base,want){
+    const g=groups.get(base);
+    const list=g?g.jobs:[].concat(...bases.map(x=>x.jobs));
+    ss.innerHTML='<option value=""></option>'+list.map(j=>`<option value="${esc(j.job)}">${esc(j.job)}</option>`).join('');
+    ss.value=list.some(j=>j.job===want)?want:'';
+  }
   function fillSeq(base,want){
+    if(opt.seqAll)return fillSeqAll(base,want);
     const g=groups.get(base);
     ss.innerHTML=g?g.jobs.map(j=>`<option value="${esc(j.job)}">${j.seq?j.seq+' · '+esc(j.job):'단일 · '+esc(j.job)}</option>`).join(''):'<option value="">-</option>';
     if(g){const hit=g.jobs.find(j=>j.job===want);ss.value=hit?hit.job:g.jobs[0].job}
@@ -90,9 +98,10 @@ async function attachSplit(inputId,opt){
     if(el.value!==v){el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}))}
     if(fire&&v&&opt.onPick)opt.onPick(v);
   }
-  sb.addEventListener('change',()=>{fillSeq(sb.value,'');pick(true)});
+  sb.addEventListener('change',()=>{fillSeq(sb.value,'');pick(true);if(opt.seqAll&&!ss.value&&opt.onBase)opt.onBase(sb.value)});
+  if(opt.seqAll)ss.addEventListener('change',()=>{if(!ss.value&&opt.onBase)opt.onBase(sb.value)});
   ss.addEventListener('change',()=>pick(true));
-  function sync(){const v=(el.value||'').trim();if(!v){return}const s=splitJob(v);
+  function sync(){const v=(el.value||'').trim();if(!v){if(opt.seqAll&&!sb.value)fillSeqAll('','');return}const s=splitJob(v);
     if(groups.has(s.base)){sb.value=s.base;fillSeq(s.base,v)}else{sb.value='';ss.innerHTML=`<option value="${esc(v)}">${esc(v)}</option>`}}
   el.addEventListener('change',sync);
   el.__mesjobSync=sync;
