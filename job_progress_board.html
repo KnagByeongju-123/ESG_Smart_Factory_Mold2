@@ -35,6 +35,12 @@ button,input,select{font:inherit;color:inherit}
 .cust{color:#6e7c87;font-size:13px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tag{font-size:11px;border:1px solid var(--line2);padding:1px 6px;color:#5c6b76;background:#f4f7f9}
 .tag.out{border-color:#b9cfe2;background:#eaf3fa;color:#2a6191}
+/* TJD v267: 수주유형 표시 — 신작·개조·수리 */
+.ot{font-size:11px;font-weight:700;padding:1px 7px;border-radius:3px;border:1px solid;letter-spacing:.5px}
+.ot.new{background:#e6f1fb;border-color:#7fa9d6;color:#1d5da3}
+.ot.mod{background:#efe9fa;border-color:#b39ddb;color:#5e35b1}
+.ot.rep{background:#fdeee2;border-color:#e6a36a;color:#a0520e}
+.ot.non{background:#f3f5f7;border-color:#c5cfd8;color:#7a8791}
 .dday{margin-left:auto;display:flex;align-items:center;gap:8px}
 .dday .d{font-weight:700;font-size:14px}
 .dday .d.warn{color:var(--run)}.dday .d.bad{color:var(--late)}
@@ -117,6 +123,11 @@ button,input,select{font:inherit;color:inherit}
    <option value="job">관리제번순</option>
   </select>
   <label style="margin-left:8px"><input type="checkbox" id="qOpen" checked onchange="apply()"> 납품미완료</label>
+  <span style="margin-left:10px;display:inline-flex;align-items:center;gap:6px;padding:1px 8px;border:1px solid #c9d8e6;background:#f4f8fc;border-radius:3px" title="수주등록의 수주유형. 양산 중인 금형은 수리로 발주합니다">
+   <span class="lb" style="margin:0">유형</span>
+   <label style="margin:0"><input type="checkbox" class="otQ" value="신작" checked onchange="apply()"> 신작</label>
+   <label style="margin:0"><input type="checkbox" class="otQ" value="개조" checked onchange="apply()"> 개조</label>
+   <label style="margin:0"><input type="checkbox" class="otQ" value="수리" checked onchange="apply()"> 수리</label></span>
   <button class="btn" onclick="load()">⟳ 새로고침</button>
   <button class="btn" onclick="expandAll(true)">▼ 전체펼침</button>
   <button class="btn" onclick="expandAll(false)">▲ 접기</button>
@@ -198,12 +209,14 @@ async function load(){
 function apply(){
  const j=qJob.value.trim().toLowerCase(),i=qItem.value.trim().toLowerCase(),c=qCust.value.trim().toLowerCase();
  const onlyOpen=qOpen.checked;
+ const otOn=new Set([...document.querySelectorAll('.otQ:checked')].map(c=>c.value));
  /* 공정 제번 단위로 걸러 → 관리제번으로 묶는다. 담당·지연 필터는 공정 하나라도 해당하면 관리제번을 보인다 */
  view=rows.filter(r=>{
   if(j&&!String(r.job_no||'').toLowerCase().includes(j))return false;
   if(i&&!((String(r.item_name||'')+' '+String(r.product_name||'')).toLowerCase().includes(i)))return false;
   if(c&&!String(r.customer_name||'').toLowerCase().includes(c))return false;
   if(onlyOpen&&r.st_delivery==='done')return false;
+  if(otOn.size<3&&r.order_type&&!otOn.has(String(r.order_type)))return false;   /* TJD: 수주유형 체크 (유형 없는 제번은 항상 표시) */
   return true;
  });
  allGroups=groupRows(view);
@@ -263,6 +276,13 @@ function btnHtml(r){
  return `${r.next_screen?`<button class="btn go" onclick="event.stopPropagation();goScreen('${esc(r.next_screen)}')">↗ ${esc(r.next_screen)}</button>`:''}
     ${canReset()?`<button class="btn del" onclick="event.stopPropagation();resetJob('${esc(base)}')" title="관리제번 ${esc(base)} 의 모든 공정 제번과 이력을 지웁니다">✕ 진행삭제</button>`:''}`;
 }
+/* TJD: 관리제번의 수주유형 뱃지 — 공정 제번마다 다르면 모두 표시 */
+const OT_CLS={'신작':'new','개조':'mod','수리':'rep'};
+function otBadge(g){
+ const ts=[...new Set((g.jobs||[]).map(x=>String(x.order_type||'').trim()).filter(Boolean))];
+ if(!ts.length)return '<span class="ot non" title="수주등록에 수주유형이 없습니다">유형 미지정</span>';
+ return ts.map(t=>`<span class="ot ${OT_CLS[t]||'non'}" title="수주유형 ${esc(t)}${t==='수리'?' — 양산 중인 금형의 수리·보완 제작':''}">${esc(t)}</span>`).join(' ');
+}
 function render(){
  board.innerHTML=groups.length?groups.map(g=>{
   const r=g.rep,p=g.pct,multi=g.jobs.length>1||!!jsplit(r.job_no).seq;
@@ -272,6 +292,7 @@ function render(){
   return `<div class="card${g.late?' late':''}">
    <div class="chead" onclick="toggle('${esc(g.base)}')">
     <span class="jno">${esc(g.base)}${multi?` <span style="font-size:15px;color:#2a6191">${esc(seqRange(seqs))}</span>`:''}</span>
+    ${otBadge(g)}
     ${multi?`<span class="seqs" title="${esc(g.jobs.map(x=>x.job_no).join(', '))}">공정 <b>${g.jobs.length}</b></span>`:''}
     <span class="item">${esc(g.item)}</span>
     <span class="cust">${esc(g.cust)}</span>
