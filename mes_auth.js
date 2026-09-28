@@ -152,7 +152,7 @@ function checkLockout(){
 
 /* -- 진입 완료 -- */
 function done(o,interactive){
-  AUTH.name=o.name; AUTH.dept=o.dept||''; AUTH.role=o.role||'user'; AUTH.perms=[];
+  AUTH.name=o.name; AUTH.dept=o.dept||''; AUTH.position=o.position||''; AUTH.role=o.role||'user'; AUTH.perms=[];
   try{sessionStorage.setItem('ESG_USER',o.name)}catch(e){}
   window.CURRENT_USER=o.name;
   document.removeEventListener('keydown',keyIn,true);
@@ -169,7 +169,7 @@ function done(o,interactive){
     /* 인트로에서 이미 인증한 경우 그대로 통과 (같은 도메인) */
     const role=a.role||(a.pin==='2480'?'master':'user');
     const dept=a.dept||PIN_DEPT[String(a.pin||'')[0]]||'';
-    const go=()=>done({name:a.name,dept,role},false);
+    const go=()=>done({name:a.name,dept,position:a.position||'',role},false);
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else go();
     return;
   }

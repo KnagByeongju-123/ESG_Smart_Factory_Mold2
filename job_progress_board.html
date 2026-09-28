@@ -330,7 +330,11 @@ function detail(r){
 function toggle(job){open.has(job)?open.delete(job):open.add(job);render()}
 function expandAll(on){open=on?new Set(groups.map(g=>g.base)):new Set();render()}
 /* 진행삭제: 수주정보(제번)까지 포함해 그 제번의 모든 기록을 지운다 (관리자만) */
-function canReset(){try{const a=MESDB.auth&&MESDB.auth();const r=a&&a.role;return r==='master'||r==='admin'}catch(e){return false}}
+/* TJD: PIN 로그인은 역할이 '사용자' 하나뿐이라 관리자 조건만으로는 아무에게도 안 보였다.
+   마스터 PIN · 관리자 · 품질관리팀 · 팀장급 이상(직급) 에게 [✕ 진행삭제] 를 보인다. 실행 시 관리제번 재입력 확인은 그대로. */
+function canReset(){try{const a=MESDB.auth&&MESDB.auth();if(!a)return true;const r=a.role;if(r==='master'||r==='admin')return true;
+ const d=String(a.dept||''),ps=String(a.position||'');
+ return /품질관리|대표|공장장/.test(d)||/팀장|부장|이사|상무|전무|대표|공장장|소장/.test(ps)}catch(e){return false}}
 /* v234: 관리제번 단위 완전 삭제
  *  1) 관리제번에 딸린 공정 제번(A~F) 전부를 화면·DB(jobs·sale_orders·sales_plans·order_lines) 에서 모아
  *  2) 공정 제번마다 기존 RPC mes_reset_job_progress 로 지우고
