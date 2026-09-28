@@ -37,14 +37,16 @@ tbody tr:nth-child(even) td{background:#fafcfd}tbody tr:hover td{background:#edf
 <div class="title"><h1>PartList 등록(원재료)</h1><small>설계관리 · PARTLIST</small></div>
 
 <section class="filt">
- <span class="lb" title="관리제번을 고르고 공정(A·B·C)을 고르면 그 공정 제번의 PartList 가 열립니다 (v180)">관리제번</span><input id="q_job" class="field" style="width:190px" autocomplete="off">
+ <span class="lb" title="제번 일부를 넣고 [검색] — 관리제번을 비워 두면 전체에서 찾습니다">제번</span><input id="q_jobf" class="field" style="width:120px" placeholder="제번 검색" autocomplete="off" title="제번 일부(예 26RDE) 를 넣고 [검색] 하면 그 글자가 든 제번의 PartList 를 모두 보입니다">
+ <span class="lb" title="관리제번을 고르고 공정(A·B·C)을 고르면 그 공정 제번의 PartList 가 열립니다. 비워 두고 [검색] 하면 전체검색">관리제번</span><input id="q_job" class="field" style="width:190px" autocomplete="off">
  <span class="lb">품번</span><input id="q_pn" class="field" style="width:150px;background:#f4f7f9" placeholder="자동" readonly title="고른 제번의 품번(수주등록)">
+ <button class="btn" onclick="search()" title="관리제번이 비어 있으면 전체(또는 제번 검색어) 조회">⌕ 검색</button>
  <span class="hint">관리제번 · 공정 선택 → 엑셀 <b>금형번호·품명·재질·규격·두께·수량</b> 복사(<b>Ctrl+C</b>) → <b>Ctrl+V</b> → 리스트에 추가 → 체크 → <b>[▤ 등록]</b></span>
 </section>
 
 <div class="gridbox"><table style="min-width:980px"><thead><tr>
  <th style="width:36px"><input type="checkbox" id="chkAll" onclick="chkAllRows(this.checked)" title="전체 선택"></th>
- <th style="width:50px">No</th><th style="width:40px" title="부품 이미지 — 행을 체크하고 [📷 이미지]">📷</th><th style="width:130px">금형번호</th><th style="width:220px">품명</th><th style="width:100px">재질</th><th style="width:64px" title="사각·환봉·파이프 — 중량 계산식이 달라집니다">형태</th>
+ <th style="width:50px">No</th><th style="width:110px">제번</th><th style="width:40px" title="부품 이미지 — 행을 체크하고 [📷 이미지]">📷</th><th style="width:130px">금형번호</th><th style="width:220px">품명</th><th style="width:100px">재질</th><th style="width:64px" title="사각·환봉·파이프 — 중량 계산식이 달라집니다">형태</th>
  <th style="width:190px">규격</th><th style="width:80px">두께</th><th style="width:70px">수량</th>
  <th style="width:90px">등록자</th><th>등록일자</th>
 </tr></thead><tbody id="body"></tbody></table></div>
@@ -157,8 +159,8 @@ const view=()=>[...data,...pend];
 const rowById=id=>view().find(x=>x.row_no===id);
 function render(){
  const v=view();
- body.innerHTML=v.length?v.map((r,i)=>`<tr class="${r._new?'new':''}" onclick="rowClick(${r.row_no},event)"><td class="c"><input type="checkbox" data-row="${r.row_no}" ${chk.has(r.row_no)?'checked':''} onclick="toggleChk(${r.row_no},this.checked)"></td><td class="c">${i+1}</td><td class="c">${r.image_url?MESDB.imgBox(r.image_url,22):''}</td><td>${esc(r.part_no)}</td><td>${esc(r.part_name)}</td><td class="c">${esc(r.material||'')}</td><td class="c">${esc(r.shape||'')}</td><td>${esc(SPECOF(r))}</td><td class="num">${fmt(r.thickness_dia)}</td><td class="num">${fmt(r.qty)}</td><td class="c">${r._new?'<span class="tag">미등록</span>':esc(r.registered_by||'')}</td><td class="c">${r._new?'':esc(r.registered_date||'')}</td></tr>`).join('')
-  :'<tr><td colspan="12" class="c" style="height:120px;color:#8a97a2">등록된 품목이 없습니다. 엑셀에서 복사(Ctrl+C) 후 이 화면에서 붙여넣기(Ctrl+V) 하세요.</td></tr>';
+ body.innerHTML=v.length?v.map((r,i)=>`<tr class="${r._new?'new':''}" onclick="rowClick(${r.row_no},event)"><td class="c"><input type="checkbox" data-row="${r.row_no}" ${chk.has(r.row_no)?'checked':''} onclick="toggleChk(${r.row_no},this.checked)"></td><td class="c">${i+1}</td><td>${esc(r.job_no||curJob||'')}</td><td class="c">${r.image_url?MESDB.imgBox(r.image_url,22):''}</td><td>${esc(r.part_no)}</td><td>${esc(r.part_name)}</td><td class="c">${esc(r.material||'')}</td><td class="c">${esc(r.shape||'')}</td><td>${esc(SPECOF(r))}</td><td class="num">${fmt(r.thickness_dia)}</td><td class="num">${fmt(r.qty)}</td><td class="c">${r._new?'<span class="tag">미등록</span>':esc(r.registered_by||'')}</td><td class="c">${r._new?'':esc(r.registered_date||'')}</td></tr>`).join('')
+  :'<tr><td colspan="13" class="c" style="height:120px;color:#8a97a2">등록된 품목이 없습니다. 엑셀에서 복사(Ctrl+C) 후 이 화면에서 붙여넣기(Ctrl+V) 하세요.</td></tr>';
  chkAll.checked=v.length>0&&v.every(r=>chk.has(r.row_no));
  countText.textContent=`${v.length}건`+(pend.length?` (미등록 ${pend.length})`:'')+(chk.size?` · 선택 ${chk.size}`:'');
 }
@@ -172,11 +174,26 @@ async function waitDB(){for(let i=0;i<60&&!window.MESDB;i++)await new Promise(r=
  if(window.MESDB&&MESDB.ready){try{await MESDB.ready}catch(e){}}}
 let curJob=null;
 function curJobNo(){return (q_job.value||curJob||'').trim()}
+/* TJD v268: 관리제번을 비우고 [검색] → 전체(또는 제번 검색어) PartList 조회 */
+let ALLMODE=false;
+async function loadAll(){
+ await waitDB();if(!online())return;
+ const t=(q_jobf.value||'').trim();
+ if(pend.length){msg(`전체검색으로 바꿔 미등록 ${pend.length}건을 비웠습니다.`);pend.length=0;chk.clear()}
+ curJob='';ALLMODE=true;
+ try{
+  let q='select=*&order=job_no,row_no&limit=3000';if(t)q+=`&job_no=ilike.*${encodeURIComponent(t)}*`;
+  const rs=await MESDB.table('partlist_materials').select(q,{fresh:true});
+  rs.sort((a,b)=>String(a.job_no||'').localeCompare(String(b.job_no||''),'ko',{numeric:true})||joSort(a.process_code,b.process_code)||(Number(a.row_no)||0)-(Number(b.row_no)||0));
+  data.length=0;data.push(...rs);[...chk].forEach(id=>{if(!rowById(id))chk.delete(id)});
+  render();msg(`${t?`제번 '${t}' 포함 `:'전체 '}원재료 PartList ${rs.length}건 · 제번 ${new Set(rs.map(r=>r.job_no)).size}개${rs.length>=3000?' (3000건까지만 표시)':''} — 등록·붙여넣기는 관리제번·공정을 고른 뒤 하세요.`);
+ }catch(e){msg('조회 실패: '+String(e.message||e).slice(0,120))}
+}
 async function loadJob(job){
  await waitDB();if(!online())return;
  const nj=job||curJob;if(!nj)return;
  if(nj!==curJob&&pend.length){msg(`제번이 바뀌어 미등록 ${pend.length}건을 비웠습니다.`);pend.length=0;chk.clear()}
- curJob=nj;
+ curJob=nj;ALLMODE=false;
  try{
   const rs=await MESDB.table('partlist_materials').select(`select=*&job_no=eq.${encodeURIComponent(curJob)}&order=row_no`);
   rs.sort((a,b)=>joSort(a.process_code,b.process_code)||(Number(a.row_no)||0)-(Number(b.row_no)||0));
@@ -276,8 +293,9 @@ async function del_(){
   for(const id of dbIds)await MESDB.table('partlist_materials').delete({row_no:id});
   ids.forEach(id=>chk.delete(id));
   let cr={del:0,kept:[],raw:[]};
-  if(delRows.length){try{cr=await planCascade(curJobNo(),delRows)}catch(e){}}
-  if(dbIds.length){notify();await loadJob()}else render();
+  if(delRows.length){try{const byJob=new Map();delRows.forEach(r=>{const j=String(r.job_no||curJobNo());if(!byJob.has(j))byJob.set(j,[]);byJob.get(j).push(r)});
+   for(const [j,rs] of byJob){const c=await planCascade(j,rs);cr.del+=c.del;cr.kept.push(...c.kept);cr.raw.push(...c.raw)}}catch(e){}}
+  if(dbIds.length){notify();if(ALLMODE)await loadAll();else await loadJob()}else render();
   msg(`${ids.length}건을 삭제했습니다.`+cascadeMsg(cr));
  }catch(e){msg('삭제 실패: '+String(e.message||e).slice(0,120))}
 }
@@ -602,7 +620,9 @@ function pnPick(){
 }
 /* 제번을 고르면 → 품번 칸을 같이 채운다 */
 function pnSync(job){const x=PNMAP.find(y=>y.job===job);q_pn.value=x?x.model:''}
-function search(){const j=curJobNo();if(j&&online())return loadJob(j);render()}
+function search(){if((q_jobf.value||'').trim()&&!(q_job.value||'').trim()){return loadAll()}const j=(q_job.value||'').trim();if(j&&online())return loadJob(j);if(online())return loadAll();render()}
+function clearBase(){q_job.value='';const b=document.getElementById('q_job_base'),q=document.getElementById('q_job_seq');if(b)b.value='';if(q)q.innerHTML='<option value="">-</option>';q_pn.value=''}
+q_jobf.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();clearBase();search()}});
 window.MES={search,save,saveChecked,setMessage:msg,reload:loadJob,manOpen};render();
 (async()=>{await waitDB();const j=curJobNo();if(j)loadJob(j)})();
 </script>
@@ -613,7 +633,7 @@ window.MES={search,save,saveChecked,setMessage:msg,reload:loadJob,manOpen};rende
 </script>
 <script src="mes_ctx.js?v=169"></script>
 <script src="mes_imgedit.js?v=196"></script>
-<script src="mes_jobpick.js?v=180"></script>
+<script src="mes_jobpick.js?v=268"></script>
 <script>/* 제번 직접 타이핑 → 등록된 수주 목록에서 선택 */
 /* v180: 관리제번 ▼ | 공정 ▼ 두 칸 — 공정을 고르면 그 제번을 열고 품번을 자동으로 채운다 */
 try{MESJOB.attachSplit("q_job",{onPick:j=>{if(typeof loadJob==="function")loadJob(j);try{pnSync(j)}catch(e){}}}).then(()=>{try{pnSync(curJobNo())}catch(e){}})}catch(e){}

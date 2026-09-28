@@ -72,7 +72,8 @@ async function attachSplit(inputId,opt){
   const sb=document.createElement('select');sb.id=el.id+'_base';sb.className=el.className||'field';sb.style.width=(parseInt(w,10)>=240?w:'250px');sb.title='관리제번 (공정 문자를 뺀 제번)';
   const ss=document.createElement('select');ss.id=el.id+'_seq';ss.className=el.className||'field';ss.style.width='118px';ss.title='공정 (A·B·C…). 공정 제번이 없으면 「단일」';
   const lb=document.createElement('span');lb.className='lb';lb.textContent='공정';lb.style.marginLeft='6px';
-  sb.innerHTML=`<option value="">${bases.length?`관리제번 선택 (${bases.length}건)`:'등록된 수주가 없습니다'}</option>`+
+  sb.title+=bases.length?` · 등록 ${bases.length}건 · 빈칸 = 전체`:'';
+  sb.innerHTML=`<option value="">${bases.length?'':'등록된 수주가 없습니다'}</option>`+   /* TJD: 처음은 빈칸 (빈칸 + 검색 = 전체검색) */
     bases.map(g=>`<option value="${esc(g.base)}">${esc(g.base)}${g.item?' · '+esc(g.item):''}${g.jobs.length>1||g.jobs[0].seq?' ('+g.jobs.map(j=>j.seq||'단일').join('·')+')':''}</option>`).join('');
   el.style.display='none';el.setAttribute('data-nocombo','1');
   /* 공용 콤보(mes_ctx)가 먼저 입력칸을 감쌌으면 감싼 통째로 숨기고 그 앞에 넣는다 */
