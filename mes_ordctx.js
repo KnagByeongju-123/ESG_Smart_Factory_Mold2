@@ -753,6 +753,17 @@ async function doReceive(withConfirm) {
       if (withConfirm) { r2.status = '입고확정'; r2.confirm_date = row.receipt_date; r2.confirm_price = Math.round((ea || _n(el.quote_price)) * (1 - rate / 100)) || null; r2.nego_rate = rate; }
       rows.push(r2); done.push(`${x.b.part} ${eq}개`);
     }
+    if (CFG.category === '외주가공') {
+      /* TJD: 외주가공은 입고 이력(outsourcing_moves)을 DB 함수가 함께 기록한다 — 사내외가공 발주 화면과 같은 경로 */
+      const rc = await MESDB.rpc('fn_osp_receive', { p_line_id: Number(l.line_id), p_qty: q, p_date: row.receipt_date, p_short: 0, p_source: '발주현황', p_remark: (_v('oxInRemark') || '').trim() || null });
+      const patch = { line_id: Number(l.line_id), unit_price: row.unit_price, receipt_amount: row.receipt_amount, updated_at: row.updated_at };
+      if (withConfirm) {
+        if (rc && rc.closed === false) say('분할 입고라 입고확정은 하지 않았습니다. 잔량 입고 후 다시 확정하세요.');
+        else { patch.status = '입고확정'; patch.confirm_date = row.confirm_date; patch.confirm_price = row.confirm_price; patch.nego_rate = row.nego_rate; }
+      }
+      await MESDB.table('order_lines').upsert([patch], 'line_id');
+      try { MESDB.dropCache && MESDB.dropCache('outsourcing_moves'); } catch (e) {}
+    } else
     await MESDB.table('order_lines').upsert(rows, 'line_id');
     const more = done.length ? ` · 함께 ${withConfirm ? '입고확정' : '입고'} ${done.length}건: ${done.join(', ')}` : '';
     await after(withConfirm
@@ -836,6 +847,8 @@ async function doReceiveCancel() {
   if (!_online()) return say('DB 미연결 - 입고취소를 할 수 없습니다.');
   if (!confirm(`${b.part} · ${l.vendor_name || ''} 의 입고를 취소합니다.\n발주 상태로 돌아가며 입고수량·입고일이 지워집니다. 계속할까요?`)) return;
   try {
+    if (CFG.category === '외주가공') await MESDB.rpc('fn_osp_receive_cancel_all', { p_line_id: Number(l.line_id) });   /* TJD: 입고 이력까지 함께 지운다 */
+    else
     await MESDB.table('order_lines').upsert([{
       line_id: Number(l.line_id), status: '발주',
       receipt_qty: 0, receipt_date: null, receipt_amount: null, receipt_weight: null,
