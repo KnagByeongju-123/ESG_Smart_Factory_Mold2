@@ -133,8 +133,9 @@ tr.rdone td{color:#8b98a3}
 #jobListTable th{width:auto!important;min-width:0!important;max-width:none!important}
 @media(max-width:900px){.panes{grid-template-columns:1fr!important}.panes>.box:first-child{min-width:0!important}}
 /* TJD v273: 전체 부품 보기 — 제번 머리줄 */
-#routeBody tr.allhd td{background:#e6eef6;color:#1f3a56;font-weight:700;text-align:left;padding:4px 8px;border-top:2px solid #9fb6cc;position:static}
+#routeBody tr.allhd td{background:#e6eef6;color:#1f3a56;font-weight:700;text-align:left;padding:4px 8px;border-top:2px solid #9fb6cc;position:static;overflow:visible}
 #routeBody tr[data-job]{cursor:context-menu}
+#routeBody tr.allhd .hdl{position:sticky;left:8px;display:inline-block}
 </style>
 </head>
 <body>
@@ -435,6 +436,16 @@ function search(){const j=jobQ.value.trim().toLowerCase(),pn=pnQ.value.trim().to
  * [조회] 때 제번 칸이 비어 있으면 제번리스트(관리제번·품번 필터 적용)의 모든 제번 부품을 한 표에 모은다.
  * 업체 칸에 값이 있으면 그 업체에 외주가공 발주된 부품만 보인다.
  * 줄을 우클릭·더블클릭·클릭하면 그 줄의 제번으로 바뀌고, 같은 칸의 발주·입고 창이 바로 열린다. */
+/* TJD v274: 고정 열 6칸의 left 값을 실제 머리글 칸 너비로 다시 잡는다.
+   (창이 넓으면 표가 100%로 늘어나 칸이 넓어지는데, 고정 left 값(30·70·122…)은 그대로라 고정 열이 겹치거나 틈이 생겼다) */
+function fixSticky(){try{
+ const tb=routeBody.closest('table'),ths=tb&&tb.tHead?[...tb.tHead.rows[0].cells]:[];if(ths.length<6)return;
+ let st=document.getElementById('stkcss');if(!st){st=document.createElement('style');st.id='stkcss';document.head.appendChild(st)}
+ let x=0,css='';for(let i=0;i<6;i++){css+=`.panes>.box:nth-child(2) th:nth-child(${i+1}),.panes>.box:nth-child(2) td:nth-child(${i+1}){left:${x}px}\n`;x+=ths[i].getBoundingClientRect().width}
+ css+='#routeBody tr.allhd td{left:0}\n';
+ if(st.textContent!==css)st.textContent=css}catch(e){}}
+try{new ResizeObserver(()=>fixSticky()).observe(routeBody.closest('table'))}catch(e){window.addEventListener('resize',fixSticky)}
+setTimeout(fixSticky,300);
 var ALLMODE=false,ALLBUSY=false,_allSeq=0;
 function doSearch(){search();if(!String(jobQ.value||'').trim())searchAll();else{const i=jobView.findIndex(x=>x.job===jobQ.value.trim());if(i>=0)pickJob(i)}}
 async function searchAll(){
@@ -460,7 +471,7 @@ async function searchAll(){
    tr.dataset.job=j.job;tr.dataset.part=r.part;tr.dataset.cyc=rowCyc(r);tr.dataset.jo=r.jo??'';
    tr.title=`${j.job} · 우클릭·더블클릭하면 이 제번으로 바꿔 바로 처리합니다`;rows.push(tr.outerHTML)});
   if(rows.length){nJob++;nRow+=rows.length;
-   html.push(`<tr class="allhd"><td colspan="30">제번 ${_esc(j.job)}${j.model?' · '+_esc(j.model):''}${j.item?' · '+_esc(j.item):''} <span style="font-weight:400;color:#56708a">(부품 ${rows.length})</span></td></tr>`,...rows)}
+   html.push(`<tr class="allhd"><td colspan="30"><span class="hdl">제번 ${_esc(j.job)}${j.model?' · '+_esc(j.model):''}${j.item?' · '+_esc(j.item):''} <span style="font-weight:400;color:#56708a">(부품 ${rows.length})</span></span></td></tr>`,...rows)}
   msg(`전체 부품을 불러오는 중… ${k+1}/${targets.length}`);
  }
  ALLBUSY=false;ROUTES.length=0;jobIdx=-1;renderJobs();
