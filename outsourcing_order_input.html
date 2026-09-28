@@ -132,6 +132,9 @@ tr.rdone td{color:#8b98a3}
 #jobListTable col:nth-child(4){width:150px!important}
 #jobListTable th{width:auto!important;min-width:0!important;max-width:none!important}
 @media(max-width:900px){.panes{grid-template-columns:1fr!important}.panes>.box:first-child{min-width:0!important}}
+/* TJD v273: 전체 부품 보기 — 제번 머리줄 */
+#routeBody tr.allhd td{background:#e6eef6;color:#1f3a56;font-weight:700;text-align:left;padding:4px 8px;border-top:2px solid #9fb6cc;position:static}
+#routeBody tr[data-job]{cursor:context-menu}
 </style>
 </head>
 <body>
@@ -142,8 +145,8 @@ tr.rdone td{color:#8b98a3}
     <span class="label">제번</span><input id="jobQ" class="field" style="width:130px" placeholder="제번 입력/선택" autocomplete="off">
     <span class="label">품번</span><input id="pnQ" class="field" style="width:120px" placeholder="품번 입력/선택" list="pnDL" autocomplete="off"><datalist id="pnDL"></datalist>
     <span class="label">업체</span><input id="venF" class="field" style="width:130px" placeholder="업체 입력/선택" list="venDL" autocomplete="off"><datalist id="venDL"></datalist>
-    <span class="label">최종완료</span><select id="doneF" class="field" onchange="renderRoutes()" title="전 공정이 입고된 줄(이전 차수 포함)을 숨기거나 보입니다"><option value="x">제외</option><option value="i">포함</option></select>
-    <button class="btn" onclick="search()">⌕ 조회</button>
+    <span class="label">최종완료</span><select id="doneF" class="field" onchange="ALLMODE?searchAll():renderRoutes()" title="전 공정이 입고된 줄(이전 차수 포함)을 숨기거나 보입니다"><option value="x">제외</option><option value="i">포함</option></select>
+    <button class="btn" onclick="doSearch()" title="제번을 비우고 조회하면 전체 제번의 부품을 한 표에 보여 줍니다 (업체를 넣으면 그 업체에 발주된 부품만)">⌕ 조회</button>
     <button class="btn" id="btnRefresh" onclick="refreshAll()" title="DB에서 제번·부품별 가공공정을 다시 불러옵니다 (다른 화면의 발주·입고 반영)">⟳ 새로고침</button><button class="btn" onclick="cycOpen()" title="이미 가공 진행 중인 부품을 공정1부터 다시 — 기존 발주·입고 이력은 이전 차수로 남고 새 차수(빈 공정 칸)로 시작합니다. 부품 행을 체크하면 그 부품만 고릅니다" style="color:#7a4a12;font-weight:700">↻ 신규진행</button><button class="btn" onclick="cycManage()" title="차수 되돌리기(잘못 누른 신규진행 취소) · 차수 종료(미입고 발주를 지우고 닫기)">⚙ 차수 관리</button><span class="ctxhint" title="공정 칸에서 마우스 오른쪽 버튼을 누르면 상태에 맞는 처리 창이 열립니다 (더블클릭도 같은 창).&#10;입고·완료 칸에서는 회차별 입고취소 · 입고 전체취소 · 확정취소, 같은 업체 발주건 함께 입고(다중입고)가 됩니다.&#10;연속 공정을 한 업체에 맡길 때는 마지막 공정 칸을 우클릭하면 그 사이 공정이 한꺼번에 발주됩니다.&#10;부품 그림 칸을 누르면 그림보드가 열려 공정 순서 끌어 바꾸기, 기준공정 불러오기, 가공계획 적용을 할 수 있습니다.">※ <b style="color:#7a4a12">외주 칸</b> 우클릭 → 발주 · 입고 · 확정 · 묶음 · <b>취소</b> <b>|</b> <b style="color:#8a6d3b">사내 칸</b> 우클릭 → <b>가공완료 등록</b> <b>|</b> 부품 행(그림·부품코드·부품명) 우클릭 또는 그림 클릭 → <b>그림보드(공정 순서·기준공정·QR)</b></span>
   </section>
   <section class="panes">
@@ -164,7 +167,7 @@ tr.rdone td{color:#8b98a3}
     <thead><tr><th>No</th><th>선택</th><th>협력업체</th><th>제번</th><th>품명</th><th>공정</th><th>공정명</th><th>품번</th><th>부품명</th><th>순번</th><th>가공공정코드</th><th>가공공정</th><th>발주수량</th><th>발주월</th><th>입고요구월</th><th>비고</th><th>작성자</th></tr></thead>
     <tbody id="reqBody"></tbody>
   </table></div></div>
-  <footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn primary" onclick="save()">▣ 저장</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫 기</button><span class="msg" id="message">제번·협력업체를 고르고 가공공정을 내려 외주가공 발주를 등록합니다.</span><span class="right" id="countText"></span></footer>
+  <footer class="foot"><button class="btn" onclick="doSearch()">⌕ 검색</button><button class="btn primary" onclick="save()">▣ 저장</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫 기</button><span class="msg" id="message">제번·협력업체를 고르고 가공공정을 내려 외주가공 발주를 등록합니다.</span><span class="right" id="countText"></span></footer>
 </div>
 <script>
 /* v46: 작성자/담당자 기본값 = 로그인 사용자 (회사명 하드코딩 제거) */
@@ -329,6 +332,7 @@ function venFind(){const q=(venQ.value||'').trim().toLowerCase();
 function renderVendors(){venBody.innerHTML=venView.map((v,i)=>`<tr class="${i===venIdx?'sel':''}" onclick="pickVendor(${i})"><td>${v}</td></tr>`).join('')}
 var MAXSTEP=10;  /* v149: 부품별 가공공정은 공정1~10 까지 (화면보다 넓으면 가로 스크롤) */
 function renderRoutes(){
+ if(ALLMODE&&!ALLBUSY)return;   /* TJD v273: 전체 부품 보기 중에는 표를 덮어쓰지 않는다 */
  routeBody.innerHTML=ROUTES.map((r,ri)=>{
   if(r.steps&&r.steps.length>MAXSTEP)r.steps=r.steps.slice(0,MAXSTEP);   /* v115: 어떤 경로로 들어와도 공정1~7 까지만 */
   const codes=(r.steps||[]).map(stepCode).filter(Boolean), n=codes.length;
@@ -387,7 +391,7 @@ function setQty(no,v){const r=REQ.find(x=>x.no===no);if(!r)return;
  const q=Math.max(1,Math.round(Number(String(v).replace(/[^0-9.]/g,''))||1));
  r.qty=q;r.amount=(Number(r.price)||0)*q;renderReq();
  msg(`${r.part} ${r.mp} 발주수량 ${q} · 발주금액 ${(r.amount||0).toLocaleString('ko-KR')}원`)}
-function pickJob(i){jobIdx=i;renderJobs();const j=jobView[i];if(!j)return;
+function pickJob(i){if(ALLMODE||ALLBUSY){ALLMODE=false;ALLBUSY=false;_allSeq++}jobIdx=i;renderJobs();const j=jobView[i];if(!j)return;
  try{jobQ.value=j.job;pnQ.value=j.model||''}catch(e){}
  msg(`${j.job} 부품별 가공공정을 조회합니다...`);
  if(typeof loadRoutes==='function')loadRoutes();}
@@ -427,6 +431,70 @@ function venFillDL(){const dl=document.getElementById('venDL');if(!dl)return;
 function venPick(){const v=String(venF.value||'').trim();venQ.value=v;venFind();
  const i=venView.findIndex(x=>String(x)===v);if(i>=0)pickVendor(i)}
 function search(){const j=jobQ.value.trim().toLowerCase(),pn=pnQ.value.trim().toLowerCase(),bq=(document.getElementById('baseQ')||{}).value||'';jobView=JOBS.filter(x=>(!bq||baseOf(x.job)===bq)&&(!j||x.job.toLowerCase().includes(j))&&(!pn||(x.model||'').toLowerCase().includes(pn)));jobIdx=0;renderJobs();msg(`제번 ${jobView.length}건을 조회했습니다.`)}
+/* ── TJD v273: 전체 부품 보기 ─────────────────────────────────────────
+ * [조회] 때 제번 칸이 비어 있으면 제번리스트(관리제번·품번 필터 적용)의 모든 제번 부품을 한 표에 모은다.
+ * 업체 칸에 값이 있으면 그 업체에 외주가공 발주된 부품만 보인다.
+ * 줄을 우클릭·더블클릭·클릭하면 그 줄의 제번으로 바뀌고, 같은 칸의 발주·입고 창이 바로 열린다. */
+var ALLMODE=false,ALLBUSY=false,_allSeq=0;
+function doSearch(){search();if(!String(jobQ.value||'').trim())searchAll();else{const i=jobView.findIndex(x=>x.job===jobQ.value.trim());if(i>=0)pickJob(i)}}
+async function searchAll(){
+ const my=++_allSeq;ALLMODE=true;ALLBUSY=true;PICK.clear();
+ const list=jobView.slice(),vf=String((document.getElementById('venF')||{}).value||'').trim(),vfl=vf.toLowerCase();
+ routeBody.innerHTML='<tr><td colspan="30" style="height:60px;text-align:center;color:#56708a">전체 부품을 불러오는 중…</td></tr>';
+ msg('전체 부품을 불러오는 중…');
+ let has=null,vset=null;
+ try{const [a,b]=await Promise.all([MESDB.table('partlist_materials').select('select=job_no',{fresh:true}),MESDB.table('machining_plan_parts').select('select=job_no',{fresh:true})]);
+  has=new Set([...(a||[]),...(b||[])].map(x=>x.job_no))}catch(e){}
+ if(vf){try{const rs=await MESDB.table('order_lines').select(`select=job_no&category=eq.${encodeURIComponent('외주가공')}&vendor_name=ilike.*${encodeURIComponent(vf)}*`,{fresh:true});vset=new Set((rs||[]).map(x=>x.job_no))}catch(e){}}
+ if(my!==_allSeq)return;
+ const targets=list.filter(j=>(!has||has.has(j.job))&&(!vset||vset.has(j.job)));
+ const html=[];let nRow=0,nJob=0,nHid=0;
+ for(let k=0;k<targets.length;k++){
+  const j=targets[k];jobIdx=jobView.indexOf(j);
+  await loadRoutes();
+  if(my!==_allSeq)return;
+  const rows=[];
+  ROUTES.forEach((r,ri)=>{const tr=routeBody.children[ri];if(!tr)return;
+   if(tr.style.display==='none'){nHid++;return}
+   if(vf&&!(r.steps||[]).some((c,i)=>String(stepInfo(r,i).vendor||'').toLowerCase().includes(vfl)))return;
+   tr.dataset.job=j.job;tr.dataset.part=r.part;tr.dataset.cyc=rowCyc(r);tr.dataset.jo=r.jo??'';
+   tr.title=`${j.job} · 우클릭·더블클릭하면 이 제번으로 바꿔 바로 처리합니다`;rows.push(tr.outerHTML)});
+  if(rows.length){nJob++;nRow+=rows.length;
+   html.push(`<tr class="allhd"><td colspan="30">제번 ${_esc(j.job)}${j.model?' · '+_esc(j.model):''}${j.item?' · '+_esc(j.item):''} <span style="font-weight:400;color:#56708a">(부품 ${rows.length})</span></td></tr>`,...rows)}
+  msg(`전체 부품을 불러오는 중… ${k+1}/${targets.length}`);
+ }
+ ALLBUSY=false;ROUTES.length=0;jobIdx=-1;renderJobs();
+ routeBody.innerHTML=html.length?html.join(''):`<tr><td colspan="30" style="height:70px;text-align:center;color:#8a4f08;background:#fff8ec;white-space:normal">표시할 부품이 없습니다${vf?` — 업체 「${_esc(vf)}」에 발주된 부품 없음`:''}${nHid?` (전 공정 완료 ${nHid}건은 숨김 — 최종완료 [포함]으로 보기)`:''}</td></tr>`;
+ msg(`전체 부품 ${nRow}건 (제번 ${nJob}개)${vf?` · 업체 ${vf}`:''}${nHid?` · 전공정 완료 ${nHid}건 숨김`:''} — 줄을 우클릭하면 그 제번으로 바뀌어 바로 처리합니다.`);
+}
+/* 전체 보기의 줄 조작 → 그 제번으로 바꾼 뒤 같은 줄·같은 칸에 다시 보낸다 */
+async function allGo(ev,kind){
+ const tr=ev.target.closest('tr[data-job]');if(!tr)return;
+ const td=ev.target.closest('td'),ci=td?[...tr.children].indexOf(td):-1;
+ const job=tr.dataset.job,part=tr.dataset.part,cyc=Number(tr.dataset.cyc)||1,jo=tr.dataset.jo||'';
+ const x=ev.clientX,y=ev.clientY,onBox=!!ev.target.closest('input[type=checkbox]');
+ jobQ.value=job;search();const i=jobView.findIndex(v=>v.job===job);if(i<0)return msg(job+' 제번이 목록에 없습니다.');
+ pickJob(i);
+ const t0=Date.now();let n=-1;
+ while(Date.now()-t0<12000){await new Promise(r=>setTimeout(r,120));
+  if((jobView[jobIdx]||{}).job!==job)return;
+  n=ROUTES.findIndex(r=>r.part===part&&rowCyc(r)===cyc&&String(r.jo??'')===jo);
+  if(n>=0&&routeBody.children.length>=ROUTES.length)break}
+ if(n<0)return msg(`${job} 에서 부품 ${part} 을(를) 찾지 못했습니다.`);
+ await new Promise(r=>setTimeout(r,200));
+ const row=routeBody.children[n];if(!row)return;
+ row.scrollIntoView({block:'center'});
+ if(onBox){const cb=row.querySelector('input[type=checkbox]');if(cb&&!cb.disabled){cb.checked=true;pickRow(n,true)}return}
+ const cell=ci>=0?row.children[ci]:null;
+ if((kind==='contextmenu'||kind==='dblclick')&&cell)cell.dispatchEvent(new MouseEvent(kind,{bubbles:true,cancelable:true,clientX:x,clientY:y,button:kind==='contextmenu'?2:0}));
+ else if(kind==='click'&&cell&&cell.classList.contains('pimg'))cell.click();
+}
+['contextmenu','dblclick','click','change'].forEach(k=>routeBody.addEventListener(k,ev=>{
+ if(!ALLMODE||ALLBUSY)return;const tr=ev.target.closest('tr[data-job]');
+ if(!tr){if(k!=='change'&&ev.target.closest('tr.allhd')){ev.preventDefault();ev.stopPropagation()}return}
+ ev.preventDefault();ev.stopPropagation();
+ if(k==='click'&&!ev.target.closest('input[type=checkbox],td.pimg'))return;   /* 그냥 클릭은 전체 보기를 유지 */
+ if(k!=='change')allGo(ev,k)},true));
 async function pushDown(){const j=jobView[jobIdx];if(!j)return;
  const picks=[...routeBody.querySelectorAll('input:checked')].map(x=>Number(x.dataset.i)).filter(ri=>ROUTES[ri]);
  if(!picks.length)return msg('부품별 가공공정에서 발주할 부품(다음 공정)을 선택하세요.');
@@ -605,7 +673,8 @@ window.qrRefresh=async function(jobs){
  return true};
 async function refreshAll(){
  const b=document.getElementById('btnRefresh');
- const keep=(jobView[jobIdx]||{}).job||'';
+ const keep=(jobView[jobIdx]||{}).job||'',wasAll=ALLMODE;
+ if(wasAll){ALLMODE=false;ALLBUSY=false;_allSeq++}
  if(b){b.disabled=true;b.textContent='⟳ 조회중…'}
  msg('DB에서 다시 불러오는 중…');
  try{
@@ -616,6 +685,7 @@ async function refreshAll(){
    const i=jobView.findIndex(x=>x.job===keep);
    if(i>=0&&i!==jobIdx){jobIdx=i;renderJobs();await loadRoutes()}
   }
+  if(wasAll)await searchAll();
  }catch(e){msg('새로고침 실패: '+String(e.message||e).slice(0,110))}
  finally{if(b){b.disabled=false;b.textContent='⟳ 새로고침'}}
 }
