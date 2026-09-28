@@ -86,6 +86,10 @@ html[data-mw="xs"] .formgrid{grid-template-columns:84px minmax(0,1fr)}
 @media(max-width:680px){.foot{flex-wrap:wrap;height:auto;min-height:42px}.dlg.attbox{margin-top:20px}}
 /* v235: 첨부 끌어놓기 */
 #attDrop.drag{outline:2px dashed #2f75b5;outline-offset:-4px;background:#eef5fc}
+/* TJD v270: 원 관리제번 (수리·개조) */
+.oribox{display:flex;gap:4px;align-items:center;min-width:0}.oribox .field{flex:1;min-width:0}
+.oribox .btn{height:27px;min-width:0;padding:0 8px;white-space:nowrap;font-size:11px}
+.oriRow.off{display:none!important}
 /* 첨부파일: 비어 있을 때 과도한 여백 축소 */
 .filearea .empty,#fileEmpty{height:64px!important}
 </style></head><body><div class="screen">
@@ -101,6 +105,7 @@ html[data-mw="xs"] .formgrid{grid-template-columns:84px minmax(0,1fr)}
 
  <div class="label">수주상태</div><div><select id="status" class="field"><option>진행</option><option>보류</option><option>완료</option><option>취소</option></select></div>
  <div class="label">수주유형</div><div><select id="otype" class="field"><option>신작</option><option>개조</option><option>수리</option></select></div>
+ <div class="label oriRow" title="수리·개조 수주가 어느 금형(원 관리제번)의 것인지. 고르면 관리제번(-R1 / -M숫자)과 공통 항목이 채워집니다">원 관리제번</div><div class="oriRow oribox"><input id="origin_base" class="field" list="dl_origin" autocomplete="off" placeholder="원 금형 관리제번 선택" style="text-transform:uppercase"><datalist id="dl_origin"></datalist><button type="button" id="oriNew" class="btn" onclick="oriNewRound()" title="이미 있는 수리 제번(R1)과 따로, 다음 회차(R2·R3…)로 새로 등록합니다 — 고객에게 따로 청구하는 큰 수리일 때">＋ 새 회차</button></div>
  <div class="label">견적서번호</div><div><input id="quo" class="field"></div>
  <div class="label">아이템</div><div class="lk"><input id="item_code"><input id="item_name" readonly><button onclick="openLook('item','item_code','item_name')">…</button></div>
  <div class="label">납기예정일</div><div><input id="dlvp" type="date" class="field"></div>
@@ -162,7 +167,7 @@ const MAP={job_no:'job_no',order_date:'order_date',s1p:'s1_planned_date',
  product_name:'product_name',model:'model',proc_cnt:'process_set_qty',quo_price:'quotation_price',
  ms_code:'machine_spec_code',ms_name:'machine_spec_name',material_used:'material_used',
  s1c:'s1_completed_date',dlvc:'delivery_completed_date',eco:'eco',remark:'remark',
- order_price:'order_price',comp_date:'completion_date',nego_amount:'nego_amount',nego_note:'nego_note',proc_cat:'process_category'};
+ order_price:'order_price',comp_date:'completion_date',nego_amount:'nego_amount',nego_note:'nego_note',proc_cat:'process_category',origin_base:'origin_base'};   /* TJD v270: 원 관리제번 */
 function load(o){for(const[el,k]of Object.entries(MAP)){const n=document.getElementById(el);if(n)n.value=o[k]??''}devFromValue()}
 /* v241: 개발유형 = 체크박스 4개 (사내설계·외주설계·사내조립·사외조립) → development_type 에 쉼표로 저장. 옛 값 '사내'/'외주' 는 설계 기준으로 읽는다 */
 const DEVS=['사내설계','외주설계','사내조립','사외조립'];
@@ -183,6 +188,7 @@ async function saveOne(mode){
  if(!job_no.value.trim()){msg('제번은 필수입니다.');return false}
  const o={};for(const[el,k]of Object.entries(MAP)){const n=document.getElementById(el);if(n)o[k]=n.value||null}
  if(!/외주설계/.test(o.development_type||''))o.design_vendor_name=null;   /* v242: 외주설계가 아니면 설계업체 없음 */
+ o.origin_base=(o.order_type==='수리'||o.order_type==='개조')&&o.origin_base?String(o.origin_base).trim().toUpperCase():null;   /* TJD v270 */
  o.plant_name='1공장';o.attachments=ATT;
  for(const k of NUMF){const v=Number(o[k]);o[k]=(o[k]===null||o[k]===''||Number.isNaN(v))?null:v}
  for(const k of DATEF)if(o[k]==='')o[k]=null;
@@ -427,8 +433,9 @@ async function loadJob(job,quiet){
      &&Date.now()-(P.__mesHandoff.at||0)<15000){h=P.__mesHandoff;delete P.__mesHandoff}
  }catch(e){}
  if(!h)return;
- const go=()=>{try{MESDB&&MESDB.ready?MESDB.ready.then(()=>loadJob(h.job_no)).catch(()=>loadJob(h.job_no)):loadJob(h.job_no)}
-   catch(e){loadJob(h.job_no)}};
+ const run=()=>(h.origin&&window.oriHandoff)?oriHandoff(h):loadJob(h.job_no);   /* TJD v270: 수주현황 [수리 수주]/[개조 수주] */
+ const go=()=>{try{MESDB&&MESDB.ready?MESDB.ready.then(run).catch(run):run()}
+   catch(e){run()}};
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else go();
 })();
 renderAtt();
@@ -442,6 +449,106 @@ let GCATS=[];
  const sel=document.getElementById('proc_cat');if(sel){GCATS.forEach(c=>{const o=document.createElement('option');o.value=c.name;o.textContent=c.name;sel.appendChild(o)})}})();
 window.MES={save,clearForm,setMessage:msg,load,loadJob};
 clearForm();
+/* ── TJD v270: 수리·개조 수주 — 원 금형(원 관리제번) 연결 ─────────────────────────
+ *  수리 = 원관리제번-R1 (양산 중 수리는 R1 에 계속 누적, 따로 청구하는 큰 수리만 [＋ 새 회차] → R2·R3…)
+ *  개조 = 원관리제번-M1, -M2 … (회차마다 새 번호)
+ *  번호는 반드시 숫자로 끝난다 — 공정 문자(A·B·C)는 「숫자 뒤 영문 한 글자」로만 읽기 때문 (26RDE606-R1A = 관리제번 26RDE606-R1 + 공정 A)
+ *  원 금형 연결은 sale_orders.origin_base 칸으로 한다 (번호를 손으로 바꿔도 연결 유지) */
+const ORI={rows:[],at:0};
+const RMRE=/-(R|M)(\d+)$/;
+const oBase=j=>(window.MESDB&&MESDB.jobSplit)?MESDB.jobSplit(j).base:String(j||'');
+const oSeq=j=>(window.MESDB&&MESDB.jobSplit)?MESDB.jobSplit(j).seq:'';
+async function oriLoad(force){
+ if(!force&&ORI.rows.length&&Date.now()-ORI.at<20000)return ORI.rows;
+ if(!window.MESDB||!MESDB.online)return ORI.rows;
+ let rs=null;
+ try{rs=await MESDB.table('sale_orders').select('select=job_no,model,product_name,order_type,origin_base&order=job_no',{fresh:true})}
+ catch(e){try{rs=await MESDB.table('sale_orders').select('select=job_no,model,product_name,order_type&order=job_no',{fresh:true})}catch(_){rs=null}}   /* origin_base 컬럼 전 */
+ if(rs){ORI.rows=rs;ORI.at=Date.now()}
+ return ORI.rows;
+}
+/* 원 금형 후보 = 수리·개조 번호가 아니고 원 관리제번이 비어 있는 관리제번 */
+function oriBases(){
+ const m=new Map();
+ ORI.rows.forEach(r=>{const b=oBase(r.job_no);if(!b||RMRE.test(b)||r.origin_base)return;
+  if(!m.has(b))m.set(b,{base:b,model:r.model||'',name:r.product_name||'',n:0});if(oSeq(r.job_no))m.get(b).n++});
+ return [...m.values()];
+}
+function oriFill(){
+ const dl=document.getElementById('dl_origin');if(!dl)return;
+ const md=String(model.value||'').trim();
+ const same=g=>md&&g.model===md?1:0;
+ const list=oriBases().sort((a,b)=>same(b)-same(a)||b.base.localeCompare(a.base,'ko',{numeric:true}));
+ dl.innerHTML=list.map(g=>`<option value="${esc(g.base)}">${same(g)?'★ 같은 품번 · ':''}${esc(g.model||'')}${g.name?' · '+esc(g.name):''}${g.n>1?' · 공정 '+g.n:''}</option>`).join('');
+}
+function oriNums(orig,kind){
+ const pre=orig+'-'+kind;
+ return [...new Set(ORI.rows.map(r=>oBase(r.job_no)).filter(b=>b.startsWith(pre)&&/^\d+$/.test(b.slice(pre.length))).map(b=>Number(b.slice(pre.length))))].sort((a,b)=>a-b);
+}
+function oriToggle(){
+ const on=otype.value==='수리'||otype.value==='개조';
+ document.querySelectorAll('.oriRow').forEach(e=>e.classList.toggle('off',!on));
+ const nb=document.getElementById('oriNew');if(nb)nb.style.display=otype.value==='수리'?'':'none';
+ if(!on){origin_base.value=''}else oriLoad().then(oriFill);
+}
+/* 원 관리제번을 고르면 → 수리: 기존 R1 을 열거나 R1 새로, 개조: 다음 M 번호. fresh=true 면 수리 새 회차 */
+async function oriPick(fresh){
+ const orig=String(origin_base.value||'').trim().toUpperCase();origin_base.value=orig;
+ if(!orig)return false;
+ const typ=otype.value;if(typ!=='수리'&&typ!=='개조')return false;
+ await oriLoad(true);
+ if(!oriBases().some(g=>g.base===orig)){msg(`원 관리제번 ${orig} 은(는) 수주에 없거나 수리·개조 제번입니다. 신작(원 금형) 관리제번을 고르세요.`);return false}
+ const kind=typ==='수리'?'R':'M',nums=oriNums(orig,kind);
+ if(kind==='R'&&!fresh&&nums.includes(1)){
+  await loadJob(orig+'-R1');
+  otype.value='수리';origin_base.value=orig;oriToggle();
+  msg(`기존 수리 제번 ${orig}-R1 을 열었습니다. 양산 중 수리는 R1 에 계속 쌓습니다 — 고객에게 따로 청구하는 큰 수리만 [＋ 새 회차] 로 등록하세요.`);
+  return true;
+ }
+ const n=kind==='R'?(fresh?(nums.length?Math.max(...nums)+1:1):1):(nums.length?Math.max(...nums)+1:1);
+ /* 원 금형 수주 → 공통 항목 복사 (비어 있는 칸만). 수주가·견적가·네고·날짜는 복사하지 않는다 */
+ const rows=await existingJobs(orig),procs=rows.filter(r=>oSeq(r.job_no)),main=procs[0]||rows[0]||{};
+ clearForm();otype.value=typ;origin_base.value=orig;oriToggle();
+ base_job.value=`${orig}-${kind}${n}`;
+ proc_cnt.value=String(procs.length||1);
+ const COPY={model:'model',product_name:'product_name',drawing_no:'drawing_no',cust_code:'customer_code',cust_name:'customer_name',
+  mp_code:'mass_production_vendor_code',mp_name:'mass_production_vendor_name',mold_code:'mold_type_code',mold_name:'mold_type_name',
+  ms_code:'machine_spec_code',ms_name:'machine_spec_name',item_code:'item_code',item_name:'item_name'};
+ for(const[el,k]of Object.entries(COPY)){const x=document.getElementById(el);if(x&&!String(x.value||'').trim()&&main[k]!=null)x.value=main[k]}
+ jobPreview();
+ msg(`${typ} 수주 — 관리제번 ${orig}-${kind}${n} (원 금형 ${orig}, 공정 ${procs.length||1}개). 품번·고객사 등은 원 금형에서 가져왔습니다. 수주일·금액을 넣고 [▤ 저장] 하세요.`);
+ return true;
+}
+function oriNewRound(){
+ if(otype.value!=='수리')return;
+ if(!String(origin_base.value||'').trim())return msg('원 관리제번을 먼저 고르세요.');
+ if(!confirm(`${origin_base.value}-R1 과 따로, 새 회차(R2·R3…) 수리 수주를 만듭니다.\n고객에게 따로 견적·청구하는 큰 수리일 때만 쓰세요.\n(양산 중 일상 수리는 R1 에 계속 쌓습니다)\n계속할까요?`))return;
+ oriPick(true);
+}
+window.oriHandoff=async function(h){
+ clearForm();otype.value=h.kind==='개조'?'개조':'수리';origin_base.value=String(h.origin||'').toUpperCase();oriToggle();
+ await oriPick(false);
+};
+otype.addEventListener('change',()=>{oriToggle();if(origin_base.value.trim()&&!String(base_job.value||'').trim())oriPick(false)});
+origin_base.addEventListener('change',()=>oriPick(false));
+origin_base.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();oriPick(false)}});
+model.addEventListener('change',()=>{if(!document.querySelector('.oriRow.off'))oriFill()});
+(function(){
+ const _c=window.clearForm;window.clearForm=function(){const r=_c.apply(this,arguments);try{oriToggle()}catch(e){}return r};
+ const _l=window.load;window.load=function(o){const r=_l.apply(this,arguments);try{oriToggle()}catch(e){}return r};
+ /* 저장 전 확인: 원 관리제번 누락 · 수리 제번의 정산완료일 */
+ const _s=window.save;window.save=async function(m){
+  const typ=otype.value,b=String(base_job.value||'').trim().toUpperCase();
+  if(typ==='수리'||typ==='개조'){
+   if(!String(origin_base.value||'').trim()){const mm=RMRE.exec(b);if(mm)origin_base.value=b.slice(0,mm.index)}   /* 번호에서 원 관리제번을 읽는다 */
+   if(!String(origin_base.value||'').trim()&&!confirm(`${typ} 수주인데 원 관리제번이 비어 있습니다.\n원 금형과 연결하지 않고 저장할까요? (금형원가내역 「금형 전체」에 묶이지 않습니다)`)){msg('원 관리제번을 고른 뒤 저장하세요.');return false}
+   if(b&&!/\d$/.test(b)&&!confirm(`관리제번 ${b} 이(가) 숫자로 끝나지 않습니다.\n공정 제번(A·B·C)을 나눌 수 없게 됩니다. (예: ${b}1, ${origin_base.value||'원관리제번'}-R1)\n그래도 저장할까요?`)){msg('관리제번을 숫자로 끝나게 고친 뒤 저장하세요.');return false}
+  }
+  if(typ==='수리'&&String(comp_date.value||'').trim()&&!confirm(`수리 제번에 정산완료일(${comp_date.value})이 들어가 있습니다.\n양산 중 수리 제번은 금형이 끝날 때(폐기·단종)까지 열어 두어야 합니다.\n정산완료일을 넣으면 제번 목록에서 빠져 수리 발주를 낼 수 없습니다.\n그래도 저장할까요?`)){msg('정산완료일을 비우고 저장하세요.');return false}
+  const r=await _s.apply(this,arguments);if(r===true)ORI.at=0;return r};
+ window.MES.save=window.save;window.MES.load=window.load;window.MES.clearForm=window.clearForm;
+})();
+oriToggle();
 /* v115: 정산완료일이 오늘 이후면 경고 — 설계계획등록·공용 제번 콤보가 '정산완료'로 보고 제번을 숨기는 원인이 된다 */
 (function(){const el=document.getElementById('comp_date');if(!el)return;
  const today=()=>new Date().toISOString().slice(0,10);

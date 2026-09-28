@@ -636,7 +636,7 @@ window.MES={search,save,saveChecked,setMessage:msg,reload:loadJob,manOpen};rende
 </script>
 <script src="mes_ctx.js?v=169"></script>
 <script src="mes_imgedit.js?v=196"></script>
-<script src="mes_jobpick.js?v=269"></script>
+<script src="mes_jobpick.js?v=270"></script>
 <script>/* 제번 직접 타이핑 → 등록된 수주 목록에서 선택 */
 try{MESJOB.attachSplit("q_job",{seqAll:true,seqLabel:"제번",onBase:b=>{try{q_pn.value="";loadAll(b)}catch(e){}},onPick:j=>{loadJob(j);try{pnSync(j)}catch(e){}}}).then(()=>{try{pnSync(curJobNo())}catch(e){}})}catch(e){}   /* TJD v268: 관리제번 + 공정 선택 (원재료와 동일) */
 try{pnLoad();q_pn.addEventListener("change",()=>{try{pnPick()}catch(e){}});
