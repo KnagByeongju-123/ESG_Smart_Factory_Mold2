@@ -1354,7 +1354,8 @@ window.MESCTX={confirm:dlgConfirm};
   return /^품\s*(명|번)$/.test(labelText(el).replace(/\s+/g,' ').trim());
  }
  /* v99: 빈 결과는 캐시하지 않는다 (첫 ping 실패 순간에 한 번 비면 그 화면은 끝까지 콤보가 안 붙던 문제).
-  *       정산완료 제번은 목록에서 뺀다 — 진행 중인 제번만 고르게. */
+  *       정산완료 제번은 목록에서 뺀다 — 진행 중인 제번만 고르게.
+  * v271: 정산완료일이 있어도 수주상태가 '진행'이면 목록에 남긴다 (양산 중 수리 제번은 정산 후에도 계속 발주). */
  let JOBS=null,loading=null;
  async function jobs(){
   if(JOBS&&JOBS.length)return JOBS;if(loading)return loading;
@@ -1365,9 +1366,9 @@ window.MESCTX={confirm:dlgConfirm};
     if(MESDB.ready){try{await MESDB.ready}catch(e){}}
     const [pool,so]=await Promise.all([
      MESDB.table('job_pool').select('select=job_no,item_name,customer_name,order_date&order=order_date.desc.nullslast'),
-     MESDB.table('sale_orders').select('select=job_no,completion_date,model')]);
+     MESDB.table('sale_orders').select('select=job_no,completion_date,model,order_status').catch(()=>MESDB.table('sale_orders').select('select=job_no,completion_date,model'))]);
     const today=new Date().toISOString().slice(0,10);
-    const done=new Set(),MODEL={};(so||[]).forEach(r=>{const d=String(r.completion_date||'').slice(0,10);if(d&&d<=today)done.add(r.job_no);if(r.model)MODEL[r.job_no]=r.model});
+    const done=new Set(),MODEL={};(so||[]).forEach(r=>{const d=String(r.completion_date||'').slice(0,10);if(d&&d<=today&&r.order_status!=='진행')done.add(r.job_no);if(r.model)MODEL[r.job_no]=r.model});
     JOBS=(pool||[]).filter(r=>!done.has(r.job_no)).map(r=>({job:r.job_no,item:r.item_name||'',model:MODEL[r.job_no]||'',
       sub:[MODEL[r.job_no],r.item_name,r.customer_name].filter(Boolean).join(' · ')}));
     return JOBS;
