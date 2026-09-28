@@ -184,7 +184,7 @@ const procName=c=>{const k=stepCode(c);if(!k)return'';return PROCNAME[k]||PROCNA
  *  상태(업체 무관, 부품+공정순번 기준): '' 미발주 · 요청(구매요청 리스트) · 출고(발주됨=외주처 반출) · 입고 · 완료(입고확정)
  *  다음 공정은 직전 공정이 입고/완료일 때만 발주할 수 있다. 같은 업체가 연속 공정을 할 때는 셀을 눌러 범위를 넓힌다. */
 const ORDERED=new Map();                                   /* '품번|순번' → 공정별 발주라인 집계 (추가발주 포함) */
-const okey=(pt,k,cyc)=>[pt||'',k||'',cyc==null?'':(Number(cyc)||1)].join('|');   /* v226: 차수까지 키에 넣는다 (cyc 생략 = 사내가공 등 차수 무관) */
+const okey=(pt,k,cyc)=>[pt||'',k||'',cyc===''?'':(Number(cyc)||1)].join('|');   /* TJD: cycle_no 가 비어(컬럼 없음·null) 있으면 1차로 본다 — 발주가 저장돼도 화면에 안 보이던 문제 */   /* v226: 차수까지 키에 넣는다 (cyc 생략 = 사내가공 등 차수 무관) */
 const rowCyc=r=>Number(r&&r.cyc)||(window.MESCYCLE?MESCYCLE.cur(r&&r.part):1);
 const ST_DB={'발주':'출고','입고':'입고','입고확정':'완료'};
 /* v225: 가공 차수(신규진행) — part_cycles(MESCYCLE) 의 현재 차수에 속한 order_lines(cycle_no) 만 현재 진행으로 본다.
