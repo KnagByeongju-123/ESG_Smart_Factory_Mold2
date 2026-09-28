@@ -41,6 +41,7 @@ button,input,select{font:inherit;color:inherit}
 .ot.mod{background:#efe9fa;border-color:#b39ddb;color:#5e35b1}
 .ot.rep{background:#fdeee2;border-color:#e6a36a;color:#a0520e}
 .ot.non{background:#f3f5f7;border-color:#c5cfd8;color:#7a8791}
+.orig{font-size:11px;padding:1px 7px;border-radius:3px;border:1px dashed #d9a86c;background:#fff8ef;color:#8a4f08;cursor:pointer}.orig:hover{background:#fdeede}
 .dday{margin-left:auto;display:flex;align-items:center;gap:8px}
 .dday .d{font-weight:700;font-size:14px}
 .dday .d.warn{color:var(--run)}.dday .d.bad{color:var(--late)}
@@ -200,7 +201,10 @@ async function load(){
  if(!online()){apply();return msg('DB 미연결 - 예시 데이터를 표시합니다.')}
  try{
   const rs=await MESDB.table('job_progress_view').select('select=*&order=job_no');
-  rows=rs||[];apply();
+  rows=rs||[];
+  /* TJD v270: 원 관리제번 (수리·개조 → 원 금형) */
+  try{const so=await MESDB.table('sale_orders').select('select=job_no,origin_base&origin_base=not.is.null');ORIG.clear();(so||[]).forEach(x=>{if(x.origin_base)ORIG.set(jsplit(x.job_no).base,x.origin_base)})}catch(e){}
+  apply();
   msg(`${rows.length}건을 조회했습니다. (${new Date().toLocaleTimeString('ko-KR')})`);
  }catch(e){msg('조회 실패: '+String(e.message||e).slice(0,120))}
 }
@@ -278,6 +282,9 @@ function btnHtml(r){
 }
 /* TJD: 관리제번의 수주유형 뱃지 — 공정 제번마다 다르면 모두 표시 */
 const OT_CLS={'신작':'new','개조':'mod','수리':'rep'};
+const ORIG=new Map();   /* TJD v270: 관리제번 → 원 관리제번 */
+function origOf(g){const o=ORIG.get(g.base);if(o)return o;const m=/-(R|M)\d+$/.exec(g.base||'');return m&&(g.jobs||[]).some(x=>/수리|개조/.test(String(x.order_type||'')))?g.base.slice(0,m.index):''}
+function goOrigin(b){qJob.value=b;try{qJob.dispatchEvent(new Event('input'))}catch(e){}apply();msg(`원 금형 ${b} 과(와) 그 수리·개조 관리제번을 보고 있습니다. (관리제번 칸을 비우면 전체)`)}
 function otBadge(g){
  const ts=[...new Set((g.jobs||[]).map(x=>String(x.order_type||'').trim()).filter(Boolean))];
  if(!ts.length)return '<span class="ot non" title="수주등록에 수주유형이 없습니다">유형 미지정</span>';
@@ -292,7 +299,7 @@ function render(){
   return `<div class="card${g.late?' late':''}">
    <div class="chead" onclick="toggle('${esc(g.base)}')">
     <span class="jno">${esc(g.base)}${multi?` <span style="font-size:15px;color:#2a6191">${esc(seqRange(seqs))}</span>`:''}</span>
-    ${otBadge(g)}
+    ${otBadge(g)}${(o=>o?`<span class="orig" title="원 금형 — 누르면 원 금형과 수리·개조 관리제번을 함께 봅니다" onclick="event.stopPropagation();goOrigin('${esc(o)}')">원 금형: <b>${esc(o)}</b></span>`:'')(origOf(g))}
     ${multi?`<span class="seqs" title="${esc(g.jobs.map(x=>x.job_no).join(', '))}">공정 <b>${g.jobs.length}</b></span>`:''}
     <span class="item">${esc(g.item)}</span>
     <span class="cust">${esc(g.cust)}</span>
