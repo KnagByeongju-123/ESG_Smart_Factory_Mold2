@@ -39,6 +39,7 @@ tfoot th{position:sticky;bottom:0;background:linear-gradient(#e6eef5,#d3e0ea)}
       <span class="label">품명</span><input id="itemQ" class="field" style="width:190px" placeholder="품명 입력/선택" list="itemDL" autocomplete="off"><datalist id="itemDL"></datalist>
       <span class="label">협력업체</span><select id="vendorQ" class="field" data-combo style="width:190px"><option value="">전체</option></select>
       <button class="btn" onclick="search()">⌕ 조회</button>
+      <span style="margin-left:14px;color:#3c5a78;font-size:11px;padding:3px 8px;border:1px solid #c9d8e6;background:#eef5fb;border-radius:3px">※ 목록 <b>우클릭</b>(또는 더블클릭) → 입고 · 입고확정 · 발주취소 · 입고취소 · 확정취소</span>
     </div>
   </section>
   <div class="gridbox"><div class="tablewrap"><table>
@@ -60,7 +61,7 @@ const online=()=>!!(window.MESDB&&MESDB.online);
 function within(v,a,b){if(!a&&!b)return true;if(!v)return false;return (!a||v>=a)&&(!b||v<=b)}
 /* v258: 매입가 = 수량 × 단가 (단가가 없으면 발주 때 저장된 매입가) */
 const buyOf=r=>{const q=Number(r.qty)||0,u=Number(r.price)||0;return u>0&&q>0?Math.round(q*u):(Number(r.quote)||0)};
-function render(){selIdx=-1;body.innerHTML=view.length?view.map((r,i)=>`<tr onclick="sel(this,${i})"><td class="c"><input type="checkbox" data-no="${r.no}" ${CHK.has(Number(r.no))?'checked':''} onclick="event.stopPropagation();toggleChk(${Number(r.no)},this.checked)"></td><td class="c">${i+1}</td><td class="c"><span class="tag t-${ST(r.st)}">${ST(r.st)}</span></td><td>${r.vendor}</td><td>${r.job}</td><td>${r.item}</td><td class="c">${r.proc}</td><td class="c">${r.procName}</td><td>${r.part}${window.MESCYCLE?MESCYCLE.badge(r.cyc,null,r.cycWhy):''}</td><td>${r.partName}</td><td class="c">${r.mat}</td><td>${r.spec}</td><td class="r">${r.qty}</td><td class="r">${money(r.price)}</td><td class="c">${r.odate}</td><td class="c">${r.rdate}</td><td class="c">${r.idate}</td><td class="c">${r.cdate}</td><td class="r">${money(buyOf(r))}</td><td class="r">${r.rate!=null&&r.rate!==''&&(Number(r.rate)||r.st==='확정')?Number(r.rate).toFixed(2):''}</td><td class="r">${r.fix!=null&&r.fix!==''?money(r.fix):''}</td></tr>`).join(''):`<tr><td colspan="20" class="c" style="height:90px;color:#8a97a2">조회된 발주가 없습니다. 제번·기간 조건을 지우고 [⌕ 조회]를 다시 눌러보세요.</td></tr>`;
+function render(){selIdx=-1;body.innerHTML=view.length?view.map((r,i)=>`<tr onclick="sel(this,${i})" oncontextmenu="return ordCtx(event,${i})" ondblclick="return ordCtx(event,${i})" title="우클릭(또는 더블클릭) → 입고 · 입고확정 · 취소"><td class="c"><input type="checkbox" data-no="${r.no}" ${CHK.has(Number(r.no))?'checked':''} onclick="event.stopPropagation();toggleChk(${Number(r.no)},this.checked)"></td><td class="c">${i+1}</td><td class="c"><span class="tag t-${ST(r.st)}">${ST(r.st)}</span></td><td>${r.vendor}</td><td>${r.job}</td><td>${r.item}</td><td class="c">${r.proc}</td><td class="c">${r.procName}</td><td>${r.part}${window.MESCYCLE?MESCYCLE.badge(r.cyc,null,r.cycWhy):''}</td><td>${r.partName}</td><td class="c">${r.mat}</td><td>${r.spec}</td><td class="r">${r.qty}</td><td class="r">${money(r.price)}</td><td class="c">${r.odate}</td><td class="c">${r.rdate}</td><td class="c">${r.idate}</td><td class="c">${r.cdate}</td><td class="r">${money(buyOf(r))}</td><td class="r">${r.rate!=null&&r.rate!==''&&(Number(r.rate)||r.st==='확정')?Number(r.rate).toFixed(2):''}</td><td class="r">${r.fix!=null&&r.fix!==''?money(r.fix):''}</td></tr>`).join(''):`<tr><td colspan="20" class="c" style="height:90px;color:#8a97a2">조회된 발주가 없습니다. 제번·기간 조건을 지우고 [⌕ 조회]를 다시 눌러보세요.</td></tr>`;
 sumQuote.textContent=money(view.reduce((a,r)=>a+buyOf(r),0));sumFix.textContent=money(view.reduce((a,r)=>a+(Number(r.fix)||0),0));updCount()}
 function sel(tr,i){document.querySelectorAll('#body tr').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel');selIdx=(i==null?-1:Number(i))}
 /* ── v137: 행 선택 + [입고확정취소] — 확정된 발주를 「입고」 상태로 되돌린다 ───── */
@@ -175,8 +176,24 @@ async function loadVendorSel(){
 }
 render();window.MES={search,exportCsv,cancelOrder,setMessage:msg};
 </script>
-<script src="mes_db.js?v=171"></script><script src="mes_cycle.js?v=225"></script>
+<script src="mes_db.js?v=171"></script><script src="mes_cycle.js?v=225"></script><script src="mes_ordctx.js?v=265"></script>
 <script>MESDB.lines({page:"material_order_status",category:"원재료",statuses:[],map:{"no": {"col": "line_id", "type": "num"}, "vendor": "vendor_name", "job": "job_no", "item": "item_name", "proc": "process_code", "procName": "process_name", "part": "part_no", "cyc": {"col": "cycle_no", "type": "num"}, "cycWhy": "cycle_reason", "partName": "part_name", "st": {"col": "status", "type": "status"}, "mat": "material", "spec": "spec", "qty": {"col": "order_qty", "type": "num"}, "price": {"col": "unit_price", "type": "num"}, "odate": {"col": "order_date", "type": "date"}, "rdate": {"col": "required_date", "type": "date"}, "idate": {"col": "receipt_date", "type": "date"}, "cdate": {"col": "confirm_date", "type": "date"}, "quote": {"col": "quote_price", "type": "num"}, "rate": {"col": "nego_rate", "type": "num"}, "fix": {"col": "confirm_price", "type": "num"}},get:()=>rows,render:()=>{view=[...rows];render()}});</script>
+<script>
+/* TJD v265: 발주현황에서도 우클릭으로 입고·입고확정·취소 — 원재료/구매품 발주 화면의 처리창(mes_ordctx.js)을 그대로 쓴다 */
+async function ordCtx(ev,i){
+ if(ev){ev.preventDefault();ev.stopPropagation()}
+ const r=view[i];if(!r)return false;
+ if(!window.MESORDCTX||!MESORDCTX.openLine)return msg('처리 모듈(mes_ordctx.js)을 불러오지 못했습니다.'),false;
+ if(!(window.MESDB&&MESDB.online))return msg('DB 미연결 - 처리할 수 없습니다.'),false;
+ const ex={clientX:ev&&ev.clientX,clientY:ev&&ev.clientY,preventDefault(){},stopPropagation(){}};
+ let line=null;
+ try{const rs=await MESDB.table('order_lines').select(`select=*&line_id=eq.${encodeURIComponent(r.no)}&limit=1`,{fresh:true});line=rs&&rs[0]}catch(e){}
+ if(!line)return msg(`발주 #${r.no} 을(를) DB 에서 찾지 못했습니다. [⌕ 조회]로 다시 읽으세요.`),false;
+ try{const tr=ev&&ev.target&&ev.target.closest?ev.target.closest('tr'):null;if(tr)sel(tr,i)}catch(e){}
+ MESORDCTX.openLine(ex,line,{category:'원재료',useWeight:false,onDone:async()=>{try{await search()}catch(e){}}});
+ return false;
+}
+</script>
 <script src="mes_ctx.js?v=169"></script>
 <script src="mes_lookup.js?v=150"></script>
 <script src="mes_jobpick.js?v=162"></script>

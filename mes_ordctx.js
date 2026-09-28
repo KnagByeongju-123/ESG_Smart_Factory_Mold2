@@ -292,6 +292,8 @@ function open(ev, title, kind, bodyHtml, footBtns) {
   $('oxHead').className = 'ch ' + (kind || '');
   $('oxBody').innerHTML = bodyHtml;
   const f = $('oxFoot'); f.innerHTML = '';
+  /* TJD: 발주현황에서 연 창에는 자재표가 없어 [추가 발주] 를 뺀다 (발주는 발주 화면에서) */
+  if (CTX && CTX.ext && Array.isArray(footBtns)) footBtns = footBtns.filter(b => !/추가 발주/.test(String(b.t || '')));
   (footBtns || [{ t: '닫기', fn: close }]).forEach(b => {
     const el = document.createElement('button');
     el.type = 'button'; el.className = 'btn ' + (b.cls || ''); el.textContent = b.t;
@@ -330,6 +332,12 @@ function openPart(ev, idx) {
 
 const headHtml = () => {
   const { b, job } = CTX;
+  if (CTX.ext) {   /* TJD: 발주현황에서 연 경우 — 자재표 잔량 대신 발주 라인 정보만 */
+    const l = CTX.line || {};
+    return `<div class="sub"><b>${_esc(job.job)}</b> · ${_esc(b.part)} ${_esc(b.name || '')}` +
+           `${b.mat ? ' · ' + _esc(b.mat) : ''}${b.spec ? ' · ' + _esc(b.spec) : ''}` +
+           ` · 발주 #${_esc(l.line_id)} <b>${_esc(l.status || '')}</b> · ${_esc(l.vendor_name || '')}</div>`;
+  }
   const fresh = !!(CTX && CTX.newCycle), oq = fresh ? 0 : ordered(b), rem = fresh ? (Number(b.qty)||0) : remain(b);
   return `<div class="sub"><b>${_esc(job.job)}</b> · ${_esc(b.part)} ${_esc(b.name || '')}` +
          `${b.mat ? ' · ' + _esc(b.mat) : ''}${b.spec ? ' · ' + _esc(b.spec) : ''}` +
@@ -883,10 +891,12 @@ async function offerMail(o) {
 }
 /* ── 처리 후 공통 : 캐시 비우고 다시 그린다 ────────────────── */
 async function after(text) {
+  const ext = CTX && CTX.ext;
   try { MESDB.dropCache && MESDB.dropCache('order_lines'); } catch (e) {}
   try { MESDB.notify && MESDB.notify(['order_lines']); } catch (e) {}
   close();
-  await refresh();
+  if (ext) { try { if (typeof ext.onDone === 'function') await ext.onDone(); } catch (e) {} }
+  else await refresh();
   say(text); pop(text);
 }
 async function refresh() {
@@ -993,5 +1003,18 @@ function init(opt) {
   setTimeout(refresh, 1500);
 }
 
-window.MESORDCTX = { init, refresh, loadLines, partState, close, startNewCycle, activeCycleRows, cycleIdFor, withCycleRemark, newCycleId };
+/* ── TJD: 발주현황(원재료/구매품) 에서 한 줄 우클릭 → 그 발주 라인의 처리창 ──
+ *   MESORDCTX.openLine(ev, line, {category:'원재료', useWeight:true, onDone:fn})
+ *   line = order_lines 한 행 (line_id·status·part_no·order_qty … 그대로). 자재표(bom) 없이 동작한다. */
+function openLine(ev, l, o) {
+  if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+  o = o || {};
+  if (!l || !l.line_id) { say('발주 라인 정보가 없습니다.'); return false; }
+  CFG = Object.assign(CFG, { category: o.category || CFG.category, useWeight: o.useWeight != null ? !!o.useWeight : CFG.useWeight });
+  ensureUI();
+  const b = { part: l.part_no || '', name: l.part_name || '', mat: l.material || '', spec: l.spec || '', qty: Number(l.order_qty) || 0, cyc: Number(l.cycle_no) || 1 };
+  CTX = { b, i: -1, job: { job: l.job_no || '', item: l.item_name || '', bom: [] }, line: l, batch: [], extraLines: null, ext: { onDone: o.onDone } };
+  return formLine(ev, l);
+}
+window.MESORDCTX = { init, openLine, refresh, loadLines, partState, close, startNewCycle, activeCycleRows, cycleIdFor, withCycleRemark, newCycleId };
 })();
