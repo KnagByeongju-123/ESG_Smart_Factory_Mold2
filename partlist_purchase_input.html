@@ -599,22 +599,33 @@ async function pnLoad(){
  }catch(e){}
 }
 /* 품번을 고르거나 입력하면 → 그 제번으로 자재표를 연다 */
-function pnPick(){
+function pnPick(){   /* TJD v270: 품번 필터 — 그 품번(수주등록)의 제번 PartList 를 모두 보인다. 관리제번을 골라 두면 그 안에서만 */
  const v=String(q_pn.value||'').trim();
- if(!v)return;
+ if(!v){const j=(q_job.value||'').trim();return j?loadJob(j):loadAll()}
  const low=v.toLowerCase();
  let list=PNMAP.filter(x=>x.model.toLowerCase()===low);
  if(!list.length)list=PNMAP.filter(x=>x.model.toLowerCase().includes(low));
- if(!list.length){msg(`품번 ${v} 로 등록된 제번이 없습니다. 수주등록의 품번을 확인하세요.`);return}
+ const bs=curBase();if(bs)list=list.filter(x=>String(x.job).startsWith(bs));
+ if(!list.length){msg(`품번 ${v} 로 등록된 제번이 없습니다${bs?` (관리제번 ${bs} 안)`:''}. 수주등록의 품번을 확인하세요.`);data.length=0;render();return}
  const jobs=[...new Set(list.map(x=>x.job))];
- if(jobs.length>1){msg(`품번 ${v} 에 제번이 ${jobs.length}건 있습니다 — ${jobs.slice(0,6).join(', ')}${jobs.length>6?' …':''} · 제번 칸에서 고르세요.`);return}
- q_job.value=jobs[0];try{MESJOB.syncSplit('q_job')}catch(e){}
- if(typeof loadJob==='function')loadJob(jobs[0]);
- msg(`품번 ${list[0].model} → 제번 ${jobs[0]} 를 열었습니다.`);
+ if(jobs.length===1){q_job.value=jobs[0];try{MESJOB.syncSplit('q_job')}catch(e){}if(typeof loadJob==='function')loadJob(jobs[0]);msg(`품번 ${list[0].model} → 제번 ${jobs[0]} 를 열었습니다.`);return}
+ return loadJobs(jobs,`품번 ${v}`);
+}
+async function loadJobs(jobs,label){
+ await waitDB();if(!online())return;
+ if(pend.length){pend.length=0;chk.clear()}
+ curJob='';ALLMODE=true;
+ try{
+  const inl='('+jobs.map(j=>'"'+String(j).replace(/"/g,'')+'"').join(',')+')';
+  const rs=await MESDB.table(TBL).select(`select=*&job_no=in.${encodeURIComponent(inl)}&order=job_no,row_no`,{fresh:true});
+  rs.sort((a,b)=>String(a.job_no||'').localeCompare(String(b.job_no||''),'ko',{numeric:true})||joSort(a.process_code,b.process_code)||(Number(a.row_no)||0)-(Number(b.row_no)||0));
+  data.length=0;data.push(...rs);[...chk].forEach(id=>{if(!rowById(id))chk.delete(id)});
+  render();msg(`${label} : 제번 ${jobs.length}개 (${jobs.slice(0,6).join(', ')}${jobs.length>6?' …':''}) 구매품 PartList ${rs.length}건 — 등록·붙여넣기는 제번을 고른 뒤 하세요.`);
+ }catch(e){msg('조회 실패: '+String(e.message||e).slice(0,120))}
 }
 /* 제번을 고르면 → 품번 칸을 같이 채운다 */
 function pnSync(job){const x=PNMAP.find(y=>y.job===job);q_pn.value=x?x.model:''}
-function search(){const j=(q_job.value||'').trim();if(j&&online())return loadJob(j);if(online())return loadAll();render()}
+function search(){const j=(q_job.value||'').trim();if(j&&online())return loadJob(j);if((q_pn.value||'').trim()&&online())return pnPick();if(online())return loadAll();render()}
 window.MES={search,save,saveChecked,setMessage:msg,reload:loadJob,manOpen};render();
 (async()=>{await waitDB();const j=curJobNo();if(j)loadJob(j)})();
 </script>
@@ -627,7 +638,7 @@ window.MES={search,save,saveChecked,setMessage:msg,reload:loadJob,manOpen};rende
 <script src="mes_imgedit.js?v=196"></script>
 <script src="mes_jobpick.js?v=269"></script>
 <script>/* 제번 직접 타이핑 → 등록된 수주 목록에서 선택 */
-try{MESJOB.attachSplit("q_job",{seqAll:true,seqLabel:"제번",onBase:b=>{try{loadAll(b)}catch(e){}},onPick:j=>{loadJob(j);try{pnSync(j)}catch(e){}}}).then(()=>{try{pnSync(curJobNo())}catch(e){}})}catch(e){}   /* TJD v268: 관리제번 + 공정 선택 (원재료와 동일) */
+try{MESJOB.attachSplit("q_job",{seqAll:true,seqLabel:"제번",onBase:b=>{try{q_pn.value="";loadAll(b)}catch(e){}},onPick:j=>{loadJob(j);try{pnSync(j)}catch(e){}}}).then(()=>{try{pnSync(curJobNo())}catch(e){}})}catch(e){}   /* TJD v268: 관리제번 + 공정 선택 (원재료와 동일) */
 try{pnLoad();q_pn.addEventListener("change",()=>{try{pnPick()}catch(e){}});
  q_pn.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();try{pnPick()}catch(_){}}});}catch(e){}
 </script>
