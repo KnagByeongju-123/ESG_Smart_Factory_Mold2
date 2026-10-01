@@ -37,6 +37,7 @@ tfoot th{position:sticky;bottom:0;background:linear-gradient(#e6eef5,#d3e0ea)}
     <div class="frow">
       <span class="label">제번</span><input id="jobQ" class="field" style="width:180px" placeholder="제번 입력/선택" autocomplete="off">
       <span class="label">품명</span><input id="itemQ" class="field" style="width:180px" placeholder="품명 입력/선택" list="itemDL" autocomplete="off"><datalist id="itemDL"></datalist>
+      <span class="label">고객사</span><select id="custQ" class="field" data-combo style="width:150px" title="수주등록의 고객사로 거릅니다"><option value="">전체</option></select>
       <span class="label">협력업체</span><select id="vendorQ" class="field" data-combo style="width:180px"><option value="">전체</option></select>
       <button class="btn" onclick="search()">⌕ 조회</button>
       <span style="margin-left:14px;color:#3c5a78;font-size:11px;padding:3px 8px;border:1px solid #c9d8e6;background:#eef5fb;border-radius:3px">※ 목록 <b>우클릭</b>(또는 더블클릭) → 입고 · 입고확정 · 발주취소 · 입고취소 · 확정취소</span>
@@ -100,17 +101,17 @@ async function cancelConfirm(){
 function search(){
  if(window.MESDB&&MESDB.reloadLines){
   msg('DB 에서 다시 읽는 중…');
-  MESDB.reloadLines().then(n=>{itemLoad();loadVendorSel();_filterNow();
+  MESDB.reloadLines().then(n=>{itemLoad();loadVendorSel();custLoad().then(_filterNow);_filterNow();
    if(n===-1)msg('DB 에서 읽지 못했습니다. 연결 상태를 확인하고 [⌕ 조회]를 다시 누르세요. (기준정보 › 에러로그에 사유가 남습니다)')})
    .catch(()=>{_filterNow();msg('DB 조회 실패 — 화면에 남아 있는 자료만 표시했습니다.')});
   return;
  }
  _filterNow();
 }
-function _filterNow(){const st=document.querySelector('input[name=st]:checked').value;const j=jobQ.value.trim().toLowerCase(),it=itemQ.value.trim().toLowerCase(),v=vendorQ.value.trim().toLowerCase();
-view=rows.filter(r=>(st==='전체'||ST(r.st)===st)&&(!j||r.job.toLowerCase().includes(j))&&(!it||(r.item||'').toLowerCase().includes(it))&&(!v||r.vendor.toLowerCase().includes(v))&&within(r.rdate,rd1.value,rd2.value)&&within(r.idate,id1.value,id2.value)&&within(r.cdate,cd1.value,cd2.value));
+function _filterNow(){const st=document.querySelector('input[name=st]:checked').value;const j=jobQ.value.trim().toLowerCase(),it=itemQ.value.trim().toLowerCase(),v=vendorQ.value.trim().toLowerCase(),cu=(document.getElementById('custQ')||{}).value||'';
+view=rows.filter(r=>(st==='전체'||ST(r.st)===st)&&(!j||r.job.toLowerCase().includes(j))&&(!it||(r.item||'').toLowerCase().includes(it))&&(!v||r.vendor.toLowerCase().includes(v))&&(!cu||CU(r.job)===cu)&&within(r.rdate,rd1.value,rd2.value)&&within(r.idate,id1.value,id2.value)&&within(r.cdate,cd1.value,cd2.value));
 render();msg(`${st} 기준 ${view.length}건을 조회했습니다.`)}
-function exportCsv(){const out=[['구분','업체명','제번','품명','공정','공정명','품번','부품명','재질','스펙','수량','단가','발주월','입고요구일','입고월','입고확정일','매입가','네고율(%)','확정가'],...view.map(r=>[ST(r.st),r.vendor,r.job,r.item,r.proc,r.procName,r.part,r.partName,r.mat,r.spec,r.qty,r.price,r.odate,r.rdate,r.idate,r.cdate,buyOf(r),r.rate,r.fix])];const csv='\ufeff'+out.map(a=>a.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='purchase_order_status.csv';a.click();URL.revokeObjectURL(a.href);msg('EXCEL(CSV) 파일을 생성했습니다.')}
+function exportCsv(){const out=[['구분','업체명','고객사','제번','품명','공정','공정명','품번','부품명','재질','스펙','수량','단가','발주월','입고요구일','입고월','입고확정일','매입가','네고율(%)','확정가'],...view.map(r=>[ST(r.st),r.vendor,CU(r.job),r.job,r.item,r.proc,r.procName,r.part,r.partName,r.mat,r.spec,r.qty,r.price,r.odate,r.rdate,r.idate,r.cdate,buyOf(r),r.rate,r.fix])];const csv='\ufeff'+out.map(a=>a.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='purchase_order_status.csv';a.click();URL.revokeObjectURL(a.href);msg('EXCEL(CSV) 파일을 생성했습니다.')}
 /* 발주취소 — 선택한 행의 order_lines 를 삭제한다. 입고된 건은 입고취소가 먼저다. */
 async function cancelOrder(){
  /* v169: 체크한 행 전부 취소. 체크가 없으면 클릭해 선택한 한 행 */
@@ -174,6 +175,25 @@ async function loadVendorSel(){
  if([...sel.options].some(o=>o.value===keep))sel.value=keep;
  if(!sel.__vwire){sel.__vwire=1;sel.addEventListener('change',()=>{try{_filterNow()}catch(e){}})}
 }
+/* TJD v276: 고객사 필터 — job_pool.customer_name(수주등록 고객사)으로 제번을 거른다 */
+const CUSTMAP=new Map();
+function CU(job){return CUSTMAP.get(job)||''}
+async function custLoad(){
+ const sel=document.getElementById('custQ');if(!sel)return;
+ try{
+  for(let i=0;i<60&&!window.MESDB;i++)await new Promise(r=>setTimeout(r,50));
+  if(window.MESDB&&MESDB.ready){try{await MESDB.ready}catch(e){}}
+  for(let i=0;i<20&&!(window.MESDB&&MESDB.online);i++)await new Promise(r=>setTimeout(r,150));
+  if(!(window.MESDB&&MESDB.online))return;
+  const rs=await MESDB.table('job_pool').select('select=job_no,customer_name');
+  CUSTMAP.clear();(rs||[]).forEach(r=>{const c=String(r.customer_name||'').trim();if(c)CUSTMAP.set(r.job_no,c)});
+  const keep=sel.value,cs=[...new Set(CUSTMAP.values())].sort((a,b)=>a.localeCompare(b,'ko'));
+  sel.innerHTML='<option value="">전체</option>'+cs.map(c=>`<option value="${c.replace(/"/g,'')}">${c.replace(/</g,'')}</option>`).join('');
+  if([...sel.options].some(o=>o.value===keep))sel.value=keep;
+  if(!sel.__cwire){sel.__cwire=1;sel.addEventListener('change',()=>{try{_filterNow()}catch(e){}})}
+ }catch(e){}
+}
+custLoad();setTimeout(custLoad,1500);
 render();window.MES={search,exportCsv,cancelOrder,setMessage:msg};
 </script>
 <script src="mes_db.js?v=171"></script><script src="mes_cycle.js?v=225"></script><script src="mes_ordctx.js?v=265"></script>

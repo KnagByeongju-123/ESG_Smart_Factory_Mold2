@@ -154,6 +154,7 @@ button,input,select{font:inherit;color:inherit}button{cursor:pointer}
  </div>
  <input id="fJob" class="cbo" style="width:170px" list="jobDL" autocomplete="off" placeholder="제번 입력/선택" oninput="apply()" onchange="jobPick()"><datalist id="jobDL"></datalist>
  <input id="fPn" class="cbo" style="width:170px" list="pnDL" autocomplete="off" placeholder="품번 입력/선택" oninput="apply()" onchange="pnPick()"><datalist id="pnDL"></datalist>
+ <select id="fCust" class="cbo" style="width:150px" title="수주등록의 고객사로 거릅니다" onchange="apply()"><option value="">고객사 전체</option></select>
  <div class="srch"><input id="q" placeholder="부품코드 · 업체 · 공정 검색" oninput="apply()"></div>
  <button class="tbtn red" id="bLate" onclick="toggleLate()">⚠ 지연만</button>
  <button class="tbtn" id="bPlan" onclick="togglePlan()" title="가공계획에는 있으나 아직 발주하지 않은 공정이 남은 부품만 봅니다">⬚ 미발주만</button>
@@ -351,9 +352,9 @@ function fillDLs(){
 async function pnLoad(){
  try{
   if(!(window.MESDB&&MESDB.online))return;
-  const rs=await MESDB.table('job_pool').select('select=job_no,model');
-  PNMAP.clear();(rs||[]).forEach(r=>{const m=String(r.model||'').trim();if(m)PNMAP.set(r.job_no,m)});
-  fillDLs();apply();
+  let rs;try{rs=await MESDB.table('job_pool').select('select=job_no,model,customer_name')}catch(e){rs=await MESDB.table('job_pool').select('select=job_no,model')}
+  PNMAP.clear();CUSTMAP.clear();(rs||[]).forEach(r=>{const m=String(r.model||'').trim();if(m)PNMAP.set(r.job_no,m);const c=String(r.customer_name||'').trim();if(c)CUSTMAP.set(r.job_no,c)});
+  custFill();fillDLs();apply();
  }catch(e){}
 }
 /* 제번을 고르면 품번 칸을, 품번을 고르면 제번 칸을 채운다 */
@@ -364,14 +365,23 @@ function pnPick(){
   if(jobs.length===1)document.getElementById('fJob').value=jobs[0];else if(jobs.length>1)document.getElementById('fJob').value=''}
  apply();
 }
+/* TJD v276: 고객사 필터 — job_pool.customer_name(수주등록 고객사) */
+const CUSTMAP=new Map();
+const CU=j=>CUSTMAP.get(j)||'';
+function custFill(){const sel=document.getElementById('fCust');if(!sel)return;const keep=sel.value;
+ const cs=[...new Set(CUSTMAP.values())].sort((a,b)=>a.localeCompare(b,'ko'));
+ sel.innerHTML='<option value="">고객사 전체</option>'+cs.map(c=>`<option value="${c.replace(/"/g,'')}">${c.replace(/</g,'')}</option>`).join('');
+ if([...sel.options].some(o=>o.value===keep))sel.value=keep}
 /* ═══ 필터 ═══ */
 function apply(){
  const q=document.getElementById('q').value.trim().toLowerCase();
+ const fc=(document.getElementById('fCust')?.value||'');
  const fj=(document.getElementById('fJob')?.value||'').trim().toLowerCase();
  const fp=(document.getElementById('fPn')?.value||'').trim().toLowerCase();
  view=parts.filter(p=>{
   if(fj&&!String(p.job||'').toLowerCase().includes(fj))return false;
   if(fp&&!String(PN(p.job)||'').toLowerCase().includes(fp))return false;
+  if(fc&&CU(p.job)!==fc)return false;
   if(onlyOpen&&p.allDone)return false;
   if(fLate&&!p.late)return false;
   if(fPlan&&!p.planN)return false;              /* 미발주 공정이 남은 부품만 */
