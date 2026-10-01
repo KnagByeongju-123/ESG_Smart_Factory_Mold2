@@ -104,8 +104,9 @@ async function moldJobs(curBase){
  const bases=[...bOf.keys()].filter(b=>b===orig||(bOf.get(b).origin===orig)||(RMRE.test(b)&&b.slice(0,RMRE.exec(b).index)===orig&&!bOf.get(b).origin));
  const kind=new Map();
  (so||[]).forEach(r=>{const b=baseOf(r.job_no);if(!bases.includes(b))return;const g=bOf.get(b),m=RMRE.exec(b);
-  const k=b===orig?'제작':(g.type==='개조'||(m&&m[1]==='M'))?'개조':'수리';
-  kind.set(String(r.job_no),{base:b,kind:k,tag:b===orig?'제작':(m?m[1]+m[2]:b)})});
+  const legacy=b===orig&&g.type==='수리'&&!g.origin;   /* TJD v282: 기존 양산 금형 — 관리제번 자체가 수리 원장 */
+  const k=legacy?'수리':b===orig?'제작':(g.type==='개조'||(m&&m[1]==='M'))?'개조':'수리';
+  kind.set(String(r.job_no),{base:b,kind:k,tag:legacy?'수리':b===orig?'제작':(m?m[1]+m[2]:b)})});
  bases.sort((a,b)=>a===orig?-1:b===orig?1:a.localeCompare(b,'ko',{numeric:true}));
  return {orig,bases,jobs:[...kind.keys()],kind};
 }
