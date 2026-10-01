@@ -1617,5 +1617,22 @@ MES.go=async function(p){p=p||{};const job=String(p.job||'');if(!job)return;
  if(p.proc&&r){const si=(r.steps||[]).findIndex(s=>stepCode(s)===p.proc);if(si>=0)cell=tr.querySelectorAll('td.route')[si]||null}
  MESGO.hold(()=>{const n=ROUTES.findIndex(x=>x.part===p.part);const t=routeBody.children[n];if(!t)return null;let c=null;if(p.proc){const si=(ROUTES[n].steps||[]).findIndex(s=>stepCode(s)===p.proc);if(si>=0)c=t.querySelectorAll('td.route')[si]||null}return [t,c]});msg(`${job} · ${p.part}${p.proc?' · '+procName(p.proc):''} — 금형원가내역에서 이동했습니다.`+(p.proc&&!cell?' (이 부품 가공계획에 해당 공정이 없습니다)':''))};
 </script>
+<script>
+/* TJD v277: 숫자 입력칸 — 값이 0 이면 예시(placeholder) 0 으로 보이고 실제 값은 비운다.
+   (0 이 들어 있는 채로 1000 을 치면 01000→10000 이 되던 문제) 칸에 들어가면 전체 선택해 바로 덮어쓰게 한다. */
+(function(){
+ const Z=v=>/^-?0*(\.0*)?%?$/.test(String(v==null?'':v).trim());
+ function fix(root){(root||document).querySelectorAll('input.r:not([readonly])').forEach(i=>{if(i.__z0)return;i.__z0=1;
+  if(!i.placeholder)i.placeholder='0';
+  if(Z(i.value))i.value='';
+  i.addEventListener('focus',()=>{if(Z(i.value))i.value='';else setTimeout(()=>{try{i.select()}catch(e){}},0)});
+  i.addEventListener('change',()=>{if(Z(i.value))i.value=''})})}
+ fix();
+ /* 다른 칸을 고쳐 계산된 값이 0 이면 그것도 비운다 (네고율↔확정가) */
+ document.addEventListener('change',e=>{if(e.target&&e.target.matches&&e.target.matches('input.r'))setTimeout(()=>document.querySelectorAll('input.r:not([readonly])').forEach(i=>{if(Z(i.value))i.value=''}),0)},true);
+ try{new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1)fix(n)}))).observe(document.documentElement,{childList:true,subtree:true})}catch(e){}
+ window.__mesZero=fix;
+})();
+</script>
 </body>
 </html>

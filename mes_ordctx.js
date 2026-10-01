@@ -1031,3 +1031,18 @@ function openLine(ev, l, o) {
 }
 window.MESORDCTX = { init, openLine, refresh, loadLines, partState, close, startNewCycle, activeCycleRows, cycleIdFor, withCycleRemark, newCycleId };
 })();
+/* TJD v277: 숫자 입력칸 — 값이 0 이면 예시(placeholder) 0 으로 보이고 실제 값은 비운다.
+   (0 이 들어 있는 채로 1000 을 치면 01000→10000 이 되던 문제) 칸에 들어가면 전체 선택해 바로 덮어쓰게 한다. */
+(function(){
+ const Z=v=>/^-?0*(\.0*)?%?$/.test(String(v==null?'':v).trim());
+ function fix(root){(root||document).querySelectorAll('input.r:not([readonly])').forEach(i=>{if(i.__z0)return;i.__z0=1;
+  if(!i.placeholder)i.placeholder='0';
+  if(Z(i.value))i.value='';
+  i.addEventListener('focus',()=>{if(Z(i.value))i.value='';else setTimeout(()=>{try{i.select()}catch(e){}},0)});
+  i.addEventListener('change',()=>{if(Z(i.value))i.value=''})})}
+ fix();
+ /* 다른 칸을 고쳐 계산된 값이 0 이면 그것도 비운다 (네고율↔확정가) */
+ document.addEventListener('change',e=>{if(e.target&&e.target.matches&&e.target.matches('input.r'))setTimeout(()=>document.querySelectorAll('input.r:not([readonly])').forEach(i=>{if(Z(i.value))i.value=''}),0)},true);
+ try{new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1)fix(n)}))).observe(document.documentElement,{childList:true,subtree:true})}catch(e){}
+ window.__mesZero=fix;
+})();
