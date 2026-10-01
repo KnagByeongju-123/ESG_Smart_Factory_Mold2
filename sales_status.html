@@ -87,7 +87,7 @@ const devBoxes=()=>[...document.querySelectorAll('input[name=dev]')];
 devAll.addEventListener('change',()=>{devBoxes().forEach(b=>b.checked=devAll.checked);search()});
 devBoxes().forEach(b=>b.addEventListener('change',()=>{devAll.checked=devBoxes().every(x=>x.checked);search()}));
 function search(){const ds=new Set(devBoxes().filter(b=>b.checked).map(b=>b.value));const j=jobQ.value.trim().toLowerCase(),it=itemQ.value.trim().toLowerCase(),bq=q_base.value,cu=q_cust.value;
-const devOk=r=>ds.has(r.dev==='사내'?'사내':'사외');
+const devOk=r=>ds.has(/^사내$|사내설계/.test(String(r.dev||''))?'사내':'사외');   /* TJD v283: 개발유형이 '사내설계,사내조립' 처럼 여러 개여도 설계 기준으로 사내·사외를 가른다 */
 view=ds.size?rows.filter(r=>devOk(r)&&(!cu||(String(r.cust||'').trim()===cu||CU(r.job)===cu))&&(!bq||baseOf(r.job)===bq)&&(!j||r.job.toLowerCase().includes(j))&&(!it||String(r.model||'').toLowerCase().includes(it))&&within(r.cdate,cd1.value,cd2.value)):[];
 render();
 const d=ds.size===2?'전체':[...ds].join('/');
