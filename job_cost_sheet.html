@@ -59,10 +59,11 @@ tr.msub td{background:#fff8ef;border-top:2px solid #e6c79a;font-size:12px}tr.msu
  <label style="display:flex;align-items:center;gap:4px;color:#8a4f08" title="원 금형(신작)과 그 수리(-R1·R2…)·개조(-M1…) 관리제번을 한 표에 모아 제작·수리·개조 소계를 봅니다"><input type="checkbox" id="moldQ" onchange="if(this.checked)grpQ.checked=false;load()"> 금형 전체(제작+수리)</label>
  <span class="lb" style="margin-left:6px">품번</span><input id="partQ" class="field" style="width:150px" placeholder="품번/부품명" oninput="render()">
  <label style="display:flex;align-items:center;gap:4px" title="원재료·가공 기록이 하나도 없는 부품을 숨깁니다"><input type="checkbox" id="hideEmpty" onchange="render()"> 기록 있는 부품만</label>
- <button class="btn" onclick="load()">⌕ 조회</button>
+ <button class="btn" onclick="load()" title="관리제번을 비우고 누르면 전체(수주유형·고객사 필터 적용) 제번의 원가를 한 표로 봅니다">⌕ 조회</button>
  <span id="perBox" style="display:flex;align-items:center;gap:4px;margin-left:6px" title="기간 — 발주는 입고확정일(없으면 입고일·발주일), 사내 실적은 작업일, 경비는 사유일 기준. 양산 중 수리(R1)의 월별 수리비를 볼 때 씁니다. 비우면 전체">
   <span class="lb" style="margin:0">기간</span><input type="date" id="pFrom" class="field" style="width:128px" onchange="load()"><span>~</span><input type="date" id="pTo" class="field" style="width:128px" onchange="load()">
   <button class="btn" style="min-width:0;padding:0 7px" onclick="perSet(0)">이번 달</button><button class="btn" style="min-width:0;padding:0 7px" onclick="perSet(-1)">지난 달</button><button class="btn" style="min-width:0;padding:0 7px" onclick="perSet(null)">전체</button></span>
+ <span class="lb" style="margin-left:10px">고객사</span><select id="custQ" class="field" style="width:150px" title="수주등록의 고객사로 관리제번 목록을 거릅니다. 관리제번을 비우고 [조회]하면 이 고객사 금형 전체를 봅니다" onchange="otApply()"><option value="">전체</option></select>
  <span id="otBox" style="display:flex;align-items:center;gap:8px;margin-left:10px;padding:2px 8px;border:1px solid #c9d8e6;background:#f4f8fc;border-radius:3px" title="수주유형(수주등록)으로 관리제번 목록을 거릅니다">
   <span class="lb" style="margin:0">수주유형</span>
   <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" class="otChk" value="신작" checked onchange="otApply()"> 신작</label>
@@ -86,7 +87,10 @@ const online=()=>!!(window.MESDB&&MESDB.online);
 const N=v=>Number(v)||0, F=v=>Math.round(N(v)).toLocaleString('ko-KR');
 const H=m=>{const h=N(m)/60;return h?(h>=10?h.toFixed(0):h.toFixed(1)):''};
 const D=v=>String(v||'').slice(0,10), MD=v=>{const d=D(v);return d?d.slice(5).replace('-','/'):''};
-let TAB='cost', ROWS=[], COLS=[], PROCNAME={}, PROCORD={}, CURJOB='', BASEMODE=false, MOLDMODE=false, JOBKIND=new Map();
+let TAB='cost', ROWS=[], COLS=[], PROCNAME={}, PROCORD={}, CURJOB='', BASEMODE=false, MOLDMODE=false, ALLMODE=false, JOBKIND=new Map();
+/* TJD v279: 관리제번을 비우고 [조회] → 전체(수주유형·고객사 필터에 맞는 모든 제번). 고객사 = job_pool.customer_name */
+const CUST=new Map(),JOBALL=[];   /* 제번 → 고객사 · 전체 제번 목록 */
+const CU=j=>CUST.get(j)||'';let ALLSETJ=new Set();
 /* ── TJD v270: 금형 전체(제작+수리) — 원 관리제번 + origin_base 로 연결된 수리(-R)·개조(-M) 관리제번 ── */
 const RMRE=/-(R|M)(\d+)$/;
 async function moldJobs(curBase){
@@ -144,11 +148,12 @@ async function loadProcs(){
 async function load(){
  await waitDB();
  const job=String(jobQ.value||'').trim();
- if(!job){msg('제번을 입력하세요.');jobQ.focus();return}
  if(!online()){msg('DB 미연결 상태입니다.');return}
- MOLDMODE=!!(window.moldQ&&moldQ.checked);BASEMODE=grpQ.checked&&!MOLDMODE;CURJOB=job;
+ ALLMODE=!job;
+ MOLDMODE=!ALLMODE&&!!(window.moldQ&&moldQ.checked);BASEMODE=!ALLMODE&&grpQ.checked&&!MOLDMODE;CURJOB=job;
  const base=baseOf(job), key=BASEMODE?base:job;
- hdJob.textContent=BASEMODE?`${base} (관리제번 전체)`:job;
+ const cu=(document.getElementById('custQ')||{}).value||'';
+ hdJob.textContent=ALLMODE?`전체${cu?' · '+cu:''}`:BASEMODE?`${base} (관리제번 전체)`:job;
  msg('조회 중…');
  try{
   await loadProcs();
@@ -160,7 +165,18 @@ async function load(){
    if(!M.jobs.length){msg(`${M.orig} 에 연결된 제번이 없습니다.`);ROWS=[];COLS=[];COMMON=null;render();return}
    F1=`job_no=in.${encodeURIComponent('('+M.jobs.map(j=>'"'+String(j).replace(/"/g,'')+'"').join(',')+')')}`;
   }
-  const inScope=r=>MOLDMODE?JOBKIND.has(String(r.job_no||'')):(!BASEMODE||baseOf(r.job_no)===base);   /* TJD v270: 관리제번 전체가 26RDE606-R1 같은 수리 제번까지 끌어오지 않게 */
+  let ALLSET=null;
+  if(ALLMODE){   /* TJD v279: 전체 — 수주유형·고객사 필터를 통과한 제번만 */
+   await custLoad();
+   const on=new Set([...document.querySelectorAll('.otChk:checked')].map(c=>c.value));
+   const okB=b=>{const ts=OT.get(b);return !ts||!ts.size||[...ts].some(t=>on.has(t))};
+   const jobs=JOBALL.filter(j=>okB(baseOf(j))&&(!cu||CU(j)===cu));
+   if(!jobs.length){msg('조건에 맞는 제번이 없습니다.');ROWS=[];COLS=[];COMMON=null;render();return}
+   ALLSET=new Set(jobs);ALLSETJ=ALLSET;
+   hdJob.textContent=`전체${cu?' · '+cu:''} (관리제번 ${new Set(jobs.map(baseOf)).size}개 · 제번 ${jobs.length}개)`;
+   F1=jobs.length<=200?`job_no=in.${encodeURIComponent('('+jobs.map(j=>'"'+String(j).replace(/"/g,'')+'"').join(',')+')')}`:'job_no=not.is.null';
+  }
+  const inScope=r=>ALLMODE?ALLSET.has(String(r.job_no||'')):MOLDMODE?JOBKIND.has(String(r.job_no||'')):(!BASEMODE||baseOf(r.job_no)===base);   /* TJD v270: 관리제번 전체가 26RDE606-R1 같은 수리 제번까지 끌어오지 않게 */
   const [plan0,pl0,lines0,res0,exps0]=await Promise.all([
    MESDB.table('machining_plan_parts').select(`select=*&${F1}&order=row_no`).catch(()=>[]),
    MESDB.table('partlist_all').select(`select=*&${F1}`).catch(()=>[]),
@@ -175,7 +191,7 @@ async function load(){
   const res=(res0||[]).filter(inScope).filter(r=>!PER||inPer(r.work_date));
   const exps=(exps0||[]).filter(inScope).filter(e=>!PER||inPer(e.reason_date||e.reg_date||e.created_at));
   /* v159: 형태·이미지 보충 (뷰에 없을 수 있음) */
-  let meta={};try{meta=await MESDB.partMeta((BASEMODE||MOLDMODE)?null:job)||{}}catch(e){}
+  let meta={};try{meta=await MESDB.partMeta((BASEMODE||MOLDMODE||ALLMODE)?null:job)||{}}catch(e){}
   build(plan,pl,lines,res,meta,exps);
   if(PER&&!hideEmpty.checked){}   /* 기간 조회는 표시만 거른다 */
   msg(`${hdJob.textContent}${PER?` · 기간 ${pFrom.value||'…'} ~ ${pTo.value||'…'}`:''} · 부품 ${ROWS.length}건 · 공정 ${COLS.length}개`);
@@ -243,6 +259,7 @@ function build(plan,pl,lines,res,meta,exps){
  COMMON.total=COMMON.dex.amt+COMMON.sex.amt+COMMON.din.amt+COMMON.asm.amt+COMMON.insp.amt+COMMON.exp.amt+COMMON.etc.amt;
  CJ=commonByJob(lines,res,exps||[]);
  ROWS=[...map.values()];
+ if(ALLMODE)ROWS.sort((a,b)=>a.job.localeCompare(b.job,'ko',{numeric:true}));
  ROWS.forEach(x=>{const m=(meta||{})[x.job+'|'+x.part];
   if(m){if(!x.shape)x.shape=m.shape||'';if(!x.img)x.img=m.image_url||''}
   x.matTot=x.mat_amt;x.rawTot=x.raw_amt;x.buyTot=x.buy_amt;
@@ -293,6 +310,8 @@ function view(){
 
 /* TJD v270: 금형 전체 — 유형별 소계 (제작 / 수리 누계 / 개조) · 관리제번별 */
 function moldSub(v){
+ if(ALLMODE){const all=(11)+(COLS.length||1)+2,B=new Map();v.forEach(x=>B.set(baseOf(x.job),(B.get(baseOf(x.job))||0)+N(x.total)));CJ.forEach((a,j)=>{if(ALLSETJ.has(j))B.set(baseOf(j),(B.get(baseOf(j))||0)+N(a))});
+  const tot=[...B.values()].reduce((a,b)=>a+b,0);return `<tr class="msub"><td class="c" colspan="${all-1}">관리제번 <b>${B.size}</b>개 소계<div class="det">${[...B.entries()].map(([b,a])=>`${esc(b)} ${F(a)}`).join(' · ')}</div></td><td class="num"><b>${F(tot)}</b></td></tr>`}
  if(!MOLDMODE)return '';
  const all=(11)+(COLS.length||1)+2;
  const K={제작:0,수리:0,개조:0},B=new Map();
@@ -304,15 +323,15 @@ function moldSub(v){
    <div class="det">${per}${(pFrom.value||pTo.value)?` · 기간 ${esc(pFrom.value||'…')} ~ ${esc(pTo.value||'…')}`:''}</div></td><td class="num"><b>${F(tot)}</b></td></tr>`;
 }
 function render(){
- const v=view(), showJob=BASEMODE||MOLDMODE;
- const jtag=x=>{if(!MOLDMODE)return esc(x.seq);const k=JOBKIND.get(x.job)||{};const cls=k.kind==='수리'?'rep':k.kind==='개조'?'mod':'new';return `<span class="jk ${cls}" title="${esc(x.job)} · ${esc(k.kind||'')}">${esc(k.tag||'')}${x.seq?'·'+esc(x.seq):''}</span>`};
+ const v=view(), showJob=BASEMODE||MOLDMODE||ALLMODE;
+ const jtag=x=>{if(ALLMODE)return `<span title="${esc(CU(x.job))}">${esc(x.job)}</span>`;if(!MOLDMODE)return esc(x.seq);const k=JOBKIND.get(x.job)||{};const cls=k.kind==='수리'?'rep':k.kind==='개조'?'mod':'new';return `<span class="jk ${cls}" title="${esc(x.job)} · ${esc(k.kind||'')}">${esc(k.tag||'')}${x.seq?'·'+esc(x.seq):''}</span>`};
  const pcW=Math.max(62,Math.min(96,Math.round(760/Math.max(1,COLS.length))));
  if(TAB==='cost'){
   thead.innerHTML=`<tr>
     <th class="grp" colspan="${showJob?11:10}">부품 · 재료비</th>
     <th class="grp" colspan="${COLS.length||1}">공정별 가공비 &nbsp;<span style="font-weight:400;font-size:10px">(위 사내 h · 아래 외주 원)</span></th>
     <th class="grp" colspan="2">합계</th></tr>
-   <tr><th style="width:74px">입고일</th>${showJob?`<th style="width:${MOLDMODE?72:44}px">${MOLDMODE?'구분·공정':'공정'}</th>`:''}
+   <tr><th style="width:74px">입고일</th>${showJob?`<th style="width:${ALLMODE?104:MOLDMODE?72:44}px">${ALLMODE?'제번':MOLDMODE?'구분·공정':'공정'}</th>`:''}
     <th style="width:88px">품번</th><th style="width:150px">부품명</th><th style="width:70px">재질</th>
     <th style="width:58px">형태</th><th style="width:120px">규격</th><th style="width:78px">단가</th><th style="width:42px">수량</th><th style="width:90px" title="원재료 발주 · 입고확정 금액">원재료비</th><th style="width:90px" title="구매품 발주 · 입고확정 금액">구매품비</th>
     ${COLS.map(c=>`<th style="width:${pcW}px" title="${esc(c)} ${esc(pn(c))}">${esc(pn(c))}</th>`).join('')||'<th>가공 기록 없음</th>'}
@@ -328,7 +347,7 @@ function render(){
         (q.min?`<span class="h">${H(q.min)}</span><br>`:'')+
         (q.out?`<span class="o">${F(q.out)}</span>`:(q.wait?`<span class="w">(${F(q.wait)})</span>`:(q.cost&&!q.min?F(q.cost):'')))+'</td>'}).join('')||'<td></td>'}
     <td class="num">${x.procTot?F(x.procTot):''}</td><td class="num"><b>${x.total?F(x.total):''}</b></td></tr>`).join('')
-   :`<tr><td colspan="${(showJob?11:10)+(COLS.length||1)+2}" class="c" style="height:110px;color:#8a97a2">${CURJOB?'부품이 없습니다. PartList 또는 가공계획을 먼저 등록하세요.':'제번을 선택하세요.'}</td></tr>`;
+   :`<tr><td colspan="${(showJob?11:10)+(COLS.length||1)+2}" class="c" style="height:110px;color:#8a97a2">${CURJOB||ALLMODE?'부품이 없습니다. PartList 또는 가공계획을 먼저 등록하세요.':'제번을 고르거나, 비운 채 [조회]를 누르면 전체를 봅니다.'}</td></tr>`;
   /* v196: 금형 공통비 — 부품 표 아래에 항목별로 (우클릭하면 근거 화면) */
   if(CURJOB&&COMMON){const all=(showJob?11:10)+(COLS.length||1)+2,C=COMMON,hh=m=>m?H(m)+'h':'';
    const items=[['dex','외주설계',`입고확정 ${F(C.dex.amt)||0}원`+(C.dex.wait?` · 미확정 ${F(C.dex.wait)}원`:'')+(C.dex.n?` · ${C.dex.n}건`:''),C.dex.amt],
@@ -352,7 +371,7 @@ function render(){
     <th class="grp" colspan="${showJob?7:6}">부품</th>
     <th class="grp" colspan="${COLS.length||1}">공정별 완료일 &nbsp;<span style="font-weight:400;font-size:10px">(노랑 = 완료 · 파랑 = 진행)</span></th>
     <th class="grp" colspan="2">진행</th></tr>
-   <tr>${showJob?`<th style="width:${MOLDMODE?72:44}px">${MOLDMODE?'구분·공정':'공정'}</th>`:''}
+   <tr>${showJob?`<th style="width:${ALLMODE?104:MOLDMODE?72:44}px">${ALLMODE?'제번':MOLDMODE?'구분·공정':'공정'}</th>`:''}
     <th style="width:88px">품번</th><th style="width:170px">부품명</th><th style="width:70px">재질</th>
     <th style="width:58px">형태</th><th style="width:130px">규격</th><th style="width:42px">수량</th>
     ${COLS.map(c=>`<th style="width:${pcW}px" title="${esc(c)} ${esc(pn(c))}">${esc(pn(c))}</th>`).join('')||'<th>공정 없음</th>'}
@@ -380,12 +399,12 @@ function render(){
 
 function csv(){
  const v=view();if(!v.length)return msg('내보낼 자료가 없습니다.');
- const showJob=BASEMODE;
+ const showJob=BASEMODE||ALLMODE;
  let h,rows;
  if(TAB==='cost'){
-  h=['입고일',...(showJob?['공정']:[]),'품번','부품명','재질','형태','규격','단가','수량','원재료비','구매품비',
+  h=['입고일',...(showJob?[ALLMODE?'제번':'공정']:[]),'품번','부품명','재질','형태','규격','단가','수량','원재료비','구매품비',
      ...COLS.flatMap(c=>[pn(c)+' 사내(h)',pn(c)+' 외주(원)']),'가공비','합계'];
-  rows=v.map(x=>[D(x.mat_in),...(showJob?[x.seq]:[]),x.part,x.name,x.mat,x.shape||'',x.spec,Math.round(x.mat_price)||'',x.qty??'',Math.round(x.rawTot)||'',Math.round(x.buyTot)||'',
+  rows=v.map(x=>[D(x.mat_in),...(showJob?[ALLMODE?x.job:x.seq]:[]),x.part,x.name,x.mat,x.shape||'',x.spec,Math.round(x.mat_price)||'',x.qty??'',Math.round(x.rawTot)||'',Math.round(x.buyTot)||'',
    ...COLS.flatMap(c=>{const q=x.proc[c];return q?[q.min?(q.min/60).toFixed(1):'',Math.round(q.out+q.cost)||'']:['','']}),
    Math.round(x.procTot)||'',Math.round(x.total)||'']);
   if(COMMON){const w=h.length,row=(l,a)=>{const r=Array(w).fill('');r[0]=l;r[w-1]=Math.round(a)||0;return r};
@@ -393,8 +412,8 @@ function csv(){
     row('금형 공통비 · 검사(금형 전체)',COMMON.insp.amt),row('금형 공통비 · 경비',COMMON.exp.amt),...(COMMON.etc.n?[row('금형 공통비 · 기타(부품 미지정)',COMMON.etc.amt)]:[]),
     row('금형 총원가',v.reduce((a,x)=>a+N(x.total),0)+COMMON.total))}
  }else{
-  h=[...(showJob?['공정']:[]),'품번','부품명','재질','형태','규격','수량',...COLS.map(c=>pn(c)),'완료','전체','진행률'];
-  rows=v.map(x=>[...(showJob?[x.seq]:[]),x.part,x.name,x.mat,x.shape||'',x.spec,x.qty??'',
+  h=[...(showJob?[ALLMODE?'제번':'공정']:[]),'품번','부품명','재질','형태','규격','수량',...COLS.map(c=>pn(c)),'완료','전체','진행률'];
+  rows=v.map(x=>[...(showJob?[ALLMODE?x.job:x.seq]:[]),x.part,x.name,x.mat,x.shape||'',x.spec,x.qty??'',
    ...COLS.map(c=>{const q=x.proc[c];return q?(q.dOut||q.dIn||q.st||''):(x.steps.includes(c)?'예정':'')}),
    x.doneN,x.stepN,x.stepN?Math.round(x.doneN/x.stepN*100)+'%':'']);
  }
@@ -419,14 +438,28 @@ async function otLoad(){
  try{await waitDB();if(!online())return;
   const rs=await MESDB.table('sale_orders').select('select=job_no,order_type');
   OT.clear();(rs||[]).forEach(r=>{const b=MESDB.jobSplit?MESDB.jobSplit(r.job_no).base:String(r.job_no||'');if(!OT.has(b))OT.set(b,new Set());if(r.order_type)OT.get(b).add(String(r.order_type))});
-  otApply();
+  await custLoad();otApply();
  }catch(e){}
 }
+let _custDone=false;
+async function custLoad(){
+ if(_custDone)return;
+ try{await waitDB();if(!online())return;
+  let rs;try{rs=await MESDB.table('job_pool').select('select=job_no,customer_name')}catch(e){rs=[]}
+  CUST.clear();JOBALL.length=0;CUB.clear();(rs||[]).forEach(r=>{JOBALL.push(String(r.job_no));const c=String(r.customer_name||'').trim();if(c)CUST.set(String(r.job_no),c)});
+  const sel=document.getElementById('custQ');if(sel){const keep=sel.value,cs=[...new Set(CUST.values())].sort((a,b)=>a.localeCompare(b,'ko'));
+   sel.innerHTML='<option value="">전체</option>'+cs.map(c=>`<option value="${c.replace(/"/g,'')}">${c.replace(/</g,'')}</option>`).join('');if([...sel.options].some(o=>o.value===keep))sel.value=keep}
+  _custDone=!!(rs&&rs.length);
+ }catch(e){}
+}
+const CUB=new Map();   /* 관리제번 → Set(고객사) */
 function otApply(){
  const on=new Set([...document.querySelectorAll('.otChk:checked')].map(c=>c.value));
+ const cu=(document.getElementById('custQ')||{}).value||'';
+ if(cu&&!CUB.size)JOBALL.forEach(j=>{const b=baseOf(j);if(!CUB.has(b))CUB.set(b,new Set());if(CU(j))CUB.get(b).add(CU(j))});
  const sb=document.getElementById('jobQ_base');if(!sb)return;
  let shown=0,total=0;
- [...sb.options].forEach(o=>{if(!o.value)return;total++;const ts=OT.get(o.value);const ok=!ts||!ts.size||[...ts].some(t=>on.has(t));o.hidden=!ok;o.disabled=!ok;if(ok)shown++});
+ [...sb.options].forEach(o=>{if(!o.value)return;total++;const ts=OT.get(o.value);const ok=(!ts||!ts.size||[...ts].some(t=>on.has(t)))&&(!cu||(CUB.get(o.value)||new Set()).has(cu));o.hidden=!ok;o.disabled=!ok;if(ok)shown++});
  const c=document.getElementById('otCnt');if(c)c.textContent=total?`${shown}/${total}`:'';
  if(sb.value&&sb.options[sb.selectedIndex]&&sb.options[sb.selectedIndex].hidden){sb.value='';}
 }
