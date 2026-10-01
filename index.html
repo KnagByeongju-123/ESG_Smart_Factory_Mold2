@@ -284,7 +284,7 @@ a.menu-off,a.menu-off:hover{color:#9aa5ae!important;opacity:.55;cursor:not-allow
 </nav>
 
 <script>
-const APP_VER='278';
+const APP_VER='281';
 const APP={
   '영업관리':{
     secondary:[
@@ -355,6 +355,14 @@ const APP={
       '매입매출현황':[{name:'매입매출현황',items:['매입현황','매출현황','재고조회']}]
     }
   },
+  '보고서':{
+    secondary:[
+      {name:'보고서',icon:'▦'}
+    ],
+    menus:{
+      '보고서':[{name:'보고서',items:['월간보고서']}]
+    }
+  },
   'SQ':{
     secondary:[
       {name:'알림판',icon:'🔔'},
@@ -423,7 +431,7 @@ const APP={
     }
   }
 };
-const MODULES=['영업관리','설계관리','구매관리','조립관리','원가관리','SQ','기준정보','사용메뉴얼'];
+const MODULES=['영업관리','설계관리','구매관리','조립관리','원가관리','보고서','SQ','기준정보','사용메뉴얼'];
 const pageRegistry={
 '가공공정관리':{id:'machining_process_management',file:'machining_process_management.html',title:'가공공정관리'},
 '공정관리':{id:'machining_process_management',file:'machining_process_management.html',title:'가공공정관리'},
@@ -510,6 +518,7 @@ const pageRegistry={
 '외주가공 QR스캔':{id:'mobile_scan',file:'mobile_scan.html',title:'외주가공 QR 스캔'},
 '조립실적등록':{id:'assembly_result_input',file:'assembly_result_input.html',title:'조립실적등록'},
 '매출현황':{id:'sales_status',file:'sales_status.html',title:'매출현황'},
+'월간보고서':{id:'monthly_report',file:'monthly_report.html',title:'월간보고서'},
 '기한관리 알림판':{id:'sq_alert_board',file:'sq_alert_board.html',title:'기한관리 알림판'},
 '입력누락 점검판':{id:'mes_gap_board',file:'mes_gap_board.html',title:'입력누락 점검판'},
 '품질목표 등록':{id:'quality_kpi_target_input',file:'quality_kpi_target_input.html',title:'품질목표 등록'},
@@ -554,8 +563,8 @@ const pageRegistry={
 '수정요청게시판':{id:'mod_request_board',file:'mod_request_board.html',title:'수정요청게시판'},
 '조직도':{id:'org_chart',file:'org_chart.html',title:'조직도'}
 };
-const MOD_ICON={'영업관리':'▣','설계관리':'✎','구매관리':'▤','조립관리':'⚙','원가관리':'◴','조직도':'⛶','SQ':'◈','기준정보':'▦','사용메뉴얼':'📖'};
-const MOD_DESC={'영업관리':'수주 · 제작계획 · 설계외주 · SET외주','설계관리':'사내설계 · PARTLIST','구매관리':'원재료 · 구매품 · 사내외가공 발주','조립관리':'사내조립 · 검사','원가관리':'금형원가 내역 · 업체별 가공비 · 경비 · 매입/매출 · 재고','SQ':'품질목표 · 심사 · 부적합 · 4M · 계측기 · 문서/도면 · 추적성','기준정보':'공정 · 부품 · 자재 · 설비 · 업체 · 사용자 · 단가','사용메뉴얼':'시스템 사용 안내'};
+const MOD_ICON={'영업관리':'▣','설계관리':'✎','구매관리':'▤','조립관리':'⚙','원가관리':'◴','보고서':'📊','조직도':'⛶','SQ':'◈','기준정보':'▦','사용메뉴얼':'📖'};
+const MOD_DESC={'영업관리':'수주 · 제작계획 · 설계외주 · SET외주','설계관리':'사내설계 · PARTLIST','구매관리':'원재료 · 구매품 · 사내외가공 발주','조립관리':'사내조립 · 검사','원가관리':'금형원가 내역 · 업체별 가공비 · 경비 · 매입/매출 · 재고','보고서':'월간보고서 (PPT)','SQ':'품질목표 · 심사 · 부적합 · 4M · 계측기 · 문서/도면 · 추적성','기준정보':'공정 · 부품 · 자재 · 설비 · 업체 · 사용자 · 단가','사용메뉴얼':'시스템 사용 안내'};
 const HOME={id:'home',title:'홈',file:null,home:true};
 
 let activeModule='', activeId='', prevId='';

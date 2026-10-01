@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>월간보고서</title>
+<style>
+:root{--line:#9daab6;--line2:#c5ced6;--ink:#344758;--blue:#1d5da3}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{font-family:"Malgun Gothic","맑은 고딕",Arial,sans-serif;font-size:12px;color:var(--ink);background:#fff;overflow:hidden}button,input,select,textarea{font:inherit;color:inherit}
+.screen{height:100%;display:flex;flex-direction:column}.title{height:46px;padding:9px 14px 4px;border-bottom:2px solid #3977ad;display:flex;align-items:center;gap:14px}.title h1{margin:0;font-size:21px;font-weight:500;color:#4b5b69}.title h1:before{content:'◯';margin-right:6px;color:#8795a1}.title small{color:#6b7885}
+.filters{padding:7px 14px;border-bottom:1px solid var(--line2);background:#fafbfc;display:flex;gap:6px;align-items:center;flex-wrap:wrap}.label{font-weight:700}.field{height:26px;border:1px solid #b7c2cb;background:#fff;padding:0 6px;outline:none}.field:focus{border-color:#4e88bb}
+.btn{height:28px;min-width:70px;border:1px solid #9ca9b5;background:linear-gradient(#fff,#dfe6eb);cursor:pointer;padding:0 10px}.btn:hover{background:#fff}.btn.primary{background:linear-gradient(#f9ffff,#d2e7f6);color:#1e5e91;font-weight:700}.btn:disabled{opacity:.5;cursor:default}
+.body{flex:1;min-height:0;overflow:auto;padding:10px 14px;background:#eef2f5}
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:10px}
+.kpi{background:#fff;border:1px solid var(--line2);border-left:4px solid var(--blue);padding:8px 10px}.kpi small{display:block;color:#6b7885;font-size:11px}.kpi b{display:block;font-size:18px;margin-top:2px;color:#1f3a56}.kpi i{font-style:normal;color:#8795a1;font-size:11px}
+.sec{background:#fff;border:1px solid var(--line2);margin-bottom:10px}.sec h3{margin:0;padding:6px 10px;font-size:13px;background:linear-gradient(#dbe9f4,#c7d9e8);color:#405266;display:flex;align-items:center;gap:8px}.sec h3 span{font-weight:400;color:#6b7885;font-size:11px}
+.sec .in{padding:6px 10px;overflow:auto}
+table{border-collapse:collapse;width:100%}th,td{height:24px;padding:0 6px;border:1px solid var(--line2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}th{background:#f1f5f9;color:#405266;text-align:center}
+.c{text-align:center}.r{text-align:right}.none{color:#8795a1;text-align:center;padding:10px}
+textarea{width:100%;min-height:70px;border:1px solid #b7c2cb;padding:6px;resize:vertical}
+.foot{height:42px;display:flex;align-items:center;padding:5px 14px;border-top:1px solid var(--line);background:#eef2f5;gap:5px}.msg{margin-left:10px;color:#687784}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:900px){.title h1{font-size:18px}.kpis{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}.filters .label{min-width:0}}
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="title"><h1>월간보고서</h1><small>보고서 · 월간 금형 제작 보고 (PPT)</small></div>
+  <section class="filters">
+    <span class="label">보고 월</span><input id="month" class="field" type="month">
+    <span class="label">고객사</span><select id="custQ" class="field" style="width:160px" title="수주등록의 고객사. 비우면 전체"><option value="">전체</option></select>
+    <button class="btn" onclick="load()">⌕ 조회</button>
+    <button class="btn primary" id="btnPpt" onclick="makePpt()" title="아래 미리보기 내용을 PowerPoint 파일로 내려받습니다">▤ PPT 내려받기</button>
+    <span style="color:#6b7885;font-size:11px;margin-left:8px">※ 수주일·납품완료일·입고확정일·작업일·사유일이 보고 월에 속한 자료를 모읍니다. 특이사항은 아래 칸에 적으면 마지막 장에 들어갑니다.</span>
+  </section>
+  <div class="body" id="body"><div class="none">보고 월을 고르고 [조회]를 누르세요.</div></div>
+  <footer class="foot"><button class="btn" onclick="load()">⌕ 조회</button><button class="btn primary" onclick="makePpt()">▤ PPT 내려받기</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫 기</button><span class="msg" id="message">준비</span></footer>
+</div>
+<script>
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const N=v=>Number(v)||0, F=v=>Math.round(N(v)).toLocaleString('ko-KR'), D=v=>String(v||'').slice(0,10), YM=v=>String(v||'').slice(0,7);
+const H=m=>{const h=N(m)/60;return h?(h>=10?h.toFixed(0):h.toFixed(1)):'0'};
+const online=()=>!!(window.MESDB&&MESDB.online);
+const msg=t=>message.textContent=t;
+const baseOf=j=>{const m=/^(.*\d)([A-Z])$/.exec(String(j||'').trim());return m?m[1]:String(j||'').trim()};
+const confAmt=l=>{const q=N(l.quote_price),c=(l.confirm_price==null||l.confirm_price==='')?null:N(l.confirm_price),n=N(l.nego_rate);return c!=null?c:Math.round(q*(1-n/100))};
+const COMPANY='태진다이텍';
+let R=null;   /* 집계 결과 */
+async function waitDB(){for(let i=0;i<80&&!window.MESDB;i++)await new Promise(r=>setTimeout(r,50));if(window.MESDB&&MESDB.ready){try{await Promise.race([MESDB.ready,new Promise(r=>setTimeout(r,3000))])}catch(e){}}}
+function nextYM(ym){const [y,m]=ym.split('-').map(Number);const d=new Date(y,m,1);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}
+function prevYM(ym){const [y,m]=ym.split('-').map(Number);const d=new Date(y,m-2,1);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}
+const sum=(a,f)=>a.reduce((s,x)=>s+N(f(x)),0);
+
+/* ── 고객사 목록 ── */
+async function custLoad(){
+ try{const rs=await MESDB.table('job_pool').select('select=job_no,customer_name');
+  const cs=[...new Set((rs||[]).map(r=>String(r.customer_name||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ko'));
+  const keep=custQ.value;custQ.innerHTML='<option value="">전체</option>'+cs.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');if(cs.includes(keep))custQ.value=keep}catch(e){}
+}
+
+/* ── 집계 ── */
+async function load(){
+ await waitDB();if(!online()){msg('DB 미연결 상태입니다.');return}
+ const ym=month.value||new Date().toISOString().slice(0,7);month.value=ym;const cu=custQ.value;
+ msg('집계 중…');
+ try{
+  const [so,ol,dr,ex,jp]=await Promise.all([
+   MESDB.table('sale_orders').select('select=job_no,order_status,order_type,order_date,s1_planned_date,delivery_planned_date,delivery_completed_date,completion_date,customer_name,model,product_name,item_name,order_price,quotation_price,origin_base,development_type,mass_production_vendor_name',{fresh:true}),
+   MESDB.table('order_lines').select('select=job_no,category,status,vendor_name,quote_price,confirm_price,nego_rate,confirm_date,receipt_date,order_date,part_no&status=eq.입고확정',{fresh:true}).catch(()=>[]),
+   MESDB.table('design_results').select('select=job_no,work_type,work_date,work_minutes,labor_cost,worker_name',{fresh:true}).catch(()=>[]),
+   MESDB.table('expenses').select('select=job_no,reason_date,reg_date,reason_name,amount,customer_name',{fresh:true}).catch(()=>[]),
+   MESDB.table('job_progress_view').select('select=job_no,customer_name,model,order_type,order_status,delivery_planned_date,progress_pct,next_step,next_owner,delivery_days_left,delivery_overdue,s1_planned_date,s1_overdue',{fresh:true}).catch(()=>[])
+  ]);
+  const CUST=new Map();(so||[]).forEach(r=>{if(r.customer_name)CUST.set(r.job_no,String(r.customer_name).trim())});
+  const CU=j=>CUST.get(j)||'';
+  const okJ=j=>!cu||CU(j)===cu;
+  const S=(so||[]).filter(r=>okJ(r.job_no));
+  /* 관리제번 단위로 묶기 (A·B·C 공정 제번은 한 금형) */
+  const grp=rows=>{const m=new Map();rows.forEach(r=>{const b=baseOf(r.job_no);let g=m.get(b);if(!g){g={base:b,jobs:[],cust:CU(r.job_no),model:r.model||'',name:r.product_name||r.item_name||'',type:r.order_type||'',odate:D(r.order_date),due:D(r.delivery_planned_date),s1:D(r.s1_planned_date),done:D(r.delivery_completed_date)||D(r.completion_date),price:0,quote:0,origin:r.origin_base||'',dev:r.development_type||'',mp:r.mass_production_vendor_name||'',status:r.order_status||''};m.set(b,g)}g.jobs.push(r.job_no);g.price+=N(r.order_price);g.quote+=N(r.quotation_price);if(!g.model&&r.model)g.model=r.model;if(!g.due&&r.delivery_planned_date)g.due=D(r.delivery_planned_date)});return [...m.values()]};
+  const newOrd=grp(S.filter(r=>YM(r.order_date)===ym)).sort((a,b)=>a.odate.localeCompare(b.odate)||a.base.localeCompare(b.base));
+  const doneM=grp(S.filter(r=>YM(r.delivery_completed_date)===ym||(!r.delivery_completed_date&&YM(r.completion_date)===ym))).sort((a,b)=>a.done.localeCompare(b.done));
+  const nextDue=grp(S.filter(r=>YM(r.delivery_planned_date)===nextYM(ym)&&!r.delivery_completed_date&&r.order_status!=='취소')).sort((a,b)=>a.due.localeCompare(b.due));
+  const repair=newOrd.filter(g=>/수리|개조/.test(g.type));
+  /* 매입(입고확정) */
+  const L=(ol||[]).filter(l=>okJ(l.job_no)&&YM(l.confirm_date)===ym);
+  const CATS=['원재료','구매품','외주가공','외주설계','외주SET'];
+  const byCat=CATS.map(c=>({cat:c==='외주SET'?'SET외주':c,n:L.filter(l=>l.category===c).length,amt:sum(L.filter(l=>l.category===c),confAmt)}));
+  const prevL=(ol||[]).filter(l=>okJ(l.job_no)&&YM(l.confirm_date)===prevYM(ym));
+  const byVen=[...L.reduce((m,l)=>{const v=String(l.vendor_name||'(업체없음)').trim();const o=m.get(v)||{ven:v,n:0,amt:0};o.n++;o.amt+=confAmt(l);m.set(v,o);return m},new Map()).values()].sort((a,b)=>b.amt-a.amt);
+  /* 사내 공수 */
+  const Dm=(dr||[]).filter(r=>okJ(r.job_no)&&YM(r.work_date)===ym);
+  const WT=['설계','가공','조립','검사'];
+  const byWork=WT.map(w=>{const a=Dm.filter(r=>(r.work_type||'가공')===w);return {wt:w,n:a.length,min:sum(a,r=>r.work_minutes),amt:sum(a,r=>r.labor_cost!=null&&r.labor_cost!==''?r.labor_cost:Math.round(N(r.work_minutes)/60*30000)),ppl:new Set(a.map(r=>r.worker_name).filter(Boolean)).size}});
+  /* 경비 */
+  const Em=(ex||[]).filter(e=>okJ(e.job_no)&&YM(e.reason_date||e.reg_date)===ym);
+  const byExp=[...Em.reduce((m,e)=>{const k=e.reason_name||'기타';const o=m.get(k)||{k,n:0,amt:0};o.n++;o.amt+=N(e.amount);m.set(k,o);return m},new Map()).values()].sort((a,b)=>b.amt-a.amt);
+  /* 진행 중 금형 (job_progress_view) */
+  const JP=(jp||[]).filter(r=>okJ(r.job_no)&&r.order_status!=='취소'&&r.order_status!=='완료');
+  const prog=[...JP.reduce((m,r)=>{const b=baseOf(r.job_no);const g=m.get(b)||{base:b,cust:r.customer_name||CU(r.job_no),model:r.model||'',type:r.order_type||'',due:D(r.delivery_planned_date),pct:0,n:0,next:r.next_step||'',owner:r.next_owner||'',left:null,over:false};g.n++;g.pct+=N(r.progress_pct);if(r.delivery_days_left!=null&&(g.left==null||N(r.delivery_days_left)<g.left))g.left=N(r.delivery_days_left);if(r.delivery_overdue||r.s1_overdue)g.over=true;if(!g.due&&r.delivery_planned_date)g.due=D(r.delivery_planned_date);m.set(b,g);return m},new Map()).values()].map(g=>(g.pct=Math.round(g.pct/g.n),g))
+   .filter(g=>g.pct<100).sort((a,b)=>(b.over-a.over)||((a.left??9999)-(b.left??9999)));
+  const late=prog.filter(g=>g.over||(g.left!=null&&g.left<0));
+  /* 고객사별 */
+  const custs=new Map();const cadd=(c,k,v)=>{const o=custs.get(c)||{cust:c,ordN:0,ordAmt:0,buy:0,doneN:0,doneAmt:0};o[k]+=v;custs.set(c,o)};
+  newOrd.forEach(g=>{cadd(g.cust||'(미지정)','ordN',1);cadd(g.cust||'(미지정)','ordAmt',g.price)});
+  doneM.forEach(g=>{cadd(g.cust||'(미지정)','doneN',1);cadd(g.cust||'(미지정)','doneAmt',g.price)});
+  L.forEach(l=>cadd(CU(l.job_no)||'(미지정)','buy',confAmt(l)));
+  const byCust=[...custs.values()].sort((a,b)=>b.ordAmt+b.doneAmt-(a.ordAmt+a.doneAmt));
+  R={ym,cu,newOrd,doneM,nextDue,repair,byCat,byVen,byWork,byExp,prog,late,byCust,
+     buyTot:sum(byCat,x=>x.amt),buyPrev:sum(prevL,confAmt),laborTot:sum(byWork,x=>x.amt),laborMin:sum(byWork,x=>x.min),expTot:sum(Em,e=>e.amount),
+     ordAmt:sum(newOrd,g=>g.price),doneAmt:sum(doneM,g=>g.price),progN:prog.length,lateN:late.length};
+  render();msg(`${ym} 집계 — 신규 수주 ${newOrd.length}건 · 납품 ${doneM.length}건 · 매입 ${L.length}건 · 진행 중 ${prog.length}건`);
+ }catch(e){msg('집계 실패: '+String(e.message||e).slice(0,120))}
+}
+
+/* ── 미리보기 ── */
+const T=(h,rows,cls)=>rows.length?`<table><thead><tr>${h.map(x=>`<th>${esc(x)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map((v,i)=>`<td class="${(cls||[])[i]||''}">${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table>`:'<div class="none">해당 없음</div>';
+function render(){
+ if(!R)return;const b=document.getElementById('body');const ymK=`${R.ym.slice(0,4)}년 ${Number(R.ym.slice(5))}월`;
+ b.innerHTML=`
+ <div class="kpis">
+  <div class="kpi"><small>신규 수주</small><b>${R.newOrd.length}건</b><i>${F(R.ordAmt)}원</i></div>
+  <div class="kpi"><small>납품(완료) 금형</small><b>${R.doneM.length}건</b><i>${F(R.doneAmt)}원</i></div>
+  <div class="kpi"><small>매입(입고확정)</small><b>${F(R.buyTot)}원</b><i>전월 ${F(R.buyPrev)}원</i></div>
+  <div class="kpi"><small>사내 공수</small><b>${H(R.laborMin)}h</b><i>${F(R.laborTot)}원</i></div>
+  <div class="kpi"><small>경비</small><b>${F(R.expTot)}원</b><i>${R.byExp.length}항목</i></div>
+  <div class="kpi" style="border-left-color:${R.lateN?'#e05a4a':'#2fb27c'}"><small>진행 중 금형</small><b>${R.progN}건</b><i>지연 ${R.lateN}건</i></div>
+ </div>
+ <div class="sec"><h3>1. 신규 수주 <span>${ymK} 수주일 기준 · ${R.newOrd.length}건 · ${F(R.ordAmt)}원</span></h3><div class="in">${T(['관리제번','고객사','품번','품명','유형','수주일','납기예정','수주가'],R.newOrd.map(g=>[g.base,g.cust,g.model,g.name,g.type,g.odate,g.due,F(g.price)]),['','','','','c','c','c','r'])}</div></div>
+ <div class="sec"><h3>2. 납품·완료 금형 <span>납품완료일(없으면 정산완료일) 기준 · ${R.doneM.length}건 · ${F(R.doneAmt)}원</span></h3><div class="in">${T(['관리제번','고객사','품번','유형','수주일','완료일','수주가'],R.doneM.map(g=>[g.base,g.cust,g.model,g.type,g.odate,g.done,F(g.price)]),['','','','c','c','c','r'])}</div></div>
+ <div class="sec"><h3>3. 진행 중 금형 <span>지연 → 납기 임박 순 · ${R.progN}건 (지연 ${R.lateN}건)</span></h3><div class="in">${T(['관리제번','고객사','품번','유형','진척률','다음 단계','담당','납기예정','잔여일'],R.prog.slice(0,40).map(g=>[g.base,g.cust,g.model,g.type,g.pct+'%',g.next,g.owner,g.due,g.left==null?'':(g.left<0?`${-g.left}일 지연`:g.left+'일')]),['','','','c','c','','','c','c'])}</div></div>
+ <div class="two">
+  <div class="sec"><h3>4. 매입 현황 <span>입고확정일 기준 · ${F(R.buyTot)}원</span></h3><div class="in">${T(['구분','건수','금액'],R.byCat.map(x=>[x.cat,x.n,F(x.amt)]).concat([['합계',sum(R.byCat,x=>x.n),F(R.buyTot)]]),['','c','r'])}</div></div>
+  <div class="sec"><h3>업체별 매입 상위 <span>${R.byVen.length}개 업체</span></h3><div class="in">${T(['협력업체','건수','금액'],R.byVen.slice(0,10).map(x=>[x.ven,x.n,F(x.amt)]),['','c','r'])}</div></div>
+ </div>
+ <div class="two">
+  <div class="sec"><h3>5. 사내 공수 <span>작업일 기준</span></h3><div class="in">${T(['구분','건수','인원','시간(h)','금액'],R.byWork.map(x=>[x.wt,x.n,x.ppl,H(x.min),F(x.amt)]).concat([['합계',sum(R.byWork,x=>x.n),'',H(R.laborMin),F(R.laborTot)]]),['','c','c','r','r'])}</div></div>
+  <div class="sec"><h3>경비 <span>사유일 기준 · ${F(R.expTot)}원</span></h3><div class="in">${T(['사유','건수','금액'],R.byExp.slice(0,10).map(x=>[x.k,x.n,F(x.amt)]),['','c','r'])}</div></div>
+ </div>
+ <div class="sec"><h3>6. 고객사별 <span>수주 · 납품 · 매입</span></h3><div class="in">${T(['고객사','수주 건','수주 금액','납품 건','납품 금액','매입 금액'],R.byCust.map(x=>[x.cust,x.ordN,F(x.ordAmt),x.doneN,F(x.doneAmt),F(x.buy)]),['','c','r','c','r','r'])}</div></div>
+ <div class="two">
+  <div class="sec"><h3>7. 수리·개조 수주 <span>${R.repair.length}건</span></h3><div class="in">${T(['관리제번','원 금형','고객사','품번','유형','수주일','수주가'],R.repair.map(g=>[g.base,g.origin,g.cust,g.model,g.type,g.odate,F(g.price)]),['','','','','c','c','r'])}</div></div>
+  <div class="sec"><h3>8. 다음 달 납기 예정 <span>${nextYM(R.ym)} · ${R.nextDue.length}건</span></h3><div class="in">${T(['관리제번','고객사','품번','유형','납기예정','수주가'],R.nextDue.map(g=>[g.base,g.cust,g.model,g.type,g.due,F(g.price)]),['','','','c','c','r'])}</div></div>
+ </div>
+ <div class="sec"><h3>9. 특이사항 · 다음 달 계획 <span>직접 입력 — 줄마다 한 항목</span></h3><div class="in"><textarea id="memo" placeholder="예) 26RDE606 T/O 2차 완료, 10월 납품 예정&#10;예) 외주가공 단가 재협의 진행 중">${esc(window.__memo||'')}</textarea></div></div>`;
+ const m=document.getElementById('memo');if(m)m.oninput=()=>window.__memo=m.value;
+}
+
+/* ── PPT ── */
+function libLoad(src,test){return new Promise((ok,ng)=>{if(test())return ok();const s=document.createElement('script');s.src=src;s.onload=()=>test()?ok():ng(new Error('load fail'));s.onerror=()=>ng(new Error('load fail'));document.head.appendChild(s)})}
+async function makePpt(){
+ if(!R){await load();if(!R)return}
+ const btn=document.getElementById('btnPpt');btn.disabled=true;msg('PPT 만드는 중…');
+ try{
+  await libLoad('https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.12.0/pptxgen.bundle.js',()=>window.PptxGenJS);
+  const P=new PptxGenJS();P.layout='LAYOUT_16x9';P.author=COMPANY;P.company=COMPANY;P.title=`${R.ym} 월간보고서`;
+  const ymK=`${R.ym.slice(0,4)}년 ${Number(R.ym.slice(5))}월`,FONT='Malgun Gothic',NAVY='1F2733',AMB='F2A93B',BLUE='1D5DA3',GRAY='6B7885';
+  const sub=R.cu?` · ${R.cu}`:'';
+  let no=0;
+  const page=(title,note)=>{const s=P.addSlide();no++;
+   s.addShape(P.ShapeType.rect,{x:0,y:0,w:10,h:0.62,fill:{color:NAVY}});s.addShape(P.ShapeType.rect,{x:0,y:0.62,w:10,h:0.05,fill:{color:AMB}});
+   s.addText(title,{x:0.3,y:0.08,w:7.5,h:0.46,fontFace:FONT,fontSize:18,bold:true,color:'FFFFFF'});
+   s.addText(`${COMPANY} 금형 월간보고 · ${ymK}${sub}`,{x:6.2,y:0.14,w:3.6,h:0.36,fontFace:FONT,fontSize:9,color:'C7CFDB',align:'right'});
+   if(note)s.addText(note,{x:0.3,y:0.7,w:9.4,h:0.3,fontFace:FONT,fontSize:9,color:GRAY});
+   s.addText(`${no}`,{x:9.2,y:5.25,w:0.6,h:0.3,fontFace:FONT,fontSize:9,color:GRAY,align:'right'});
+   return s};
+  const tbl=(s,head,rows,opt)=>{opt=opt||{};const cw=opt.colW;const hd=head.map(h=>({text:h,options:{bold:true,fill:{color:'DBE9F4'},color:'405266',align:'center',fontFace:FONT,fontSize:9}}));
+   const body=rows.length?rows.map(r=>r.map((v,i)=>({text:String(v??''),options:{fontFace:FONT,fontSize:8.5,align:(opt.align||[])[i]||'left',color:'344758'}}))):[[{text:'해당 없음',options:{colspan:head.length,align:'center',color:GRAY,fontFace:FONT,fontSize:9}}]];
+   s.addTable([hd,...body],{x:opt.x??0.3,y:opt.y??1.05,w:opt.w??9.4,colW:cw,border:{type:'solid',pt:0.5,color:'C5CED6'},rowH:0.26,autoPage:true,autoPageRepeatHeader:true,autoPageHeaderRows:1,margin:0.03})};
+  /* 1 표지 */
+  {const s=P.addSlide();no++;s.background={color:NAVY};
+   s.addShape(P.ShapeType.rect,{x:0,y:3.45,w:10,h:0.06,fill:{color:AMB}});
+   s.addText('TJ',{x:0.6,y:0.6,w:0.8,h:0.6,fontFace:'Arial',fontSize:20,bold:true,color:NAVY,fill:{color:AMB},align:'center',valign:'middle'});
+   s.addText(`${COMPANY} 금형 월간보고서`,{x:0.6,y:1.7,w:8.8,h:0.8,fontFace:FONT,fontSize:32,bold:true,color:'FFFFFF'});
+   s.addText(`${ymK}${sub}`,{x:0.6,y:2.5,w:8.8,h:0.6,fontFace:FONT,fontSize:20,color:AMB});
+   s.addText(`작성일 ${new Date().toISOString().slice(0,10)} · MOLD MES 자동 집계`,{x:0.6,y:3.7,w:8.8,h:0.4,fontFace:FONT,fontSize:11,color:'C7CFDB'});}
+  /* 2 요약 */
+  {const s=page('월간 요약');
+   const K=[['신규 수주',`${R.newOrd.length}건`,`${F(R.ordAmt)}원`],['납품(완료) 금형',`${R.doneM.length}건`,`${F(R.doneAmt)}원`],['매입(입고확정)',`${F(R.buyTot)}원`,`전월 ${F(R.buyPrev)}원`],
+            ['사내 공수',`${H(R.laborMin)}h`,`${F(R.laborTot)}원`],['경비',`${F(R.expTot)}원`,`${R.byExp.length}항목`],['진행 중 금형',`${R.progN}건`,`지연 ${R.lateN}건`]];
+   K.forEach((k,i)=>{const x=0.3+(i%3)*3.15,y=1.0+Math.floor(i/3)*1.55;
+    s.addShape(P.ShapeType.rect,{x,y,w:2.95,h:1.35,fill:{color:'F4F7FA'},line:{color:'C5CED6',width:0.5}});s.addShape(P.ShapeType.rect,{x,y,w:0.08,h:1.35,fill:{color:i===5&&R.lateN?'E05A4A':BLUE}});
+    s.addText(k[0],{x:x+0.2,y:y+0.1,w:2.6,h:0.3,fontFace:FONT,fontSize:10,color:GRAY});s.addText(k[1],{x:x+0.2,y:y+0.4,w:2.6,h:0.55,fontFace:FONT,fontSize:22,bold:true,color:'1F3A56'});s.addText(k[2],{x:x+0.2,y:y+0.95,w:2.6,h:0.3,fontFace:FONT,fontSize:9,color:GRAY})});
+   const top=R.byCust.slice(0,6);
+   if(top.length)s.addChart(P.ChartType.bar,[{name:'수주 금액',labels:top.map(x=>x.cust),values:top.map(x=>x.ordAmt)},{name:'매입 금액',labels:top.map(x=>x.cust),values:top.map(x=>x.buy)}],{x:0.3,y:4.15,w:9.4,h:1.3,barDir:'bar',barGrouping:'clustered',chartColors:[BLUE,AMB],showLegend:true,legendPos:'r',legendFontSize:8,catAxisLabelFontSize:8,valAxisLabelFontSize:7,valAxisLabelFormatCode:'#,##0',showTitle:true,title:'고객사별 수주·매입 (상위)',titleFontSize:9,dataLabelFontSize:7});}
+  /* 3 신규 수주 */
+  tbl(page('1. 신규 수주',`${ymK} 수주일 기준 · ${R.newOrd.length}건 · 합계 ${F(R.ordAmt)}원`),['관리제번','고객사','품번','품명','유형','수주일','납기예정','수주가'],R.newOrd.map(g=>[g.base,g.cust,g.model,g.name,g.type,g.odate,g.due,F(g.price)]),{colW:[1.3,1.3,1.4,1.7,0.6,0.9,0.9,1.3],align:['l','l','l','l','center','center','center','right']});
+  /* 4 납품 */
+  tbl(page('2. 납품·완료 금형',`납품완료일(없으면 정산완료일) 기준 · ${R.doneM.length}건 · 합계 ${F(R.doneAmt)}원`),['관리제번','고객사','품번','유형','수주일','완료일','수주가'],R.doneM.map(g=>[g.base,g.cust,g.model,g.type,g.odate,g.done,F(g.price)]),{colW:[1.5,1.6,1.8,0.7,1.1,1.1,1.6],align:['l','l','l','center','center','center','right']});
+  /* 5 진행 */
+  tbl(page('3. 진행 중 금형',`지연 → 납기 임박 순 · ${R.progN}건 (지연 ${R.lateN}건)`),['관리제번','고객사','품번','유형','진척률','다음 단계','담당','납기예정','잔여일'],R.prog.slice(0,60).map(g=>[g.base,g.cust,g.model,g.type,g.pct+'%',g.next,g.owner,g.due,g.left==null?'':(g.left<0?`${-g.left}일 지연`:g.left+'일')]),{colW:[1.2,1.2,1.3,0.55,0.65,1.6,0.8,0.95,1.15],align:['l','l','l','center','center','l','l','center','center']});
+  /* 6 매입 */
+  {const s=page('4. 매입 현황',`입고확정일 기준 · 합계 ${F(R.buyTot)}원 (전월 ${F(R.buyPrev)}원)`);
+   tbl(s,['구분','건수','금액'],R.byCat.map(x=>[x.cat,x.n,F(x.amt)]).concat([['합계',sum(R.byCat,x=>x.n),F(R.buyTot)]]),{x:0.3,y:1.05,w:4.1,colW:[1.5,0.9,1.7],align:['l','center','right']});
+   s.addChart(P.ChartType.pie,[{name:'매입',labels:R.byCat.map(x=>x.cat),values:R.byCat.map(x=>x.amt)}],{x:0.3,y:3.1,w:4.1,h:2.2,chartColors:[BLUE,'3B82F6','2FB27C',AMB,'9AA4B5'],showLegend:true,legendPos:'r',legendFontSize:8,showPercent:true,dataLabelFontSize:8});
+   s.addText('업체별 매입 상위',{x:4.7,y:1.0,w:5,h:0.3,fontFace:FONT,fontSize:11,bold:true,color:BLUE});
+   tbl(s,['협력업체','건수','금액'],R.byVen.slice(0,12).map(x=>[x.ven,x.n,F(x.amt)]),{x:4.7,y:1.35,w:5,colW:[2.6,0.8,1.6],align:['l','center','right']});}
+  /* 7 공수·경비 */
+  {const s=page('5. 사내 공수 · 경비',`작업일 · 사유일 기준`);
+   s.addText('사내 공수',{x:0.3,y:1.0,w:4.5,h:0.3,fontFace:FONT,fontSize:11,bold:true,color:BLUE});
+   tbl(s,['구분','건수','인원','시간(h)','금액'],R.byWork.map(x=>[x.wt,x.n,x.ppl,H(x.min),F(x.amt)]).concat([['합계',sum(R.byWork,x=>x.n),'',H(R.laborMin),F(R.laborTot)]]),{x:0.3,y:1.35,w:4.5,colW:[0.9,0.7,0.7,0.9,1.3],align:['l','center','center','right','right']});
+   s.addChart(P.ChartType.bar,[{name:'시간(h)',labels:R.byWork.map(x=>x.wt),values:R.byWork.map(x=>Math.round(x.min/60*10)/10)}],{x:0.3,y:3.2,w:4.5,h:2.1,chartColors:[BLUE],showLegend:false,catAxisLabelFontSize:8,valAxisLabelFontSize:7,showValue:true,dataLabelFontSize:8,showTitle:true,title:'구분별 시간(h)',titleFontSize:9});
+   s.addText(`경비 · 합계 ${F(R.expTot)}원`,{x:5.2,y:1.0,w:4.5,h:0.3,fontFace:FONT,fontSize:11,bold:true,color:BLUE});
+   tbl(s,['사유','건수','금액'],R.byExp.slice(0,14).map(x=>[x.k,x.n,F(x.amt)]),{x:5.2,y:1.35,w:4.5,colW:[2.4,0.7,1.4],align:['l','center','right']});}
+  /* 8 고객사 */
+  tbl(page('6. 고객사별 수주 · 납품 · 매입'),['고객사','수주 건','수주 금액','납품 건','납품 금액','매입 금액'],R.byCust.map(x=>[x.cust,x.ordN,F(x.ordAmt),x.doneN,F(x.doneAmt),F(x.buy)]).concat([['합계',sum(R.byCust,x=>x.ordN),F(R.ordAmt),sum(R.byCust,x=>x.doneN),F(R.doneAmt),F(R.buyTot)]]),{colW:[2.4,0.9,1.6,0.9,1.6,2],align:['l','center','right','center','right','right']});
+  /* 9 수리개조 + 다음달 */
+  {const s=page('7. 수리·개조 수주  /  8. 다음 달 납기 예정',`수리·개조 ${R.repair.length}건 · ${nextYM(R.ym)} 납기 예정 ${R.nextDue.length}건`);
+   tbl(s,['관리제번','원 금형','고객사','유형','수주일','수주가'],R.repair.slice(0,14).map(g=>[g.base,g.origin,g.cust,g.type,g.odate,F(g.price)]),{x:0.3,y:1.05,w:4.6,colW:[1.0,0.8,0.8,0.45,0.75,0.8],align:['l','l','l','center','center','right']});
+   tbl(s,['관리제번','고객사','품번','납기예정','수주가'],R.nextDue.slice(0,14).map(g=>[g.base,g.cust,g.model,g.due,F(g.price)]),{x:5.1,y:1.05,w:4.6,colW:[1.0,0.9,1.0,0.8,0.9],align:['l','l','l','center','right']});}
+  /* 10 특이사항 */
+  {const s=page('9. 특이사항 · 다음 달 계획');const lines=String(window.__memo||'').split('\n').map(x=>x.trim()).filter(Boolean);
+   if(lines.length)s.addText(lines.map(t=>({text:t,options:{bullet:true,breakLine:true}})),{x:0.4,y:1.0,w:9.2,h:4.2,fontFace:FONT,fontSize:13,color:'344758',valign:'top',paraSpaceAfter:6});
+   else s.addText('(특이사항 없음 — 화면 아래 칸에 적으면 여기에 들어갑니다)',{x:0.4,y:1.0,w:9.2,h:0.5,fontFace:FONT,fontSize:12,color:GRAY});}
+  const fn=`${COMPANY}_금형월간보고서_${R.ym}${R.cu?'_'+R.cu:''}.pptx`;
+  await P.writeFile({fileName:fn});msg(`${fn} 을(를) 내려받았습니다. (${no}장)`);
+ }catch(e){msg('PPT 생성 실패: '+String(e.message||e).slice(0,120)+(/load fail/.test(String(e.message))?' — 인터넷 연결(cdnjs) 확인':''))}
+ finally{btn.disabled=false}
+}
+window.MES={search:load,setMessage:msg};
+month.value=new Date().toISOString().slice(0,7);
+(async()=>{await waitDB();if(online()){await custLoad();load()}})();
+</script>
+<script src="mes_db.js?v=230"></script>
+<script src="mes_ctx.js?v=272"></script>
+</body></html>
