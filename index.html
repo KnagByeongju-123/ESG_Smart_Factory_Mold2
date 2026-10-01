@@ -159,6 +159,50 @@ input,select{font:inherit}
 
 @media (max-width:1100px){.modcard{grid-template-columns:repeat(2,1fr)}.home>.card{grid-column:span 12!important}}
 @media (max-width:900px){.top-menu,.ubtn .txt{display:none}.search{width:170px}}
+
+/* ── TJD v278: 모바일 — 햄버거 메뉴(서랍) ── */
+.hbg{display:none;width:44px;height:100%;place-items:center;color:#fff;font-size:22px;flex-shrink:0;border-right:1px solid var(--line-2)}
+.mnav-bg{position:fixed;inset:0;background:rgba(10,16,24,.45);z-index:300;display:none}
+.mnav{position:fixed;top:0;bottom:0;left:0;width:min(84vw,320px);background:var(--white);color:var(--ink);z-index:310;transform:translateX(-102%);transition:transform .22s ease;display:flex;flex-direction:column;box-shadow:var(--shadow)}
+body.mnav-open .mnav{transform:none}body.mnav-open .mnav-bg{display:block}
+.mnav .mh{height:var(--top-h);display:flex;align-items:center;gap:10px;padding:0 10px 0 14px;background:var(--steel);color:#fff;font-weight:700;flex-shrink:0}
+.mnav .mh .x{margin-left:auto;width:36px;height:36px;display:grid;place-items:center;font-size:22px;color:#fff}
+.mnav .ms{padding:8px 10px;border-bottom:1px solid var(--line);flex-shrink:0}
+.mnav .ms input{width:100%;height:36px;border:1px solid var(--line);border-radius:var(--r);padding:0 10px;outline:0;font-size:15px}
+.mnav .ms input:focus{border-color:var(--blue)}
+.mnav .mb{flex:1;overflow-y:auto;overscroll-behavior:contain;padding-bottom:30px}
+.mnav .mod{border-bottom:1px solid var(--line)}
+.mnav .mod>button{width:100%;display:flex;align-items:center;justify-content:space-between;padding:13px 14px;font-size:16px;font-weight:700;color:var(--ink)}
+.mnav .mod>button::after{content:"▾";color:var(--ink-3);font-size:13px;transition:transform .15s}
+.mnav .mod.open>button::after{transform:rotate(180deg)}
+.mnav .mod>button.cur{color:var(--blue)}
+.mnav .mod .sec{display:none;background:#f7f9fc;padding:4px 0 8px}
+.mnav .mod.open .sec{display:block}
+.mnav .sec h4{font-size:12px;color:var(--ink-3);font-weight:600;padding:8px 18px 2px}
+.mnav .sec h5{font-size:11.5px;color:var(--ink-3);font-weight:500;padding:6px 18px 0}
+.mnav .sec a{display:flex;align-items:center;padding:10px 18px 10px 26px;font-size:15px;color:var(--ink);text-decoration:none;border-left:3px solid transparent}
+.mnav .sec a.active{color:var(--blue);font-weight:600;border-left-color:var(--blue);background:#eef4ff}
+.mnav .sec a .star{margin-left:auto;color:#c9d0da;font-size:14px;padding:0 4px}
+.mnav .sec a .star.on{color:var(--amber)}
+.mnav .sec a.menu-off{display:none}
+.mnav .fv{padding:6px 0 10px;border-bottom:1px solid var(--line)}
+.mnav .fv h4{font-size:12px;color:var(--ink-3);font-weight:600;padding:8px 14px 2px}
+.mnav .fv a{display:block;padding:9px 18px;font-size:15px;color:var(--ink);text-decoration:none}
+.mnav .mres a{display:block;padding:10px 14px;font-size:15px;color:var(--ink);text-decoration:none;border-bottom:1px solid #eef1f4}
+.mnav .mres a small{display:block;color:var(--ink-3);font-size:11px}
+.mnav .mres .none{padding:20px 14px;color:var(--ink-3);text-align:center}
+@media (max-width:900px){
+  .hbg{display:grid}
+  .brand{padding:0 10px 0 8px;border-right:0}.brand .name small{display:none}
+  .search{display:none}
+  .top{padding-right:4px}.top-actions{margin-left:auto;gap:0}
+  .icon-btn.txt{border:0;padding:0;width:34px}
+  .ubtn{padding:4px;margin-left:0}
+  .crumb{padding:5px 10px;font-size:12px}.crumb b{font-size:16px}.crumb .right{display:none}
+  .tabs{padding:0 4px}.tab{padding:0 8px 0 10px;font-size:13px}
+  .status{font-size:10px;padding:0 8px;gap:10px}
+  .home{padding:12px;gap:10px}.quick{grid-template-columns:repeat(3,1fr)}.modcard{grid-template-columns:1fr}
+}
 a.menu-off,a.menu-off:hover{color:#9aa5ae!important;opacity:.55;cursor:not-allowed!important;background:none!important;text-decoration:none}
 </style>
 </head>
@@ -166,6 +210,7 @@ a.menu-off,a.menu-off:hover{color:#9aa5ae!important;opacity:.55;cursor:not-allow
 
 <div class="app" id="app">
   <header class="top">
+    <button class="hbg" id="hbg" title="메뉴" aria-label="메뉴">☰</button>
     <div class="brand" id="brand" title="홈">
       <div class="mark tj" title="TJ">TJ</div>
       <div class="name"><span class="home-lbl">⌂ 홈</span><small>MOLD</small></div>
@@ -231,9 +276,15 @@ a.menu-off,a.menu-off:hover{color:#9aa5ae!important;opacity:.55;cursor:not-allow
     </div>
   </section>
 </div>
+<div class="mnav-bg" id="mnavBg"></div>
+<nav class="mnav" id="mnav" aria-label="모바일 메뉴">
+  <div class="mh"><span class="mark tj" style="width:32px;height:28px;display:grid;place-items:center;background:var(--amber);color:var(--steel);border-radius:6px;font-size:13px">TJ</span>MOLD 메뉴<button class="x" id="mnavX" aria-label="닫기">×</button></div>
+  <div class="ms"><input id="mnavQ" placeholder="메뉴 검색" autocomplete="off" inputmode="search"></div>
+  <div class="mb" id="mnavBody"></div>
+</nav>
 
 <script>
-const APP_VER='276';
+const APP_VER='278';
 const APP={
   '영업관리':{
     secondary:[
@@ -602,6 +653,36 @@ function menuLink(n,mod){
 function setModule(m){activeModule=m;buildTop();statusMsg.textContent=`${m} 메뉴를 선택했습니다.`}
 function pinModule(m){setModule(m);const li=[...document.querySelectorAll('#topMenu>li')].find(x=>x.querySelector('button').textContent===m);if(li){li.classList.add('pin');placeMega(li,li.querySelector('.mega'))}}
 
+
+/* ── TJD v278: 모바일 햄버거 서랍 메뉴 — 상단 메가메뉴와 같은 APP 구조를 아코디언으로 ── */
+function mnavOpen(on){document.body.classList.toggle('mnav-open',on!==false);if(on!==false){buildDrawer();setTimeout(()=>{try{$('#mnavQ').blur()}catch(e){}},0)}}
+function buildDrawer(){
+  const body=$('#mnavBody');if(!body)return;const q=String(($('#mnavQ')||{}).value||'').trim().toLowerCase();
+  body.innerHTML='';
+  if(q){const box=el('div','mres');const hits=flatMenu().filter(m=>(MENU_LABEL[m.name]||m.name).toLowerCase().includes(q)||m.name.toLowerCase().includes(q));
+    if(!hits.length)box.innerHTML='<div class="none">검색 결과가 없습니다</div>';
+    hits.forEach(m=>{const a=el('a','',`${esc(MENU_LABEL[m.name]||m.name)}<small>${esc(m.mod+' › '+m.sec)}</small>`);a.href='#';a.onclick=e=>{e.preventDefault();openByName(m.name);mnavOpen(false)};box.appendChild(a)});
+    body.appendChild(box);return}
+  if(favs.length){const fv=el('div','fv','<h4>★ 즐겨찾기</h4>');favs.forEach(n=>{const a=el('a','',esc(MENU_LABEL[n]||n));a.href='#';a.onclick=e=>{e.preventDefault();openByName(n);mnavOpen(false)};fv.appendChild(a)});body.appendChild(fv)}
+  visibleModules().forEach(mod=>{
+    const d=el('div','mod'+(mod===activeModule?' open':''));
+    const b=el('button',mod===activeModule?'cur':'',esc(mod));b.onclick=()=>{const was=d.classList.contains('open');body.querySelectorAll('.mod.open').forEach(x=>x.classList.remove('open'));if(!was)d.classList.add('open')};d.appendChild(b);
+    const sec=el('div','sec');let any=false;
+    (APP[mod]?.secondary||[]).forEach(s=>{const gs=groupsOf(mod,s.name);if(!gs.length)return;any=true;
+      sec.appendChild(el('h4','',`${s.icon||''} ${esc(s.name)}`));
+      gs.forEach(g=>{if(gs.length>1||g.name!==s.name)sec.appendChild(el('h5','',esc(g.name)));
+        g.items.forEach(n=>{const a=menuLink(n,mod);if(!a.classList.contains('menu-off')){const o=a.onclick;a.onclick=e=>{o(e);mnavOpen(false)}}sec.appendChild(a)})})});
+    if(any){d.appendChild(sec);body.appendChild(d)}
+  });
+}
+(function(){
+  const h=$('#hbg'),x=$('#mnavX'),bg=$('#mnavBg'),qi=$('#mnavQ');
+  if(h)h.onclick=()=>mnavOpen(!document.body.classList.contains('mnav-open'));
+  if(x)x.onclick=()=>mnavOpen(false);if(bg)bg.onclick=()=>mnavOpen(false);
+  if(qi){qi.oninput=buildDrawer;qi.onkeydown=e=>{if(e.key==='Escape'){qi.value='';buildDrawer()}}}
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')mnavOpen(false)});
+  window.addEventListener('resize',()=>{if(window.innerWidth>900)mnavOpen(false)});
+})();
 /* ---------- 즐겨찾기 ---------- */
 function toggleFav(n){
   favs=favs.includes(n)?favs.filter(x=>x!==n):[...favs,n];localStorage.setItem('tjdtmes.favs',JSON.stringify(favs));
