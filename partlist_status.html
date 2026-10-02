@@ -31,7 +31,8 @@ tbody tr.sel{background:#d6e7f8}
 .btn.pri{background:#2f75b5;border-color:#2f75b5;color:#fff}
 .msg{margin-left:10px;color:#2f5f8a;font-weight:700}
 .right{margin-left:auto;color:#7a8894}
-td.jobc{cursor:copy;color:#1d5da3;text-decoration:underline dotted #9fb6cc}td.jobc:hover{background:#e8f1fb!important}
+td.jobc{cursor:copy;color:#1d5da3;text-decoration:underline dotted #9fb6cc}td.jobc.o-ing{color:#d9480f;font-weight:700;text-decoration-color:#f0a070}td.jobc.o-done{color:#2b8a3e;text-decoration-color:#8fc79b}
+.olg{display:inline-flex;gap:8px;margin-left:10px;font-size:11px;color:#56708a}.olg b{font-weight:700}td.jobc:hover{background:#e8f1fb!important}
 </style></head><body><div class="screen">
 <div class="title"><h1>PartList 현황</h1><small>설계관리 · PARTLIST</small></div>
 
@@ -46,6 +47,7 @@ td.jobc{cursor:copy;color:#1d5da3;text-decoration:underline dotted #9fb6cc}td.jo
  <select id="q_pn" class="field" style="width:210px" title="맨 위 빈칸은 전체검색"><option value=""></option></select>
  <button class="btn" onclick="search()" style="height:26px;margin-left:2px">⌕ 조회</button>
  <span class="hint">제번·품번의 맨 위 빈칸은 전체검색입니다. 행 체크 → [✕ 삭제]</span>
+ <span class="olg" title="제번 글자 색 = 그 부품의 발주 상태">제번 색: <b style="color:#d9480f">발주 진행</b><b style="color:#2b8a3e">발주 완료</b><b style="color:#1d5da3">발주 전</b></span>
 </section>
 
 <div class="gridbox"><table style="min-width:1480px"><thead><tr>
@@ -108,7 +110,7 @@ function view(){
 function setSort(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=1}render()}
 function render(){
  const v=view();
- body.innerHTML=v.length?v.map((r,i)=>`<tr class="${chk.has(r._id)?'sel':''}" onclick="rowClick(${r._id},event)"><td class="c"><input type="checkbox" ${chk.has(r._id)?'checked':''} onclick="toggleChk(${r._id},this.checked)"></td><td class="c">${i+1}</td><td>${esc(CU(r.job_no))}</td><td class="jobc" data-job="${esc(r.job_no||'')}" title="클릭하면 관리제번 ${esc(jbase(r.job_no))} 이(가) 복사됩니다 (체크도 같이 바뀝니다)">${esc(r.job_no||'')}</td><td>${esc(r.part_no)}</td><td>${esc(r.part_name||'')}</td><td class="c">${r.image_url&&window.MESDB&&MESDB.imgBox?MESDB.imgBox(r.image_url,22):''}</td><td class="c">${esc(r.order_type||'')}</td><td class="c">${esc(r.material||'')}</td><td class="c">${esc(r.shape||'')}</td><td>${esc(r.design_dimension||r.spec||'')}</td><td class="num">${fmt(r.qty)}</td><td class="c">${esc(r.registered_by||'')}</td><td class="c">${esc(r.registered_date||'')}</td></tr>`).join('')
+ body.innerHTML=v.length?v.map((r,i)=>`<tr class="${chk.has(r._id)?'sel':''}" onclick="rowClick(${r._id},event)"><td class="c"><input type="checkbox" ${chk.has(r._id)?'checked':''} onclick="toggleChk(${r._id},this.checked)"></td><td class="c">${i+1}</td><td>${esc(CU(r.job_no))}</td><td class="jobc ${ordCls(r)}" data-job="${esc(r.job_no||'')}" title="${esc(ordTip(r))}클릭하면 관리제번 ${esc(jbase(r.job_no))} 이(가) 복사됩니다 (체크도 같이 바뀝니다)">${esc(r.job_no||'')}</td><td>${esc(r.part_no)}</td><td>${esc(r.part_name||'')}</td><td class="c">${r.image_url&&window.MESDB&&MESDB.imgBox?MESDB.imgBox(r.image_url,22):''}</td><td class="c">${esc(r.order_type||'')}</td><td class="c">${esc(r.material||'')}</td><td class="c">${esc(r.shape||'')}</td><td>${esc(r.design_dimension||r.spec||'')}</td><td class="num">${fmt(r.qty)}</td><td class="c">${esc(r.registered_by||'')}</td><td class="c">${esc(r.registered_date||'')}</td></tr>`).join('')
   :`<tr><td colspan="14" class="c" style="height:120px;color:#8a97a2">${loaded?'검색 결과가 없습니다.':'조건을 선택하거나 제번·품번을 빈칸으로 두고 [조회]를 누르세요.'}</td></tr>`;
  chkAll.checked=v.length>0&&v.every(r=>chk.has(r._id));
  const sc=v.filter(r=>chk.has(r._id)).length;
@@ -118,6 +120,18 @@ function render(){
 }
 function toggleChk(id,on){on?chk.add(id):chk.delete(id);render()}
 function chkAllRows(on){view().forEach(r=>on?chk.add(r._id):chk.delete(r._id));render()}
+/* TJD v291: 발주 진행 표시 — 그 제번·품번의 발주(원재료·구매품·외주가공) 상태로 제번 글자 색을 바꾼다
+   진행 = 발주·입고 중(입고확정 전) 이 하나라도 있음 / 완료 = 발주가 모두 입고확정 / 없음 = 발주 전 */
+const ORD=new Map();   /* 'job|part' → {ing,done,cats:Set} */
+async function ordLoad(){
+ ORD.clear();
+ try{const rs=await MESDB.table('order_lines').select('select=job_no,part_no,category,status',{fresh:true});
+  (rs||[]).forEach(l=>{const st=String(l.status||'');if(!l.part_no||st==='취소')return;const k=String(l.job_no||'').trim()+'|'+String(l.part_no||'').trim();
+   const o=ORD.get(k)||{ing:0,done:0,cats:new Set()};if(st==='입고확정')o.done++;else o.ing++;o.cats.add(l.category);ORD.set(k,o)})}catch(e){}
+}
+const ordOf=r=>ORD.get(String(r.job_no||'').trim()+'|'+String(r.part_no||'').trim());
+const ordCls=r=>{const o=ordOf(r);return !o?'':o.ing?'o-ing':'o-done'};
+const ordTip=r=>{const o=ordOf(r);if(!o)return '발주 전 · ';return (o.ing?`발주 진행 중 ${o.ing}건`:'발주 완료(입고확정)')+(o.done&&o.ing?` · 확정 ${o.done}건`:'')+` (${[...o.cats].join('·')}) · `};
 /* TJD v290: 제번 칸 클릭 → 관리제번(공정 문자 뺀 제번)을 클립보드에 복사. 줄 체크는 종전대로 함께 바뀐다 */
 const jbase=j=>{j=String(j||'').trim();try{if(window.MESDB&&MESDB.jobSplit)return MESDB.jobSplit(j).base||j}catch(e){}const m=/^(.*\d)([A-Z])$/.exec(j);return m?m[1]:j};
 async function copyText(t){
@@ -194,6 +208,7 @@ async function search(){
      if(m){if(!r.shape)r.shape=m.shape;if(!r.image_url)r.image_url=m.image_url}});
    }
   }catch(e){}
+  await ordLoad();
   chk.clear();loaded=true;render();
   const v=view(),nm=v.filter(r=>r.order_type==='원재료').length,np=v.filter(r=>r.order_type==='구매품').length;
   const cond=[curJobNo()?`제번 ${curJobNo()}`:curBase()?`관리제번 ${curBase()}`:'전체 제번',selectedPn()?`품번 ${selectedPn()}`:'전체 품번',q_kind.value].join(' · ');
