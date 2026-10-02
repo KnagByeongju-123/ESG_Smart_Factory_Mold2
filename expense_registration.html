@@ -82,7 +82,7 @@ let rows=[],REASONS=[],CUSTS=[];
 let EDIT=null;   /* 수정 중인 expense_id */
 const splitJob=j=>{const m=/^(.*\d)([A-Z])$/.exec(String(j||'').trim());return m?{base:m[1],seq:m[2]}:{base:String(j||'').trim(),seq:''}};
 let GROUPS=new Map(),JOBS=[];
-const seqLab=j=>{const h=JOBS.find(x=>x.job===j);return h?(h.seq||'단일'):(j||'')};
+const seqLab=j=>{const h=JOBS.find(x=>x.job===j);return h?(h.seq||'A'):(j||'')};
 async function initBases(){
  const rs=(window.MESJOB&&MESJOB.list)?await MESJOB.list():[];
  GROUPS=new Map();
@@ -92,14 +92,14 @@ async function initBases(){
  const bases=[...GROUPS.values()].sort((a,b)=>b.base.localeCompare(a.base));
  const cur=base_job.value;
  base_job.innerHTML=`<option value="">${bases.length?`관리제번 선택 (${bases.length}건)`:'등록된 수주가 없습니다'}</option>`+
-  bases.map(g=>`<option value="${esc(g.base)}">${esc(g.base)}${g.item?' · '+esc(g.item):''}${g.jobs.length>1||g.jobs[0].seq?' ('+g.jobs.map(j=>j.seq||'단일').join('·')+')':''}</option>`).join('');
+  bases.map(g=>`<option value="${esc(g.base)}">${esc(g.base)}${g.item?' · '+esc(g.item):''}${g.jobs.length>1||g.jobs[0].seq?' ('+g.jobs.map(j=>j.seq||'A').join('·')+')':''}</option>`).join('');
  if(cur)base_job.value=cur;
  /* 고객사 목록 (수주에 적힌 고객사) */
  const C=new Map();rs.forEach(r=>{const c=String(r.customer_name||'').trim();if(c&&!C.has(c))C.set(c,'')});
  CUSTS=[...C.keys()].map(k=>({name:k,code:''}));fillCustDL();
 }
 function fillCustDL(){custDL.innerHTML=CUSTS.slice().sort((a,b)=>a.name.localeCompare(b.name,'ko')).map(c=>`<option value="${esc(c.name)}">${c.code?esc(c.code):''}</option>`).join('')}
-function fillJobSel(v){f_job.innerHTML=JOBS.map(j=>`<option value="${esc(j.job)}"${j.job===v?' selected':''}>${j.seq?j.seq+' · '+esc(j.job):'단일 · '+esc(j.job)}</option>`).join('')+(v&&!JOBS.some(j=>j.job===v)?`<option value="${esc(v)}" selected>${esc(v)}</option>`:'')}
+function fillJobSel(v){f_job.innerHTML=JOBS.map(j=>`<option value="${esc(j.job)}"${j.job===v?' selected':''}>${(j.seq||'A')+' · '+esc(j.job)}</option>`).join('')+(v&&!JOBS.some(j=>j.job===v)?`<option value="${esc(v)}" selected>${esc(v)}</option>`:'')}
 
 /* ── 양식 ── */
 function resetForm(){
@@ -195,8 +195,8 @@ async function loadJob(keepMsg){
   if(!EDIT){if(!f_cust.value&&so&&so[0]&&so[0].customer_name)f_cust.value=so[0].customer_name;custPick()}
   rows=await MESDB.table('expenses').select(`select=*&job_no=${inq}&order=job_no,reg_date,expense_id`);
   render();
-  if(!keepMsg){const byJob=JOBS.map(j=>{const s=rows.filter(r=>r.job_no===j.job);return s.length?`${j.seq||'단일'} ${s.length}건 ${n(s.reduce((a,r)=>a+numv(r.amount),0))}원`:null}).filter(Boolean);
-   msg(`${base} (${JOBS.map(j=>j.seq||'단일').join('·')}) 경비 ${rows.length}건 · 합계 ${n(rows.reduce((a,r)=>a+numv(r.amount),0))}원${byJob.length?' — '+byJob.join(' / '):''}`)}
+  if(!keepMsg){const byJob=JOBS.map(j=>{const s=rows.filter(r=>r.job_no===j.job);return s.length?`${j.seq||'A'} ${s.length}건 ${n(s.reduce((a,r)=>a+numv(r.amount),0))}원`:null}).filter(Boolean);
+   msg(`${base} (${JOBS.map(j=>j.seq||'A').join('·')}) 경비 ${rows.length}건 · 합계 ${n(rows.reduce((a,r)=>a+numv(r.amount),0))}원${byJob.length?' — '+byJob.join(' / '):''}`)}
  }catch(e){msg('조회 실패: '+String(e.message||e).slice(0,120))}
 }
 (async function initReasons(){
@@ -216,7 +216,7 @@ window.MES={save:submit,search:loadJob,setMessage:msg,
   const sp=splitJob(base);base_job.value=GROUPS.has(base)?base:sp.base;await loadJob();}};
 </script><script src="mes_sample.js?v=169"></script><script src="mes_scene.js?v=67"></script><script src="mes_demo.js?v=67"></script><script src="mes_db.js?v=171"></script>
 <script src="mes_ctx.js?v=272"></script>
-<script src="mes_jobpick.js?v=270"></script>
+<script src="mes_jobpick.js?v=284"></script>
 
 
 <script>

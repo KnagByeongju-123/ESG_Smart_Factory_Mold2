@@ -180,7 +180,7 @@ function devGate(){const on=/외주설계/.test(devtype.value||'');const e=docum
 function devFromValue(){const v=String(devtype.value||'');const set=new Set(v.split(/[,\s/·]+/).filter(Boolean));
  if(set.has('사내')){set.delete('사내');set.add('사내설계')}if(set.has('외주')){set.delete('외주');set.add('외주설계')}
  devBoxes().forEach(b=>b.checked=set.has(b.dataset.dev));devtype.value=[...set].filter(x=>DEVS.includes(x)).join(',');devGate()}
-function clearForm(){for(const el of Object.keys(MAP)){const n=document.getElementById(el);if(n)n.value=''}devFromValue();document.getElementById('status').value='진행';otype.value='신작';dom.value='국내';ATT.length=0;renderAtt();msg('신규 입력 상태입니다.')}
+function clearForm(){OLD_SINGLE='';for(const el of Object.keys(MAP)){const n=document.getElementById(el);if(n)n.value=''}devFromValue();document.getElementById('status').value='진행';otype.value='신작';dom.value='국내';ATT.length=0;renderAtt();msg('신규 입력 상태입니다.')}
 const NUMF=['quotation_price','order_price','nego_amount'];   /* v119: 네고조정(회의록 6-1) */   /* v62: 공정(process_set_qty)은 '1/1' 형식 text — 숫자변환 제외 */
 const DATEF=['order_date','s1_planned_date','delivery_planned_date','s1_completed_date','delivery_completed_date','completion_date'];
 async function saveOne(mode){
@@ -238,14 +238,16 @@ async function saveOne(mode){
 }
 const SAVE0=saveOne;   /* v121: 공정 자동생성이 쓰는 원본(제번 1건) 저장 */
 /* ── v179: 상단 공정·제번 칸을 없애고 관리제번 + 공정수로 저장한다 ──
- *  공정수 1 → 제번 = 관리제번 그대로
+ *  공정수 1 → 관리제번+A (TJD v284. 숫자로 안 끝나는 관리제번·옛 단일 제번은 그대로)
  *  공정수 n(2~26) → 관리제번+A, +B, … n건을 한 번에 저장 (공통 항목은 입력칸 값, 금액은 균등 분할)
  *  이미 있는 공정 제번은 공통 항목만 덮어쓰고, 공정별 카테고리·설비사양·금액은
  *  입력칸 합계가 기존 합계와 같으면 그대로 둔다 (공정별로 나눠 둔 값 보존).       */
 const PROC_N=()=>{const n=parseInt(String(proc_cnt.value||'').replace(/[^0-9]/g,''),10);return n>0?Math.min(26,n):1};
-const JOBS_OF=(b,n)=>{b=String(b||'').trim().toUpperCase();if(!b)return [];return n>=2?Array.from({length:n},(_,i)=>b+String.fromCharCode(65+i)):[b]};
+/* TJD v284: 공정수 1 도 관리제번+A (관리제번이 숫자로 끝날 때 — 공정 문자 규칙). 공정 문자 없이 이미 등록된 옛 제번을 불러온 경우(OLD_SINGLE)는 그 제번 그대로 */
+let OLD_SINGLE='';
+const JOBS_OF=(b,n)=>{b=String(b||'').trim().toUpperCase();if(!b)return [];if(n>=2)return Array.from({length:n},(_,i)=>b+String.fromCharCode(65+i));return (b===OLD_SINGLE||!/\d$/.test(b))?[b]:[b+'A']};
 function jobPreview(){const b=(base_job.value||'').trim().toUpperCase(),n=PROC_N();const js=JOBS_OF(b,n);
- const el=document.getElementById('job_preview');if(el)el.value=js.length?(n>=2?`${js.join(', ')}  (공정 ${n}개)`:js[0]):'';
+ const el=document.getElementById('job_preview');if(el)el.value=js.length?(n>=2?`${js.join(', ')}  (공정 ${n}개)`:js[0]+(js[0]===b?'  (공정 문자 없는 옛 제번)':'')):'';
  job_no.value=js[0]||'';proc_seq.value='';return js}
 /* 기존 공정 제번(관리제번 기준) 읽기 — 공정별 값 보존용 */
 async function existingJobs(b){
@@ -387,6 +389,7 @@ async function loadJob(job,quiet){
   if(rows.length){
    const seqOf=r=>(MESDB.jobSplit?MESDB.jobSplit(r.job_no).seq:'');
    const procs=rows.filter(r=>seqOf(r)),single=rows.find(r=>!seqOf(r));
+   OLD_SINGLE=(!procs.length&&single)?String(single.job_no||'').toUpperCase():'';
    const main=procs.length?procs[0]:single;
    const o={...main};
    const N=v=>{const x=Number(v);return Number.isNaN(x)?0:x};
