@@ -31,6 +31,7 @@ tbody tr.sel{background:#d6e7f8}
 .btn.pri{background:#2f75b5;border-color:#2f75b5;color:#fff}
 .msg{margin-left:10px;color:#2f5f8a;font-weight:700}
 .right{margin-left:auto;color:#7a8894}
+td.jobc{cursor:copy;color:#1d5da3;text-decoration:underline dotted #9fb6cc}td.jobc:hover{background:#e8f1fb!important}
 </style></head><body><div class="screen">
 <div class="title"><h1>PartList 현황</h1><small>설계관리 · PARTLIST</small></div>
 
@@ -107,7 +108,7 @@ function view(){
 function setSort(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=1}render()}
 function render(){
  const v=view();
- body.innerHTML=v.length?v.map((r,i)=>`<tr class="${chk.has(r._id)?'sel':''}" onclick="rowClick(${r._id},event)"><td class="c"><input type="checkbox" ${chk.has(r._id)?'checked':''} onclick="toggleChk(${r._id},this.checked)"></td><td class="c">${i+1}</td><td>${esc(CU(r.job_no))}</td><td>${esc(r.job_no||'')}</td><td>${esc(r.part_no)}</td><td>${esc(r.part_name||'')}</td><td class="c">${r.image_url&&window.MESDB&&MESDB.imgBox?MESDB.imgBox(r.image_url,22):''}</td><td class="c">${esc(r.order_type||'')}</td><td class="c">${esc(r.material||'')}</td><td class="c">${esc(r.shape||'')}</td><td>${esc(r.design_dimension||r.spec||'')}</td><td class="num">${fmt(r.qty)}</td><td class="c">${esc(r.registered_by||'')}</td><td class="c">${esc(r.registered_date||'')}</td></tr>`).join('')
+ body.innerHTML=v.length?v.map((r,i)=>`<tr class="${chk.has(r._id)?'sel':''}" onclick="rowClick(${r._id},event)"><td class="c"><input type="checkbox" ${chk.has(r._id)?'checked':''} onclick="toggleChk(${r._id},this.checked)"></td><td class="c">${i+1}</td><td>${esc(CU(r.job_no))}</td><td class="jobc" data-job="${esc(r.job_no||'')}" title="클릭하면 관리제번 ${esc(jbase(r.job_no))} 이(가) 복사됩니다 (체크도 같이 바뀝니다)">${esc(r.job_no||'')}</td><td>${esc(r.part_no)}</td><td>${esc(r.part_name||'')}</td><td class="c">${r.image_url&&window.MESDB&&MESDB.imgBox?MESDB.imgBox(r.image_url,22):''}</td><td class="c">${esc(r.order_type||'')}</td><td class="c">${esc(r.material||'')}</td><td class="c">${esc(r.shape||'')}</td><td>${esc(r.design_dimension||r.spec||'')}</td><td class="num">${fmt(r.qty)}</td><td class="c">${esc(r.registered_by||'')}</td><td class="c">${esc(r.registered_date||'')}</td></tr>`).join('')
   :`<tr><td colspan="14" class="c" style="height:120px;color:#8a97a2">${loaded?'검색 결과가 없습니다.':'조건을 선택하거나 제번·품번을 빈칸으로 두고 [조회]를 누르세요.'}</td></tr>`;
  chkAll.checked=v.length>0&&v.every(r=>chk.has(r._id));
  const sc=v.filter(r=>chk.has(r._id)).length;
@@ -117,7 +118,15 @@ function render(){
 }
 function toggleChk(id,on){on?chk.add(id):chk.delete(id);render()}
 function chkAllRows(on){view().forEach(r=>on?chk.add(r._id):chk.delete(r._id));render()}
-function rowClick(id,e){if(e&&e.target&&e.target.type==='checkbox')return;toggleChk(id,!chk.has(id))}
+/* TJD v290: 제번 칸 클릭 → 관리제번(공정 문자 뺀 제번)을 클립보드에 복사. 줄 체크는 종전대로 함께 바뀐다 */
+const jbase=j=>{j=String(j||'').trim();try{if(window.MESDB&&MESDB.jobSplit)return MESDB.jobSplit(j).base||j}catch(e){}const m=/^(.*\d)([A-Z])$/.exec(j);return m?m[1]:j};
+async function copyText(t){
+ try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(t);return true}}catch(e){}
+ try{const ta=document.createElement('textarea');ta.value=t;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;left:-9999px;top:0;opacity:0';document.body.appendChild(ta);ta.select();const ok=document.execCommand('copy');ta.remove();return ok}catch(e){return false}}
+function rowClick(id,e){if(e&&e.target&&e.target.type==='checkbox')return;
+ const td=e&&e.target&&e.target.closest?e.target.closest('td.jobc'):null;
+ if(td){const b=jbase(td.dataset.job);copyText(b).then(ok=>msg(ok?`관리제번 ${b} 을(를) 복사했습니다. 붙여넣기(Ctrl+V)로 쓰세요.`:`복사하지 못했습니다 — ${b}`))}
+ toggleChk(id,!chk.has(id))}
 
 function fillFilters(){
  const jv=curJobNo(),pv=selectedPn();
