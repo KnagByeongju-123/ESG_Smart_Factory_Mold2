@@ -47,9 +47,10 @@ tbody tr.sel{background:#d6e7f8}
  <span class="hint">제번·품번의 맨 위 빈칸은 전체검색입니다. 행 체크 → [✕ 삭제]</span>
 </section>
 
-<div class="gridbox"><table style="min-width:1360px"><thead><tr>
+<div class="gridbox"><table style="min-width:1480px"><thead><tr>
  <th style="width:36px"><input type="checkbox" id="chkAll" onclick="chkAllRows(this.checked)" title="전체 선택"></th>
  <th style="width:50px">No</th>
+ <th style="width:120px" title="수주등록의 고객사">고객사</th>
  <th class="sortable" style="width:125px" onclick="setSort('job_no')" title="클릭하면 제번 정렬">제번<span class="sortmark" id="sortJob"></span></th>
  <th class="sortable" style="width:135px" onclick="setSort('part_no')" title="클릭하면 품번 정렬">품번<span class="sortmark" id="sortPart"></span></th>
  <th style="width:230px">품명</th>
@@ -106,8 +107,8 @@ function view(){
 function setSort(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=1}render()}
 function render(){
  const v=view();
- body.innerHTML=v.length?v.map((r,i)=>`<tr class="${chk.has(r._id)?'sel':''}" onclick="rowClick(${r._id},event)"><td class="c"><input type="checkbox" ${chk.has(r._id)?'checked':''} onclick="toggleChk(${r._id},this.checked)"></td><td class="c">${i+1}</td><td>${esc(r.job_no||'')}</td><td>${esc(r.part_no)}</td><td>${esc(r.part_name||'')}</td><td class="c">${r.image_url&&window.MESDB&&MESDB.imgBox?MESDB.imgBox(r.image_url,22):''}</td><td class="c">${esc(r.order_type||'')}</td><td class="c">${esc(r.material||'')}</td><td class="c">${esc(r.shape||'')}</td><td>${esc(r.design_dimension||r.spec||'')}</td><td class="num">${fmt(r.qty)}</td><td class="c">${esc(r.registered_by||'')}</td><td class="c">${esc(r.registered_date||'')}</td></tr>`).join('')
-  :`<tr><td colspan="13" class="c" style="height:120px;color:#8a97a2">${loaded?'검색 결과가 없습니다.':'조건을 선택하거나 제번·품번을 빈칸으로 두고 [조회]를 누르세요.'}</td></tr>`;
+ body.innerHTML=v.length?v.map((r,i)=>`<tr class="${chk.has(r._id)?'sel':''}" onclick="rowClick(${r._id},event)"><td class="c"><input type="checkbox" ${chk.has(r._id)?'checked':''} onclick="toggleChk(${r._id},this.checked)"></td><td class="c">${i+1}</td><td>${esc(CU(r.job_no))}</td><td>${esc(r.job_no||'')}</td><td>${esc(r.part_no)}</td><td>${esc(r.part_name||'')}</td><td class="c">${r.image_url&&window.MESDB&&MESDB.imgBox?MESDB.imgBox(r.image_url,22):''}</td><td class="c">${esc(r.order_type||'')}</td><td class="c">${esc(r.material||'')}</td><td class="c">${esc(r.shape||'')}</td><td>${esc(r.design_dimension||r.spec||'')}</td><td class="num">${fmt(r.qty)}</td><td class="c">${esc(r.registered_by||'')}</td><td class="c">${esc(r.registered_date||'')}</td></tr>`).join('')
+  :`<tr><td colspan="14" class="c" style="height:120px;color:#8a97a2">${loaded?'검색 결과가 없습니다.':'조건을 선택하거나 제번·품번을 빈칸으로 두고 [조회]를 누르세요.'}</td></tr>`;
  chkAll.checked=v.length>0&&v.every(r=>chk.has(r._id));
  const sc=v.filter(r=>chk.has(r._id)).length;
  countText.textContent=`${v.length}건`+(sc?` · 선택 ${sc}`:'');
@@ -130,15 +131,18 @@ function fillFilters(){
  if(jobs.includes(jv))q_job.value=jv;
  if(pns.includes(pv))q_pn.value=pv;
 }
+/* TJD v285: 고객사 열 — job_pool.customer_name (수주등록 고객사) */
+const CUSTMAP=new Map();
+const CU=j=>CUSTMAP.get(String(j||'').trim())||'';
 async function pnLoad(){
  try{
   await waitDB();
   for(let i=0;i<20&&!(window.MESDB&&MESDB.online);i++)await new Promise(r=>setTimeout(r,150));
   if(!(window.MESDB&&MESDB.online))return;
-  const rs=await MESDB.table('job_pool').select('select=job_no,model&order=job_no');
-  PNMAP.length=0;
-  (rs||[]).forEach(r=>{const j=String(r.job_no||'').trim(),m=String(r.model||'').trim();if(j)PNMAP.push({model:m,job:j})});
-  fillFilters();
+  let rs;try{rs=await MESDB.table('job_pool').select('select=job_no,model,customer_name&order=job_no')}catch(e){rs=await MESDB.table('job_pool').select('select=job_no,model&order=job_no')}
+  PNMAP.length=0;CUSTMAP.clear();
+  (rs||[]).forEach(r=>{const j=String(r.job_no||'').trim(),m=String(r.model||'').trim();if(j){PNMAP.push({model:m,job:j});const c=String(r.customer_name||'').trim();if(c)CUSTMAP.set(j,c)}});
+  fillFilters();try{render()}catch(e){}
  }catch(e){}
 }
 function pnSync(job){const x=PNMAP.find(y=>y.job===job);if(x)q_pn.value=x.model||''}
@@ -222,8 +226,8 @@ async function del_(){
 function csv(){
  const v=view();
  if(!v.length){msg('내보낼 행이 없습니다.');return}
- const h=['No','제번','품번','품명','발주구분','재질','형태','규격','수량','등록자','등록일자'];
- const rows=v.map((r,i)=>[i+1,r.job_no,r.part_no,r.part_name,r.order_type,r.material,r.shape||'',r.design_dimension||r.spec,r.qty,r.registered_by,r.registered_date]);
+ const h=['No','고객사','제번','품번','품명','발주구분','재질','형태','규격','수량','등록자','등록일자'];
+ const rows=v.map((r,i)=>[i+1,CU(r.job_no),r.job_no,r.part_no,r.part_name,r.order_type,r.material,r.shape||'',r.design_dimension||r.spec,r.qty,r.registered_by,r.registered_date]);
  const t='\ufeff'+[h,...rows].map(a=>a.map(x=>'"'+String(x??'').replaceAll('"','""')+'"').join(',')).join('\n');
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv;charset=utf-8'}));
  a.download=`partlist_status_${curJobNo()||'all'}.csv`;a.click();URL.revokeObjectURL(a.href);
