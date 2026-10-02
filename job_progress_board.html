@@ -295,7 +295,7 @@ function render(){
   const r=g.rep,p=g.pct,multi=g.jobs.length>1||!!jsplit(r.job_no).seq;
   const hereIdx=STAGES.findIndex(s=>(r['st_'+s.k]||'wait')!=='done');
   const isOpen=open.has(g.base);
-  const seqs=g.jobs.map(x=>jsplit(x.job_no).seq||'단일');
+  const seqs=g.jobs.map(x=>jsplit(x.job_no).seq||'A');
   return `<div class="card${g.late?' late':''}">
    <div class="chead" onclick="toggle('${esc(g.base)}')">
     <span class="jno">${esc(g.base)}${multi?` <span style="font-size:15px;color:#2a6191">${esc(seqRange(seqs))}</span>`:''}</span>
@@ -310,7 +310,7 @@ function render(){
    </div>
    <div class="pipe">${STAGES.map((s,i)=>stageCell(r,s,i===hereIdx)).join('')}</div>
    <div class="next">
-    ${multi?`<span class="slow" title="A·B·C 중 가장 늦은 공정">${esc(jsplit(r.job_no).seq||'단일')} 공정 기준</span>`:''}
+    ${multi?`<span class="slow" title="A·B·C 중 가장 늦은 공정">${esc(jsplit(r.job_no).seq||'A')} 공정 기준</span>`:''}
     ${nextHtml(r)}
     <span style="margin-left:auto;display:flex;gap:6px">${btnHtml(r)}</span>
    </div>
@@ -324,7 +324,7 @@ function render(){
 function procsHtml(g){
  return `<div class="procs">${g.jobs.map(r=>{
   const hereIdx=STAGES.findIndex(s=>(r['st_'+s.k]||'wait')!=='done');
-  const sq=jsplit(r.job_no).seq||'단일';
+  const sq=jsplit(r.job_no).seq||'A';
   return `<div class="prow${isLate(r)?' late':''}">
     <div class="pl"><span class="sq">${esc(sq)}${r===g.rep?' <span class="slow" style="vertical-align:2px">대표</span>':''}</span><span class="jn">${esc(r.job_no)}</span><span class="pc">${n0(r.progress_pct)}% · ${dueTxt(r)}</span></div>
     <div class="pipe">${STAGES.map((s,i)=>stageCell(r,s,i===hereIdx)).join('')}</div>

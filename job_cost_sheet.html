@@ -429,7 +429,7 @@ render();
 </script>
 <script src="mes_db.js?v=230"></script>
 <script src="mes_ctx.js?v=272"></script>
-<script src="mes_jobpick.js?v=270"></script>
+<script src="mes_jobpick.js?v=284"></script>
 <script src="mes_go.js?v=196"></script>
 <script>/* v196: 관리제번 ▼ | 제번 ▼ 두 칸 선택 (금형원가(내역)과 같은 방식) */
 try{MESJOB.attachSplit("jobQ",{onPick:()=>load()}).then(()=>{document.querySelectorAll('span.lb').forEach(e=>{if(e.textContent==='공정')e.textContent='제번'});const ss=document.getElementById('jobQ_seq');if(ss)ss.style.width='150px';otLoad()})}catch(e){}

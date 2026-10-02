@@ -265,7 +265,9 @@ async function makePpt(){
  if(!R){await load();if(!R)return}
  const btn=document.getElementById('btnPpt');btn.disabled=true;msg('PPT 만드는 중…');
  try{
-  await libLoad('https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.12.0/pptxgen.bundle.js',()=>window.PptxGenJS);
+  /* TJD v289: PPT 라이브러리 — 저장소에 같이 올린 lib/pptxgen.bundle.js 를 먼저 쓰고, 없으면 cdnjs → jsdelivr 순 */
+  let libOk=false;for(const src of ['lib/pptxgen.bundle.js?v=3120','https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.12.0/pptxgen.bundle.js','https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js']){try{await libLoad(src,()=>window.PptxGenJS);libOk=true;break}catch(e){}}
+  if(!libOk)throw new Error('PPT 라이브러리를 불러오지 못했습니다 (lib/pptxgen.bundle.js 업로드 · 인터넷 연결 확인)');
   const P=new PptxGenJS();P.layout='LAYOUT_16x9';P.author=COMPANY;P.company=COMPANY;P.title=`${R.ym} 월간보고서`;
   const ymK=`${R.ym.slice(0,4)}년 ${Number(R.ym.slice(5))}월`,FONT='Malgun Gothic',NAVY='1F2733',AMB='F2A93B',BLUE='1D5DA3',GRAY='6B7885';
   const sub=R.cu?` · ${R.cu}`:'';
@@ -363,8 +365,13 @@ async function makePpt(){
    if(lines.length)s.addText(lines.map(t=>({text:t,options:{bullet:true,breakLine:true}})),{x:0.4,y:1.0,w:9.2,h:4.2,fontFace:FONT,fontSize:13,color:'344758',valign:'top',paraSpaceAfter:6});
    else s.addText('(특이사항 없음 — 화면 아래 칸에 적으면 여기에 들어갑니다)',{x:0.4,y:1.0,w:9.2,h:0.5,fontFace:FONT,fontSize:12,color:GRAY});}
   const fn=`${COMPANY}_금형월간보고서_${R.ym}${R.cu?'_'+R.cu:''}.pptx`;
-  await P.writeFile({fileName:fn});msg(`${fn} 을(를) 내려받았습니다. (${no}장)`);
- }catch(e){msg('PPT 생성 실패: '+String(e.message||e).slice(0,120)+(/load fail/.test(String(e.message))?' — 인터넷 연결(cdnjs) 확인':''))}
+  /* TJD v289: 파일 저장 — Blob 을 만들어 직접 내려받는다 (탭 화면(iframe) 안에서 막히는 경우 대비해 새 창으로도 시도) */
+  const blob=await P.write({outputType:'blob'});
+  if(window.navigator&&navigator.msSaveOrOpenBlob){navigator.msSaveOrOpenBlob(blob,fn)}
+  else{const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=fn;a.style.display='none';document.body.appendChild(a);a.click();
+   setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},60000)}
+  msg(`${fn} 을(를) 내려받았습니다. (${no}장) — 다운로드 폴더를 확인하세요.`);
+ }catch(e){const t='PPT 생성 실패: '+String(e.message||e).slice(0,160);msg(t);try{alert(t)}catch(x){}console.error(e)}
  finally{btn.disabled=false}
 }
 window.MES={search:load,setMessage:msg};

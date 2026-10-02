@@ -642,7 +642,7 @@ window.MES={search,save,saveChecked,setMessage:msg,reload:loadJob,manOpen};rende
 </script>
 <script src="mes_ctx.js?v=272"></script>
 <script src="mes_imgedit.js?v=196"></script>
-<script src="mes_jobpick.js?v=270"></script>
+<script src="mes_jobpick.js?v=284"></script>
 <script>/* 제번 직접 타이핑 → 등록된 수주 목록에서 선택 */
 /* v180: 관리제번 ▼ | 공정 ▼ 두 칸 — 공정을 고르면 그 제번을 열고 품번을 자동으로 채운다 */
 try{MESJOB.attachSplit("q_job",{seqAll:true,seqLabel:"제번",onBase:b=>{try{q_pn.value="";loadAll(b)}catch(e){}},onPick:j=>{if(typeof loadJob==="function")loadJob(j);try{pnSync(j)}catch(e){}}}).then(()=>{try{pnSync(curJobNo())}catch(e){}})}catch(e){}

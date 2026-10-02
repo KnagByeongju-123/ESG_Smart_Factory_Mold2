@@ -74,7 +74,7 @@ async function attachSplit(inputId,opt){
   const lb=document.createElement('span');lb.className='lb';lb.textContent=opt.seqLabel||'공정';lb.style.marginLeft='6px';
   sb.title+=bases.length?` · 등록 ${bases.length}건 · 빈칸 = 전체`:'';
   sb.innerHTML=`<option value="">${bases.length?'':'등록된 수주가 없습니다'}</option>`+   /* TJD: 처음은 빈칸 (빈칸 + 검색 = 전체검색) */
-    bases.map(g=>`<option value="${esc(g.base)}">${esc(g.base)}${g.item?' · '+esc(g.item):''}${g.jobs.length>1||g.jobs[0].seq?' ('+g.jobs.map(j=>j.seq||'단일').join('·')+')':''}</option>`).join('');
+    bases.map(g=>`<option value="${esc(g.base)}">${esc(g.base)}${g.item?' · '+esc(g.item):''}${g.jobs.length>1||g.jobs[0].seq?' ('+g.jobs.map(j=>j.seq||'A').join('·')+')':''}</option>`).join('');
   el.style.display='none';el.setAttribute('data-nocombo','1');
   /* 공용 콤보(mes_ctx)가 먼저 입력칸을 감쌌으면 감싼 통째로 숨기고 그 앞에 넣는다 */
   let anchor=el;const wrap=el.parentNode&&el.parentNode.classList&&el.parentNode.classList.contains('mescb')?el.parentNode:null;
@@ -90,7 +90,7 @@ async function attachSplit(inputId,opt){
   function fillSeq(base,want){
     if(opt.seqAll)return fillSeqAll(base,want);
     const g=groups.get(base);
-    ss.innerHTML=g?g.jobs.map(j=>`<option value="${esc(j.job)}">${j.seq?j.seq+' · '+esc(j.job):'단일 · '+esc(j.job)}</option>`).join(''):'<option value="">-</option>';
+    ss.innerHTML=g?g.jobs.map(j=>`<option value="${esc(j.job)}">${(j.seq||'A')+' · '+esc(j.job)}</option>`).join(''):'<option value="">-</option>';
     if(g){const hit=g.jobs.find(j=>j.job===want);ss.value=hit?hit.job:g.jobs[0].job}
   }
   function pick(fire){
