@@ -65,13 +65,15 @@ async function load(){
  const ym=month.value||new Date().toISOString().slice(0,7);month.value=ym;const cu=custQ.value;
  msg('집계 중…');
  try{
-  const [so,ol,dr,ex,jp]=await Promise.all([
-   MESDB.table('sale_orders').select('select=job_no,order_status,order_type,order_date,s1_planned_date,delivery_planned_date,delivery_completed_date,completion_date,customer_name,model,product_name,item_name,order_price,quotation_price,origin_base,development_type,mass_production_vendor_name,remark',{fresh:true}),
-   MESDB.table('order_lines').select('select=job_no,category,status,vendor_name,quote_price,confirm_price,nego_rate,confirm_date,receipt_date,order_date,part_no&status=eq.입고확정',{fresh:true}).catch(()=>[]),
-   MESDB.table('design_results').select('select=job_no,work_type,work_date,work_minutes,labor_cost,worker_name',{fresh:true}).catch(()=>[]),
+  const [so,ola,dr,ex,jp,pcs]=await Promise.all([
+   MESDB.table('sale_orders').select('select=job_no,order_status,order_type,order_date,s1_planned_date,delivery_planned_date,delivery_completed_date,completion_date,customer_name,model,product_name,item_name,order_price,quotation_price,origin_base,development_type,mass_production_vendor_name,remark,mold_type_name,sales_price',{fresh:true}),
+   MESDB.table('order_lines').select('select=line_id,job_no,category,status,vendor_name,quote_price,confirm_price,nego_rate,confirm_date,receipt_date,order_date,part_no,part_name,spec,material,machining_process_code,machining_process_name,order_qty,receipt_qty,unit_price',{fresh:true}).catch(()=>[]),
+   MESDB.table('design_results').select('select=job_no,work_type,work_date,work_minutes,labor_cost,worker_name,part_no,machining_process_code,machining_process_name',{fresh:true}).catch(()=>[]),
    MESDB.table('expenses').select('select=job_no,reason_date,reg_date,reason_name,amount,customer_name',{fresh:true}).catch(()=>[]),
-   MESDB.table('job_progress_view').select('select=job_no,customer_name,model,order_type,order_status,delivery_planned_date,progress_pct,next_step,next_owner,delivery_days_left,delivery_overdue,s1_planned_date,s1_overdue',{fresh:true}).catch(()=>[])
+   MESDB.table('job_progress_view').select('select=job_no,customer_name,model,order_type,order_status,delivery_planned_date,progress_pct,next_step,next_owner,delivery_days_left,delivery_overdue,s1_planned_date,s1_overdue',{fresh:true}).catch(()=>[]),
+   MESDB.table('processes').select('select=process_code,process_name').catch(()=>[])
   ]);
+  const ol=(ola||[]).filter(l=>l.status==='입고확정');   /* 확정 매입 */
   const CUST=new Map();(so||[]).forEach(r=>{if(r.customer_name)CUST.set(r.job_no,String(r.customer_name).trim())});
   const CU=j=>CUST.get(j)||'';
   const okJ=j=>!cu||CU(j)===cu;
@@ -79,7 +81,7 @@ async function load(){
   const LEG=new Set((so||[]).filter(r=>/^기존금형 일괄등록/.test(String(r.remark||''))||(r.order_type==='수리'&&!r.origin_base&&!r.order_date)).map(r=>r.job_no));
   const S=(so||[]).filter(r=>okJ(r.job_no)&&!LEG.has(r.job_no));
   /* 관리제번 단위로 묶기 (A·B·C 공정 제번은 한 금형) */
-  const grp=rows=>{const m=new Map();rows.forEach(r=>{const b=baseOf(r.job_no);let g=m.get(b);if(!g){g={base:b,jobs:[],cust:CU(r.job_no),model:r.model||'',name:r.product_name||r.item_name||'',type:r.order_type||'',odate:D(r.order_date),due:D(r.delivery_planned_date),s1:D(r.s1_planned_date),done:D(r.delivery_completed_date)||D(r.completion_date),price:0,quote:0,origin:r.origin_base||'',dev:r.development_type||'',mp:r.mass_production_vendor_name||'',status:r.order_status||''};m.set(b,g)}g.jobs.push(r.job_no);g.price+=N(r.order_price);g.quote+=N(r.quotation_price);if(!g.model&&r.model)g.model=r.model;if(!g.due&&r.delivery_planned_date)g.due=D(r.delivery_planned_date)});return [...m.values()]};
+  const grp=rows=>{const m=new Map();rows.forEach(r=>{const b=baseOf(r.job_no);let g=m.get(b);if(!g){g={base:b,jobs:[],cust:CU(r.job_no),model:r.model||'',name:r.product_name||r.item_name||'',type:r.order_type||'',odate:D(r.order_date),due:D(r.delivery_planned_date),s1:D(r.s1_planned_date),done:D(r.delivery_completed_date)||D(r.completion_date),price:0,sale:0,quote:0,origin:r.origin_base||'',dev:r.development_type||'',mp:r.mass_production_vendor_name||'',status:r.order_status||''};m.set(b,g)}g.jobs.push(r.job_no);g.price+=N(r.order_price);g.sale+=N(r.sales_price);g.quote+=N(r.quotation_price);if(!g.model&&r.model)g.model=r.model;if(!g.due&&r.delivery_planned_date)g.due=D(r.delivery_planned_date)});return [...m.values()]};
   const newOrd=grp(S.filter(r=>YM(r.order_date)===ym)).sort((a,b)=>a.odate.localeCompare(b.odate)||a.base.localeCompare(b.base));
   const doneM=grp(S.filter(r=>YM(r.delivery_completed_date)===ym||(!r.delivery_completed_date&&YM(r.completion_date)===ym))).sort((a,b)=>a.done.localeCompare(b.done));
   const nextDue=grp(S.filter(r=>YM(r.delivery_planned_date)===nextYM(ym)&&!r.delivery_completed_date&&r.order_status!=='취소')).sort((a,b)=>a.due.localeCompare(b.due));
@@ -109,7 +111,74 @@ async function load(){
   L.forEach(l=>cadd(CU(l.job_no)||'(미지정)','buy',confAmt(l)));
   const byCust=[...custs.values()].sort((a,b)=>b.ordAmt+b.doneAmt-(a.ordAmt+a.doneAmt));
   const legBuy=sum(L.filter(l=>LEG.has(l.job_no)),confAmt),legN=new Set([...LEG].map(baseOf)).size;
+
+  /* ══ TJD v286: 부서 월간업무 항목 ══
+     ① 가공비 정산 마감 ② 사내/외주 가공비 정산·분석 ③ 동일부품 단가비교 ④ 금형유지비용 ⑤ 신작(PRO·PROTO) 제조원가 ⑥ 고객사 금형비 정산 */
+  const LAB=r=>r.labor_cost!=null&&r.labor_cost!==''?N(r.labor_cost):Math.round(N(r.work_minutes)/60*30000);
+  const PROC=new Map((pcs||[]).map(p=>[String(p.process_code||'').trim(),p.process_name||'']));
+  const PN=(c,nm)=>{c=String(c||'').trim();return (c&&PROC.get(c))||nm||c||'(공정 미지정)'};
+  const TYPE=new Map((so||[]).map(r=>[r.job_no,r.order_type||''])),MODEL=new Map((so||[]).map(r=>[r.job_no,r.model||'']));
+  const OUT=(ola||[]).filter(l=>okJ(l.job_no)&&l.category==='외주가공'&&l.status!=='취소');
+  /* ① 마감 — 이달 입고분 중 확정/미확정, 입고됐는데 아직 확정 안 된 건(이달까지 누적), 사내가공 실적 */
+  const inM=OUT.filter(l=>YM(l.receipt_date)===ym);
+  const unconf=OUT.filter(l=>l.status!=='입고확정'&&l.receipt_date&&YM(l.receipt_date)<=ym).sort((a,b)=>D(a.receipt_date).localeCompare(D(b.receipt_date)));
+  const outConfM=L.filter(l=>l.category==='외주가공');
+  const houseM=Dm.filter(r=>(r.work_type||'가공')==='가공');
+  const close={inN:inM.length,inConfN:inM.filter(l=>l.status==='입고확정').length,unN:unconf.length,unAmt:sum(unconf,l=>N(l.quote_price)),
+    confN:outConfM.length,confAmt:sum(outConfM,confAmt),houseN:houseM.length,houseMin:sum(houseM,r=>r.work_minutes),houseAmt:sum(houseM,LAB),
+    openN:OUT.filter(l=>!l.receipt_date&&l.status!=='입고확정').length,openAmt:sum(OUT.filter(l=>!l.receipt_date&&l.status!=='입고확정'),l=>N(l.quote_price))};
+  /* ② 공정별 사내/외주 가공비 */
+  const PM=new Map();const padd=(c,nm,k,v)=>{const key=String(c||'').trim()||'(미지정)';const o=PM.get(key)||{code:key,name:PN(c,nm),hMin:0,hAmt:0,hN:0,oN:0,oAmt:0};o[k]+=v;PM.set(key,o)};
+  houseM.forEach(r=>{padd(r.machining_process_code,r.machining_process_name,'hMin',N(r.work_minutes));padd(r.machining_process_code,r.machining_process_name,'hAmt',LAB(r));padd(r.machining_process_code,r.machining_process_name,'hN',1)});
+  outConfM.forEach(l=>{padd(l.machining_process_code,l.machining_process_name,'oN',1);padd(l.machining_process_code,l.machining_process_name,'oAmt',confAmt(l))});
+  const byProc=[...PM.values()].map(o=>(o.tot=o.hAmt+o.oAmt,o)).sort((a,b)=>b.tot-a.tot);
+  const procTot=sum(byProc,x=>x.tot);byProc.forEach(o=>o.pct=procTot?Math.round(o.tot/procTot*1000)/10:0);
+  const outVen=[...outConfM.reduce((m,l)=>{const v=String(l.vendor_name||'(업체없음)').trim();const o=m.get(v)||{ven:v,n:0,amt:0,parts:new Set()};o.n++;o.amt+=confAmt(l);o.parts.add(l.part_no);m.set(v,o);return m},new Map()).values()].map(o=>(o.parts=o.parts.size,o)).sort((a,b)=>b.amt-a.amt);
+  /* ③ 동일부품 단가비교 — 이달 확정된 부품(외주가공은 부품+공정)을 지난 확정 이력(전 제번)과 비교 */
+  const PARTCAT=['외주가공','원재료','구매품'];
+  const qtyOf=l=>N(l.receipt_qty)||N(l.order_qty)||1, upOf=l=>Math.round(confAmt(l)/qtyOf(l));
+  const keyOf=l=>l.category+'|'+String(l.part_no||'').trim()+'|'+(l.category==='외주가공'?String(l.machining_process_code||'').trim():'');
+  const HIST=new Map();(ol||[]).filter(l=>PARTCAT.includes(l.category)&&l.part_no&&l.part_no!=='★').forEach(l=>{const k=keyOf(l);if(!HIST.has(k))HIST.set(k,[]);HIST.get(k).push(l)});
+  const cmp=[],seenK=new Set();
+  L.filter(l=>PARTCAT.includes(l.category)&&l.part_no&&l.part_no!=='★').forEach(l=>{const k=keyOf(l);if(seenK.has(k))return;seenK.add(k);
+   const all=HIST.get(k)||[],cur=all.filter(x=>YM(x.confirm_date)===ym),prev=all.filter(x=>YM(x.confirm_date)<ym).sort((a,b)=>D(b.confirm_date).localeCompare(D(a.confirm_date)));
+   const curU=Math.round(sum(cur,confAmt)/Math.max(1,sum(cur,qtyOf))),pu=prev.map(upOf),last=prev[0],lu=last?upOf(last):null;
+   const cu2=cur.map(upOf);
+   cmp.push({cat:l.category,part:l.part_no,name:l.part_name||'',what:l.category==='외주가공'?PN(l.machining_process_code,l.machining_process_name):(l.spec||l.material||''),
+     ven:[...new Set(cur.map(x=>x.vendor_name).filter(Boolean))].join(', '),jobs:[...new Set(cur.map(x=>baseOf(x.job_no)))].join(', '),cur:curU,curMin:Math.min(...cu2),curMax:Math.max(...cu2),
+     n:prev.length,last:lu,lastVen:last?(last.vendor_name||''):'',lastDate:last?D(last.confirm_date):'',min:pu.length?Math.min(...pu):null,max:pu.length?Math.max(...pu):null,
+     diff:lu?Math.round((curU-lu)/lu*1000)/10:null})});
+  cmp.sort((a,b)=>((b.n>0)-(a.n>0))||(Math.abs(b.diff||0)-Math.abs(a.diff||0))||((b.curMax-b.curMin)-(a.curMax-a.curMin)));
+  /* 금형별 원가 합산기 (확정 매입 · 사내공수 · 경비) */
+  const agg=(LL,DD,EE)=>{const m=new Map();const g=j=>{const b=baseOf(j);let o=m.get(b);if(!o){o={base:b,cust:CU(j),model:MODEL.get(j)||'',type:LEG.has(j)?'양산(기존)':(TYPE.get(j)||''),mat:0,out:0,dex:0,lab:0,min:0,exp:0,tot:0};m.set(b,o)}if(!o.model&&MODEL.get(j))o.model=MODEL.get(j);return o};
+   LL.forEach(l=>{const o=g(l.job_no),a=confAmt(l);if(l.category==='외주가공')o.out+=a;else if(l.category==='원재료'||l.category==='구매품')o.mat+=a;else o.dex+=a});
+   DD.forEach(r=>{const o=g(r.job_no);o.lab+=LAB(r);o.min+=N(r.work_minutes)});
+   EE.forEach(e=>{const o=g(e.job_no);o.exp+=N(e.amount)});
+   m.forEach(o=>o.tot=o.mat+o.out+o.dex+o.lab+o.exp);return m};
+  const OLc=(ol||[]).filter(l=>okJ(l.job_no)&&YM(l.confirm_date)<=ym),DRc=(dr||[]).filter(r=>okJ(r.job_no)&&YM(r.work_date)<=ym),EXc=(ex||[]).filter(e=>okJ(e.job_no)&&YM(e.reason_date||e.reg_date)<=ym);
+  /* ④ 금형유지비용 — 양산 금형(기존 일괄등록)·수리·개조 제번에 이달 들어간 비용 + 누계 */
+  const isMaint=j=>LEG.has(j)||/^(수리|개조)$/.test(TYPE.get(j)||'');
+  const mM=agg(L.filter(l=>isMaint(l.job_no)),Dm.filter(r=>isMaint(r.job_no)),Em.filter(e=>isMaint(e.job_no)));
+  const mC=agg(OLc.filter(l=>isMaint(l.job_no)),DRc.filter(r=>isMaint(r.job_no)),EXc.filter(e=>isMaint(e.job_no)));
+  const maint=[...mM.values()].filter(o=>o.tot>0).map(o=>(o.cum=(mC.get(o.base)||{}).tot||o.tot,o)).sort((a,b)=>b.tot-a.tot);
+  /* ⑤ 신작(PRO·PROTO) 금형 제조원가 — 이달 비용이 생겼거나 이달 납품·진행 중인 신작 금형의 누계 원가 */
+  const isNew=j=>TYPE.has(j)&&!LEG.has(j)&&(TYPE.get(j)||'신작')==='신작';
+  const nM=agg(L.filter(l=>isNew(l.job_no)),Dm.filter(r=>isNew(r.job_no)),Em.filter(e=>isNew(e.job_no)));
+  const nC=agg(OLc.filter(l=>isNew(l.job_no)),DRc.filter(r=>isNew(r.job_no)),EXc.filter(e=>isNew(e.job_no)));
+  const nb=new Set([...nM.keys()]);doneM.filter(g=>g.type==='신작').forEach(g=>nb.add(g.base));prog.filter(g=>g.type==='신작').forEach(g=>nb.add(g.base));
+  const newCost=[...nb].map(b=>{const c=nC.get(b)||{mat:0,out:0,dex:0,lab:0,min:0,exp:0,tot:0};const rows=(so||[]).filter(r=>baseOf(r.job_no)===b);const r0=rows[0]||{};
+   const price=sum(rows,r=>r.order_price),done=rows.map(r=>D(r.delivery_completed_date)).filter(Boolean).sort().pop()||'';
+   return {base:b,cust:CU(r0.job_no),model:r0.model||'',mold:r0.mold_type_name||'',mat:c.mat,out:c.out,dex:c.dex,lab:c.lab,min:c.min,exp:c.exp,tot:c.tot,mon:(nM.get(b)||{}).tot||0,
+     price,rate:price?Math.round(c.tot/price*1000)/10:null,st:done?(YM(done)===ym?'이달 납품':'납품'):'진행'}})
+   .filter(o=>{const r=(so||[]).find(x=>baseOf(x.job_no)===o.base);return !r||okJ(r.job_no)})
+   .sort((a,b)=>(a.st==='이달 납품'?0:a.st==='진행'?1:2)-(b.st==='이달 납품'?0:b.st==='진행'?1:2)||b.tot-a.tot);
+  /* ⑥ 고객사 금형비 정산 — 이달 납품 금형비(수주가·판매가) / 이달 신작 제작비 / 이달 유지·수리비 */
+  const CS=new Map();const ca=(c,k,v)=>{c=c||'(미지정)';const o=CS.get(c)||{cust:c,doneN:0,mold:0,sale:0,newC:0,maint:0};o[k]+=v;CS.set(c,o)};
+  doneM.forEach(g=>{ca(g.cust,'doneN',1);ca(g.cust,'mold',g.price);ca(g.cust,'sale',g.sale)});
+  nM.forEach(o=>ca(o.cust,'newC',o.tot));mM.forEach(o=>ca(o.cust,'maint',o.tot));
+  const custSettle=[...CS.values()].map(o=>(o.cost=o.newC+o.maint,o)).filter(o=>o.doneN||o.cost).sort((a,b)=>(b.mold+b.cost)-(a.mold+a.cost));
   R={ym,cu,newOrd,doneM,nextDue,repair,byCat,byVen,byWork,byExp,prog,late,byCust,legBuy,legN,
+     close,unconf,byProc,procTot,outVen,cmp,maint,maintTot:sum(maint,x=>x.tot),newCost,newMonTot:sum(newCost,x=>x.mon),custSettle,
      buyTot:sum(byCat,x=>x.amt),buyPrev:sum(prevL,confAmt),laborTot:sum(byWork,x=>x.amt),laborMin:sum(byWork,x=>x.min),expTot:sum(Em,e=>e.amount),
      ordAmt:sum(newOrd,g=>g.price),doneAmt:sum(doneM,g=>g.price),progN:prog.length,lateN:late.length};
   render();msg(`${ym} 집계 — 신규 수주 ${newOrd.length}건 · 납품 ${doneM.length}건 · 매입 ${L.length}건 · 진행 중 ${prog.length}건`);
@@ -146,7 +215,20 @@ function render(){
   <div class="sec"><h3>7. 수리·개조 수주 <span>${R.repair.length}건</span></h3><div class="in">${T(['관리제번','원 금형','고객사','품번','유형','수주일','수주가'],R.repair.map(g=>[g.base,g.origin,g.cust,g.model,g.type,g.odate,F(g.price)]),['','','','','c','c','r'])}</div></div>
   <div class="sec"><h3>8. 다음 달 납기 예정 <span>${nextYM(R.ym)} · ${R.nextDue.length}건</span></h3><div class="in">${T(['관리제번','고객사','품번','유형','납기예정','수주가'],R.nextDue.map(g=>[g.base,g.cust,g.model,g.type,g.due,F(g.price)]),['','','','c','c','r'])}</div></div>
  </div>
- <div class="sec"><h3>9. 특이사항 · 다음 달 계획 <span>직접 입력 — 줄마다 한 항목</span></h3><div class="in"><textarea id="memo" placeholder="예) 26RDE606 T/O 2차 완료, 10월 납품 예정&#10;예) 외주가공 단가 재협의 진행 중">${esc(window.__memo||'')}</textarea></div></div>`;
+ <div class="sec" style="border-left:4px solid #1d5da3"><h3>10. 가공비 정산 마감 현황 <span>외주가공 · 사내가공 — 이달 마감 전 확인용</span></h3><div class="in">${T(['구분','건수','금액','비고'],[
+   ['이달 외주가공 입고',R.close.inN,'',`그중 확정 ${R.close.inConfN}건`],['이달 외주가공 확정(정산)',R.close.confN,F(R.close.confAmt),'입고확정일 기준'],
+   ['입고됐으나 미확정 (이달까지 누적)',R.close.unN,F(R.close.unAmt),R.close.unN?'견적가 기준 — 마감 전 확정 필요':'없음'],['발주 후 미입고',R.close.openN,F(R.close.openAmt),'견적가 기준'],
+   ['이달 사내가공 실적',R.close.houseN,F(R.close.houseAmt),`${H(R.close.houseMin)}h`]],['','c','r',''])}
+   ${R.unconf.length?`<div style="margin-top:6px;font-weight:700;color:#8a4f08">미확정 목록 (오래된 순)</div>`+T(['입고일','제번','부품','공정','업체','견적가'],R.unconf.slice(0,30).map(l=>[D(l.receipt_date),l.job_no,l.part_no||'',l.machining_process_name||l.machining_process_code||'',l.vendor_name||'',F(l.quote_price)]),['c','','','','','r']):''}</div></div>
+ <div class="two">
+  <div class="sec"><h3>11. 사내/외주 가공비 정산 · 공정별 <span>합계 ${F(R.procTot)}원</span></h3><div class="in">${T(['가공공정','사내 h','사내 금액','외주 건','외주 금액','합계','비중'],R.byProc.map(x=>[x.name,H(x.hMin),F(x.hAmt),x.oN,F(x.oAmt),F(x.tot),x.pct+'%']).concat(R.byProc.length?[['합계',H(sum(R.byProc,x=>x.hMin)),F(sum(R.byProc,x=>x.hAmt)),sum(R.byProc,x=>x.oN),F(sum(R.byProc,x=>x.oAmt)),F(R.procTot),'100%']]:[]),['','r','r','c','r','r','r'])}</div></div>
+  <div class="sec"><h3>외주 가공비 · 업체별 <span>${R.outVen.length}개 업체</span></h3><div class="in">${T(['업체','건수','부품 수','금액'],R.outVen.slice(0,15).map(x=>[x.ven,x.n,x.parts,F(x.amt)]),['','c','c','r'])}</div></div>
+ </div>
+ <div class="sec"><h3>12. 동일부품 단가비교 <span>이달 확정 부품 ${R.cmp.length}종 — 지난 확정 이력(전 제번)과 비교 · 변동 큰 순</span></h3><div class="in">${T(['구분','부품','부품명','공정/규격','이달 업체','이달 단가','직전 단가','직전 업체','차이','이력 최저','이력 최고','이력'],R.cmp.slice(0,40).map(x=>[x.cat,x.part,x.name,x.what,x.ven,F(x.cur)+(x.curMax>x.curMin?` (${F(x.curMin)}~${F(x.curMax)})`:''),x.last==null?'-':F(x.last),x.lastVen,x.diff==null?'첫 발주':(x.diff>0?'+':'')+x.diff+'%',x.min==null?'':F(x.min),x.max==null?'':F(x.max),x.n]),['c','','','','','r','r','','r','r','r','c'])}</div></div>
+ <div class="sec"><h3>13. 금형유지비용 <span>양산 금형·수리·개조 — 이달 ${F(R.maintTot)}원 · ${R.maint.length}개 금형</span></h3><div class="in">${T(['관리제번','고객사','품번','구분','재료·구매','외주가공','외주설계·SET','사내공수','경비','이달 합계','누계'],R.maint.slice(0,40).map(x=>[x.base,x.cust,x.model,x.type,F(x.mat),F(x.out),F(x.dex),F(x.lab),F(x.exp),F(x.tot),F(x.cum)]),['','','','c','r','r','r','r','r','r','r'])}</div></div>
+ <div class="sec"><h3>14. 신작(PRO·PROTO) 금형 제조원가 <span>누계 원가 vs 수주가 — 이달 발생 ${F(R.newMonTot)}원</span></h3><div class="in">${T(['관리제번','고객사','품번','금형타입','상태','재료·구매','외주가공','외주설계·SET','사내공수','경비','누계 원가','이달 발생','수주가','원가율'],R.newCost.map(x=>[x.base,x.cust,x.model,x.mold,x.st,F(x.mat),F(x.out),F(x.dex),F(x.lab),F(x.exp),F(x.tot),F(x.mon),F(x.price),x.rate==null?'':x.rate+'%']),['','','','','c','r','r','r','r','r','r','r','r','r'])}</div></div>
+ <div class="sec"><h3>15. 고객사 금형비 정산 <span>이달 납품 금형비 · 신작 제작비 · 유지·수리비 (제품비는 MES 자료 없음 — 특이사항에 기입)</span></h3><div class="in">${T(['고객사','납품 금형','금형비(수주가)','판매가','이달 신작 제작비','이달 유지·수리비','이달 발생원가'],R.custSettle.map(x=>[x.cust,x.doneN,F(x.mold),F(x.sale),F(x.newC),F(x.maint),F(x.cost)]).concat(R.custSettle.length?[['합계',sum(R.custSettle,x=>x.doneN),F(sum(R.custSettle,x=>x.mold)),F(sum(R.custSettle,x=>x.sale)),F(sum(R.custSettle,x=>x.newC)),F(sum(R.custSettle,x=>x.maint)),F(sum(R.custSettle,x=>x.cost))]]:[]),['','c','r','r','r','r','r'])}</div></div>
+ <div class="sec"><h3>16. 특이사항 · 다음 달 계획 <span>직접 입력 — 줄마다 한 항목</span></h3><div class="in"><textarea id="memo" placeholder="예) 26RDE606 T/O 2차 완료, 10월 납품 예정&#10;예) 외주가공 단가 재협의 진행 중">${esc(window.__memo||'')}</textarea></div></div>`;
  const m=document.getElementById('memo');if(m)m.oninput=()=>window.__memo=m.value;
 }
 
@@ -212,8 +294,30 @@ async function makePpt(){
   {const s=page('7. 수리·개조 수주  /  8. 다음 달 납기 예정',`수리·개조 ${R.repair.length}건 · ${nextYM(R.ym)} 납기 예정 ${R.nextDue.length}건`);
    tbl(s,['관리제번','원 금형','고객사','유형','수주일','수주가'],R.repair.slice(0,14).map(g=>[g.base,g.origin,g.cust,g.type,g.odate,F(g.price)]),{x:0.3,y:1.05,w:4.6,colW:[1.0,0.8,0.8,0.45,0.75,0.8],align:['l','l','l','center','center','right']});
    tbl(s,['관리제번','고객사','품번','납기예정','수주가'],R.nextDue.slice(0,14).map(g=>[g.base,g.cust,g.model,g.due,F(g.price)]),{x:5.1,y:1.05,w:4.6,colW:[1.0,0.9,1.0,0.8,0.9],align:['l','l','l','center','right']});}
+  /* v286: 부서 월간업무 */
+  {const s=page('10. 가공비 정산 마감 현황','외주가공 · 사내가공 — 마감 전 확정 누락 확인');
+   tbl(s,['구분','건수','금액','비고'],[['이달 외주가공 입고',R.close.inN,'',`그중 확정 ${R.close.inConfN}건`],['이달 외주가공 확정(정산)',R.close.confN,F(R.close.confAmt),'입고확정일 기준'],
+     ['입고됐으나 미확정(누적)',R.close.unN,F(R.close.unAmt),R.close.unN?'견적가 기준 — 마감 전 확정 필요':'없음'],['발주 후 미입고',R.close.openN,F(R.close.openAmt),'견적가 기준'],['이달 사내가공 실적',R.close.houseN,F(R.close.houseAmt),`${H(R.close.houseMin)}h`]],
+     {x:0.3,y:1.05,w:9.4,colW:[3,1,2,3.4],align:['l','center','right','l']});
+   if(R.unconf.length){s.addText('미확정 목록 (오래된 순)',{x:0.3,y:2.75,w:9,h:0.3,fontFace:FONT,fontSize:11,bold:true,color:'8A4F08'});
+    tbl(s,['입고일','제번','부품','공정','업체','견적가'],R.unconf.slice(0,40).map(l=>[D(l.receipt_date),l.job_no,l.part_no||'',l.machining_process_name||l.machining_process_code||'',l.vendor_name||'',F(l.quote_price)]),{x:0.3,y:3.1,w:9.4,colW:[1.1,1.6,1.6,1.7,2,1.4],align:['center','l','l','l','l','right']})}}
+  {const s=page('11. 사내/외주 가공비 정산 · 분석',`공정별 합계 ${F(R.procTot)}원`);
+   tbl(s,['가공공정','사내 h','사내 금액','외주 건','외주 금액','합계','비중'],R.byProc.map(x=>[x.name,H(x.hMin),F(x.hAmt),x.oN,F(x.oAmt),F(x.tot),x.pct+'%']).concat(R.byProc.length?[['합계',H(sum(R.byProc,x=>x.hMin)),F(sum(R.byProc,x=>x.hAmt)),sum(R.byProc,x=>x.oN),F(sum(R.byProc,x=>x.oAmt)),F(R.procTot),'100%']]:[]),{x:0.3,y:1.05,w:5.6,colW:[1.3,0.6,0.9,0.5,0.9,0.9,0.5],align:['l','right','right','center','right','right','right']});
+   const tp=R.byProc.slice(0,8);
+   if(tp.length)s.addChart(P.ChartType.bar,[{name:'사내',labels:tp.map(x=>x.name),values:tp.map(x=>x.hAmt)},{name:'외주',labels:tp.map(x=>x.name),values:tp.map(x=>x.oAmt)}],{x:6.1,y:1.05,w:3.6,h:2.3,barDir:'bar',barGrouping:'stacked',chartColors:[BLUE,AMB],showLegend:true,legendPos:'b',legendFontSize:8,catAxisLabelFontSize:7,valAxisLabelFontSize:6,valAxisLabelFormatCode:'#,##0',showTitle:true,title:'공정별 사내·외주',titleFontSize:9});
+   tbl(s,['외주 업체','건수','금액'],R.outVen.slice(0,8).map(x=>[x.ven,x.n,F(x.amt)]),{x:6.1,y:3.45,w:3.6,colW:[1.8,0.6,1.2],align:['l','center','right']});}
+  tbl(page('12. 동일부품 단가비교',`이달 확정 부품 ${R.cmp.length}종 — 지난 확정 이력(전 제번)과 비교 · 변동 큰 순`),['구분','부품','부품명','공정/규격','이달 업체','이달 단가','직전 단가','차이','이력 최저','이력 최고'],
+    R.cmp.slice(0,60).map(x=>[x.cat,x.part,x.name,x.what,x.ven,F(x.cur),x.last==null?'-':F(x.last),x.diff==null?'첫 발주':(x.diff>0?'+':'')+x.diff+'%',x.min==null?'':F(x.min),x.max==null?'':F(x.max)]),
+    {colW:[0.65,0.9,1.1,1.0,1.3,0.9,0.9,0.75,0.9,1.0],align:['center','l','l','l','l','right','right','right','right','right']});
+  tbl(page('13. 금형유지비용',`양산 금형·수리·개조 — 이달 ${F(R.maintTot)}원 · ${R.maint.length}개 금형`),['관리제번','고객사','품번','구분','재료·구매','외주가공','설계·SET','사내공수','경비','이달 합계','누계'],
+    R.maint.slice(0,60).map(x=>[x.base,x.cust,x.model,x.type,F(x.mat),F(x.out),F(x.dex),F(x.lab),F(x.exp),F(x.tot),F(x.cum)]),{colW:[1.0,0.9,1.0,0.75,0.8,0.8,0.7,0.8,0.65,0.95,1.05],align:['l','l','l','center','right','right','right','right','right','right','right']});
+  tbl(page('14. 신작(PRO·PROTO) 금형 제조원가',`누계 원가 vs 수주가 — 이달 발생 ${F(R.newMonTot)}원`),['관리제번','고객사','품번','상태','재료·구매','외주가공','설계·SET','사내공수','경비','누계 원가','수주가','원가율'],
+    R.newCost.map(x=>[x.base,x.cust,x.model,x.st,F(x.mat),F(x.out),F(x.dex),F(x.lab),F(x.exp),F(x.tot),F(x.price),x.rate==null?'':x.rate+'%']),{colW:[0.95,0.85,0.9,0.65,0.75,0.75,0.7,0.75,0.6,0.85,0.85,0.8],align:['l','l','l','center','right','right','right','right','right','right','right','right']});
+  tbl(page('15. 고객사 금형비 정산','이달 납품 금형비 · 신작 제작비 · 유지·수리비 (제품비는 특이사항에 기입)'),['고객사','납품 금형','금형비(수주가)','판매가','신작 제작비','유지·수리비','이달 발생원가'],
+    R.custSettle.map(x=>[x.cust,x.doneN,F(x.mold),F(x.sale),F(x.newC),F(x.maint),F(x.cost)]).concat(R.custSettle.length?[['합계',sum(R.custSettle,x=>x.doneN),F(sum(R.custSettle,x=>x.mold)),F(sum(R.custSettle,x=>x.sale)),F(sum(R.custSettle,x=>x.newC)),F(sum(R.custSettle,x=>x.maint)),F(sum(R.custSettle,x=>x.cost))]]:[]),
+    {colW:[2.0,0.9,1.3,1.2,1.3,1.3,1.4],align:['l','center','right','right','right','right','right']});
   /* 10 특이사항 */
-  {const s=page('9. 특이사항 · 다음 달 계획');const lines=String(window.__memo||'').split('\n').map(x=>x.trim()).filter(Boolean);
+  {const s=page('16. 특이사항 · 다음 달 계획');const lines=String(window.__memo||'').split('\n').map(x=>x.trim()).filter(Boolean);
    if(lines.length)s.addText(lines.map(t=>({text:t,options:{bullet:true,breakLine:true}})),{x:0.4,y:1.0,w:9.2,h:4.2,fontFace:FONT,fontSize:13,color:'344758',valign:'top',paraSpaceAfter:6});
    else s.addText('(특이사항 없음 — 화면 아래 칸에 적으면 여기에 들어갑니다)',{x:0.4,y:1.0,w:9.2,h:0.5,fontFace:FONT,fontSize:12,color:GRAY});}
   const fn=`${COMPANY}_금형월간보고서_${R.ym}${R.cu?'_'+R.cu:''}.pptx`;
