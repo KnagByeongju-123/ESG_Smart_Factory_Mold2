@@ -179,7 +179,7 @@ button{cursor:pointer}
 </style></head><body>
 
 <div class="top">
- <h1>제번 종합현황<small>영업 → 설계 → 구매 → 가공 → 조립 → 납품</small></h1>
+ <h1>제번 종합현황<small>신작 금형 · 영업 → 설계 → 구매 → 가공 → 조립 → 납품</small></h1>
  <div class="seg" id="seg">
   <button data-v="dash" class="on" onclick="setView('dash')">대시보드</button>
   <button data-v="board" onclick="setView('board')">보드</button>
@@ -274,7 +274,8 @@ async function load(manual){
  if(!online()){setLive(false);if(!rows.length)rows=[...SAMPLE];booting=false;apply();return}
  try{
   const rs=await MESDB.table('job_progress_view').select('select=*&order=job_no'+(manual?'&':''),manual?{fresh:true}:undefined);
-  rows=rs||[];booting=false;setLive(true);apply();
+  /* TJD v292: 신작 금형 진행만 — 수리(기존 양산 금형·R1)·개조는 뺀다 (수주유형이 비어 있으면 신작으로 본다) */
+  rows=(rs||[]).filter(r=>!r.order_type||r.order_type==='신작');booting=false;setLive(true);apply();
   if(curJob){const r=rows.find(x=>x.job_no===curJob);if(r)fillDetail(r)}
  }catch(e){setLive(false);if(!rows.length)rows=[...SAMPLE];booting=false;apply()}
 }
