@@ -55,8 +55,9 @@ tr.msub td{background:#fff8ef;border-top:2px solid #e6c79a;font-size:12px}tr.msu
 <div class="title"><h1>금형원가내역 <span id="hdJob" style="font-size:16px;color:#1d5da3;margin-left:10px"></span></h1><small>원가관리 · 제조원가 &nbsp;|&nbsp; 부품(품번)별 재료비 + 공정별 가공비 · 진행현황</small></div>
 <section class="filt">
  <span class="lb">관리제번</span><input id="jobQ" class="field" style="width:250px" placeholder="제번 입력/선택">
- <label style="display:flex;align-items:center;gap:4px" title="같은 관리제번(공정 문자를 뺀 제번)의 A·B·C 공정을 한 표로 묶어 봅니다"><input type="checkbox" id="grpQ" onchange="load()"> 관리제번 전체</label>
- <label style="display:flex;align-items:center;gap:4px;color:#8a4f08" title="원 금형(신작)과 그 수리(-R1·R2…)·개조(-M1…) 관리제번을 한 표에 모아 제작·수리·개조 소계를 봅니다"><input type="checkbox" id="moldQ" onchange="if(this.checked)grpQ.checked=false;load()"> 금형 전체(제작+수리)</label>
+ <label style="display:flex;align-items:center;gap:4px" title="같은 관리제번(공정 문자를 뺀 제번)의 A·B·C 공정을 한 표로 묶어 봅니다"><input type="checkbox" id="grpQ" onchange="if(this.checked)clearPick();load()"> 관리제번 전체</label>
+ <label style="display:flex;align-items:center;gap:4px;color:#8a4f08" title="원 금형(신작)과 그 수리(-R1·R2…)·개조(-M1…) 관리제번을 한 표에 모아 제작·수리·개조 소계를 봅니다"><input type="checkbox" id="moldQ" onchange="if(this.checked){grpQ.checked=false;clearPick()}load()"> 금형 전체(제작+수리)</label>
+ <label style="display:flex;align-items:center;gap:4px;color:#7a3e9d" title="생산현황(mes_work) 생산마감 기록의 비가동 「금형수리」 시간을 그 금형(제번)의 원가에 넣습니다 — 금형 공통비 「양산 금형수리」 줄"><input type="checkbox" id="repQ" onchange="load()"> 양산 금형수리시간 포함</label>
  <span class="lb" style="margin-left:6px">품번</span><input id="partQ" class="field" style="width:150px" placeholder="품번/부품명" oninput="render()">
  <label style="display:flex;align-items:center;gap:4px" title="원재료·가공 기록이 하나도 없는 부품을 숨깁니다"><input type="checkbox" id="hideEmpty" onchange="render()"> 기록 있는 부품만</label>
  <button class="btn" onclick="load()" title="관리제번을 비우고 누르면 전체(수주유형·고객사 필터 적용) 제번의 원가를 한 표로 봅니다">⌕ 조회</button>
@@ -146,6 +147,24 @@ async function loadProcs(){
   (ps||[]).forEach((p,i)=>{PROCNAME[p.process_code]=p.process_name||p.process_code;PROCORD[p.process_code]=N(p.sort_order)||(i+1)})}catch(e){}
 }
 
+/* TJD v293: 관리제번 전체 / 금형 전체를 체크하면 관리제번·제번 선택을 비운다 (비운 채 조회 = 전체) */
+function clearPick(){try{jobQ.value='';const b=document.getElementById('jobQ_base'),q=document.getElementById('jobQ_seq');if(b)b.value='';if(q)q.innerHTML='<option value="">-</option>'}catch(e){}}
+/* TJD v293: 양산 금형수리 — SmartFactory(생산현황 mes_work) 의 생산마감 기록(mes_check_log · category=prod)에서
+   비가동 「금형수리」(CL-M008) 분을 금형(payload.mold = 제번)별로 모은다. 같은 날·같은 호기·같은 금형은 마지막 마감만 쓴다. */
+const SF_URL='https://omngtyewdaqpphnzeate.supabase.co',SF_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9tbmd0eWV3ZGFxcHBobnplYXRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4ODk4ODksImV4cCI6MjA5MDQ2NTg4OX0.Zxur3t02JHtOcXforCMSwO3i2mMaf5sViE0tXXUC0-s';
+let REPRATE=null;
+async function repRate(){if(REPRATE!=null)return REPRATE;try{const r=await MESDB.table('labor_rates').select('select=rate_code,rate_per_hour');const m=new Map((r||[]).map(x=>[x.rate_code,N(x.rate_per_hour)]));REPRATE=m.get('MRP')||m.get('MCH')||30000}catch(e){REPRATE=30000}return REPRATE}
+const repJob=m=>{m=String(m||'').trim().toUpperCase();return m.replace(/[^0-9A-Z].*$/,'')};
+async function fetchRepairs(){
+ const q='select=created_at,machine_code,machine_name,item_name,mold:payload->>mold,wd:payload->production_snapshot->>work_date,ev:payload->downtime_snapshot->stopEvents&category=eq.prod&order=created_at.desc&limit=20000';
+ const r=await fetch(SF_URL+'/rest/v1/mes_check_log?'+q,{headers:{apikey:SF_KEY,Authorization:'Bearer '+SF_KEY}});
+ if(!r.ok)throw new Error('생산현황 조회 실패 '+r.status);
+ const rows=await r.json(),seen=new Set(),out=[];
+ (rows||[]).forEach(x=>{const mold=String(x.mold||'').trim();if(!mold)return;const wd=D(x.wd||x.created_at);const k=wd+'|'+x.machine_code+'|'+mold;if(seen.has(k))return;seen.add(k);
+  const min=(Array.isArray(x.ev)?x.ev:[]).filter(e=>/금형수리/.test(String(e.name||''))||/M008$/.test(String(e.code||''))).reduce((a,e)=>a+N(e.min),0);
+  if(min>0)out.push({mold,job:repJob(mold),wd,mc:x.machine_code,mname:x.machine_name||'',item:x.item_name||'',min})});
+ return out;
+}
 async function load(){
  await waitDB();
  const job=String(jobQ.value||'').trim();
@@ -191,9 +210,11 @@ async function load(){
   const lines=(lines0||[]).filter(inScope).filter(l=>!PER||inPer(l.confirm_date||l.receipt_date||l.order_date));
   const res=(res0||[]).filter(inScope).filter(r=>!PER||inPer(r.work_date));
   const exps=(exps0||[]).filter(inScope).filter(e=>!PER||inPer(e.reason_date||e.reg_date||e.created_at));
+  let reps=null;
+  if(window.repQ&&repQ.checked){try{const all=await fetchRepairs(),rate=await repRate();reps=all.filter(x=>(ALLMODE?ALLSET.has(x.job):MOLDMODE?JOBKIND.has(x.job):BASEMODE?baseOf(x.job)===base:x.job===job)&&(!PER||inPer(x.wd))).map(x=>({...x,amt:Math.round(x.min/60*rate),rate}))}catch(e){reps=[];msg('양산 금형수리 조회 실패: '+String(e.message||e).slice(0,80))}}
   /* v159: 형태·이미지 보충 (뷰에 없을 수 있음) */
   let meta={};try{meta=await MESDB.partMeta((BASEMODE||MOLDMODE||ALLMODE)?null:job)||{}}catch(e){}
-  build(plan,pl,lines,res,meta,exps);
+  build(plan,pl,lines,res,meta,exps,reps);
   if(PER&&!hideEmpty.checked){}   /* 기간 조회는 표시만 거른다 */
   msg(`${hdJob.textContent}${PER?` · 기간 ${pFrom.value||'…'} ~ ${pTo.value||'…'}`:''} · 부품 ${ROWS.length}건 · 공정 ${COLS.length}개`);
  }catch(e){msg('조회 실패: '+String(e.message||e).slice(0,130))}
@@ -203,7 +224,7 @@ async function load(){
 /* v196: 금형 공통비 — 부품에 딸리지 않는 비용 (외주설계 · 사내설계 · 조립/검사 「금형 전체」 · 경비 · 부품 미지정 발주·실적) */
 let COMMON=null;
 const LABOR=r=>r.labor_cost!=null&&r.labor_cost!==''?N(r.labor_cost):Math.round(N(r.work_minutes)/60*30000);
-function build(plan,pl,lines,res,meta,exps){
+function build(plan,pl,lines,res,meta,exps,reps){
  COMMON={dex:{amt:0,wait:0,n:0},sex:{amt:0,wait:0,n:0},din:{min:0,amt:0,n:0},asm:{min:0,amt:0,n:0},insp:{min:0,amt:0,n:0},exp:{amt:0,n:0},etc:{amt:0,min:0,n:0}};
  const map=new Map();   /* job|part → row */
  const K=(j,p)=>j+'|'+p;
@@ -257,8 +278,10 @@ function build(plan,pl,lines,res,meta,exps){
   const d=D(r.work_date);if(d&&d>q.dIn)q.dIn=d;
  });
  (exps||[]).forEach(e=>{COMMON.exp.amt+=N(e.amount);COMMON.exp.n++});
- COMMON.total=COMMON.dex.amt+COMMON.sex.amt+COMMON.din.amt+COMMON.asm.amt+COMMON.insp.amt+COMMON.exp.amt+COMMON.etc.amt;
+ COMMON.prep={on:!!reps,min:0,amt:0,n:0,list:reps||[]};(reps||[]).forEach(x=>{COMMON.prep.min+=x.min;COMMON.prep.amt+=x.amt;COMMON.prep.n++});   /* TJD v293: 양산 금형수리 */
+ COMMON.total=COMMON.dex.amt+COMMON.sex.amt+COMMON.din.amt+COMMON.asm.amt+COMMON.insp.amt+COMMON.exp.amt+COMMON.etc.amt+COMMON.prep.amt;
  CJ=commonByJob(lines,res,exps||[]);
+ (reps||[]).forEach(x=>CJ.set(x.job,(CJ.get(x.job)||0)+x.amt));
  ROWS=[...map.values()];
  if(ALLMODE)ROWS.sort((a,b)=>a.job.localeCompare(b.job,'ko',{numeric:true}));
  ROWS.forEach(x=>{const m=(meta||{})[x.job+'|'+x.part];
@@ -350,13 +373,14 @@ function render(){
     <td class="num">${x.procTot?F(x.procTot):''}</td><td class="num"><b>${x.total?F(x.total):''}</b></td></tr>`).join('')
    :`<tr><td colspan="${(showJob?11:10)+(COLS.length||1)+2}" class="c" style="height:110px;color:#8a97a2">${CURJOB||ALLMODE?'부품이 없습니다. PartList 또는 가공계획을 먼저 등록하세요.':'제번을 고르거나, 비운 채 [조회]를 누르면 전체를 봅니다.'}</td></tr>`;
   /* v196: 금형 공통비 — 부품 표 아래에 항목별로 (우클릭하면 근거 화면) */
-  if(CURJOB&&COMMON){const all=(showJob?11:10)+(COLS.length||1)+2,C=COMMON,hh=m=>m?H(m)+'h':'';
+  if((CURJOB||ALLMODE)&&COMMON){const all=(showJob?11:10)+(COLS.length||1)+2,C=COMMON,hh=m=>m?H(m)+'h':'';
    const items=[['dex','외주설계',`입고확정 ${F(C.dex.amt)||0}원`+(C.dex.wait?` · 미확정 ${F(C.dex.wait)}원`:'')+(C.dex.n?` · ${C.dex.n}건`:''),C.dex.amt],
     ['sex','SET외주',`입고확정 ${F(C.sex.amt)||0}원`+(C.sex.wait?` · 미확정 ${F(C.sex.wait)}원`:'')+(C.sex.n?` · ${C.sex.n}건`:''),C.sex.amt],
     ['din','사내설계',C.din.n?`설계실적 ${hh(C.din.min)} · ${C.din.n}건`:'설계실적 없음',C.din.amt],
     ['asm','조립 (금형 전체)',C.asm.n?`부품에 매지 않은 조립 ${hh(C.asm.min)} · ${C.asm.n}건`:'없음',C.asm.amt],
     ['insp','검사 (금형 전체)',C.insp.n?`부품에 매지 않은 검사 ${hh(C.insp.min)} · ${C.insp.n}건`:'없음',C.insp.amt],
     ['exp','경비',C.exp.n?`경비 ${C.exp.n}건`:'경비 없음',C.exp.amt]];
+   if(C.prep&&C.prep.on){const ds=[...new Set(C.prep.list.map(x=>x.wd))].sort();items.push(['prep','양산 금형수리 (생산 비가동)',C.prep.n?`생산마감 비가동 「금형수리」 ${H(C.prep.min)}h · ${C.prep.n}건 · ${ds[0]}~${ds[ds.length-1]} · 시간당 ${F(C.prep.list[0].rate)}원 — `+C.prep.list.slice(0,6).map(x=>`${x.wd.slice(5)} ${x.mname||x.mc} ${x.job} ${Math.round(x.min)}분`).join(', ')+(C.prep.n>6?' …':''):'생산현황에 금형수리 기록 없음',C.prep.amt])}
    if(C.etc.n)items.push(['etc','기타 (부품 미지정)',`품번 없이 들어온 발주·실적 ${C.etc.n}건`+(C.etc.min?` · 사내 ${hh(C.etc.min)}`:''),C.etc.amt]);
    body.innerHTML+=`<tr class="cmh"><td colspan="${all}">금형 공통비 <span>— 부품에 딸리지 않는 비용 · 우클릭하면 근거 화면으로 이동</span></td></tr>`+
     items.map(([k,lab,det,amt])=>`<tr class="cm${amt?'':' zero'}" data-common="${k}"><td class="go" data-go="common" data-kind="${k}" colspan="${all-1}"><b>${lab}</b><span class="det">${esc(det)}</span></td><td class="num go" data-go="common" data-kind="${k}">${amt?F(amt):'0'}</td></tr>`).join('')}
@@ -410,7 +434,7 @@ function csv(){
    Math.round(x.procTot)||'',Math.round(x.total)||'']);
   if(COMMON){const w=h.length,row=(l,a)=>{const r=Array(w).fill('');r[0]=l;r[w-1]=Math.round(a)||0;return r};
    rows.push(Array(w).fill(''),row('금형 공통비 · 외주설계',COMMON.dex.amt),row('금형 공통비 · SET외주',COMMON.sex.amt),row('금형 공통비 · 사내설계',COMMON.din.amt),row('금형 공통비 · 조립(금형 전체)',COMMON.asm.amt),
-    row('금형 공통비 · 검사(금형 전체)',COMMON.insp.amt),row('금형 공통비 · 경비',COMMON.exp.amt),...(COMMON.etc.n?[row('금형 공통비 · 기타(부품 미지정)',COMMON.etc.amt)]:[]),
+    row('금형 공통비 · 검사(금형 전체)',COMMON.insp.amt),row('금형 공통비 · 경비',COMMON.exp.amt),...(COMMON.prep&&COMMON.prep.on?[row(`금형 공통비 · 양산 금형수리 (${H(COMMON.prep.min)}h)`,COMMON.prep.amt)]:[]),...(COMMON.etc.n?[row('금형 공통비 · 기타(부품 미지정)',COMMON.etc.amt)]:[]),
     row('금형 총원가',v.reduce((a,x)=>a+N(x.total),0)+COMMON.total))}
  }else{
   h=[...(showJob?[ALLMODE?'제번':'공정']:[]),'품번','부품명','재질','형태','규격','수량',...COLS.map(c=>pn(c)),'완료','전체','진행률'];
