@@ -51,6 +51,7 @@ tfoot tr:not(:last-child) td{bottom:var(--grandH,27px)}
 .jk{display:inline-block;font-size:10.5px;font-weight:700;padding:0 5px;border-radius:3px;border:1px solid;line-height:16px;white-space:nowrap}
 .jk.new{background:#e6f1fb;border-color:#7fa9d6;color:#1d5da3}.jk.rep{background:#fdeee2;border-color:#e6a36a;color:#a0520e}.jk.mod{background:#efe9fa;border-color:#b39ddb;color:#5e35b1}
 tr.msub td{background:#fff8ef;border-top:2px solid #e6c79a;font-size:12px}tr.msub .det{font-size:11px;color:#7a6a55;font-weight:400;margin-top:2px}
+button.xdel{float:right;margin-left:4px;height:17px;line-height:15px;padding:0 5px;font-size:10px;border:1px solid #d6a6a2;background:linear-gradient(#fff,#f7e4e2);color:#a8231f;cursor:pointer;border-radius:3px}button.xdel:hover{background:#fff;border-color:#c0392b}
 tr.reprow td{background:#f6f0fb!important}tr.reprow td:nth-child(n+2):nth-child(-n+4){color:#7a3e9d;font-weight:700}
 #body td.go{cursor:pointer}#body td.go:hover{outline:1px solid #4e88bb;outline-offset:-1px}
 </style></head><body><div class="screen">
@@ -235,11 +236,11 @@ function build(plan,pl,lines,res,meta,exps,reps){
  const at=(j,p)=>{const k=K(j,p);if(!map.has(k))map.set(k,{job:j,seq:seqOf(j),part:p,name:'',mat:'',shape:'',img:'',spec:'',qty:null,
    steps:[],inhouse:[],mat_in:'',mat_qty:null,mat_price:null,mat_amt:0,raw_amt:0,buy_amt:0,proc:{}});return map.get(k)};
  /* 1) 부품 목록: 가공계획 → PartList(원재료·구매품) */
- plan.forEach(r=>{const x=at(r.job_no,r.part_no);x.name=r.part_name||x.name;
+ plan.forEach(r=>{const x=at(r.job_no,r.part_no);x.name=r.part_name||x.name;x.inPlan=true;
   const st=(Array.isArray(r.steps)?r.steps:[]).map(stepCode).filter(Boolean);
   if(st.length){x.steps=st;x.inhouse=st.map((c,i)=>!!(Array.isArray(r.inhouse)&&r.inhouse[i]))}
   if(r.qty!=null)x.qty=N(r.qty)});
- pl.forEach(r=>{const x=at(r.job_no,r.part_no);x.name=x.name||r.part_name||'';
+ pl.forEach(r=>{const x=at(r.job_no,r.part_no);x.name=x.name||r.part_name||'';x.plRows=(x.plRows||[]).concat([{cat:r.order_type||'',pc:r.process_code}]);
   x.mat=x.mat||r.material||'';x.shape=x.shape||r.shape||'';x.img=x.img||r.image_url||'';
   x.spec=x.spec||r.design_dimension||r.spec||'';x.pl_cat=x.pl_cat||r.order_type||'';
   if(x.qty==null&&r.qty!=null)x.qty=N(r.qty)});
@@ -298,6 +299,8 @@ function build(plan,pl,lines,res,meta,exps,reps){
   x.procTot=Object.values(x.proc).reduce((a,q)=>a+q.out+q.cost,0);
   x.total=x.matTot+x.procTot;
   x.minTot=Object.values(x.proc).reduce((a,q)=>a+q.min,0);
+  /* TJD v303: 금액·실적·발주가 하나도 없는 부품은 지울 수 있다 */
+  x.canDel=!x.isRep&&!x.total&&!x.minTot&&!x.mat_st&&!Object.values(x.proc).some(q=>q.out||q.wait||q.cost||q.min||q.st)&&!!(x.plRows||x.inPlan);
   const st=x.steps.length?x.steps:Object.keys(x.proc);
   x.doneN=st.filter(c=>{const q=x.proc[c];return q&&(q.dOut||q.dIn)}).length;
   x.stepN=st.length;
@@ -313,6 +316,21 @@ function build(plan,pl,lines,res,meta,exps,reps){
  *   입고일·단가·수량·재료비 → 원재료 발주 / 구매품 발주
  *   품번·부품명·재질·형태·규격 → PartList 등록(원재료 / 구매품)
  *   공정 칸 → 외주·사내가공: 사내외가공 발주 (그 공정 칸 표시) · 조립: 조립실적등록 · 검사: 검사실적등록 · 설계: 설계실적등록 */
+/* TJD v303: 금액이 없는 부품 삭제 — PartList(원재료/구매품) · 가공계획에서 지운다 (발주·실적이 있으면 버튼이 안 나온다) */
+async function delRow(job,part){
+ const x=ROWS.find(r=>r.job===job&&r.part===part);if(!x||!x.canDel)return;
+ if(!online())return msg('DB 미연결 상태에서는 삭제할 수 없습니다.');
+ const where=[...(x.plRows||[]).map(r=>'PartList('+(r.cat||'?')+')'),...(x.inPlan?['가공계획']:[])];
+ if(!confirm(`${job} · ${part} ${x.name||''}\n\n이 부품을 ${where.join(' · ')} 에서 삭제합니다. (발주·실적·금액 없음)\n복구할 수 없습니다. 진행할까요?`))return;
+ const TBL={'원재료':'partlist_materials','구매품':'partlist_purchases'};let ok=0,bad=[];
+ for(const r of (x.plRows||[])){const t=TBL[r.cat];if(!t){bad.push(r.cat||'?');continue}
+  try{const f={job_no:job,part_no:part};if(r.pc!=null&&r.pc!=='')f.process_code=r.pc;await MESDB.table(t).delete(f);ok++}catch(e){bad.push(t)}}
+ if(x.inPlan){try{await MESDB.table('machining_plan_parts').delete({job_no:job,part_no:part});ok++}catch(e){bad.push('가공계획')}}
+ ['partlist_all','partlist_materials','partlist_purchases','machining_plan_parts'].forEach(t=>{try{MESDB.dropCache&&MESDB.dropCache(t)}catch(e){}});
+ try{MESDB.notify&&MESDB.notify(['partlist_materials','partlist_purchases','partlist_all','machining_plan_parts'])}catch(e){}
+ msg(`${job} · ${part} 삭제 ${ok}건`+(bad.length?` · 실패: ${bad.join(', ')}`:''));
+ try{await load()}catch(e){}
+}
 function goTarget(td){
  if(td.dataset.go==='common'){const k=td.dataset.kind,job=CURJOB,base=baseOf(CURJOB);
   return ({dex:{name:'외주설계발주현황',p:{job,base}},sex:{name:'SET외주발주현황',p:{job,base}},din:{name:'설계실적등록',p:{job}},asm:{name:'조립실적등록',p:{job,part:'★'}},
@@ -382,7 +400,7 @@ function render(){
       return `<td class="pc go" data-go="proc" data-proc="${esc(c)}" title="${esc(tip)} — 클릭: 근거 화면으로">`+
         (q.min?`<span class="h">${H(q.min)}</span><br>`:'')+
         (q.out?`<span class="o">${F(q.out)}</span>`:(q.wait?`<span class="w">(${F(q.wait)})</span>`:(q.cost&&!q.min?F(q.cost):'')))+'</td>'}).join('')||'<td></td>'}
-    <td class="num">${x.procTot?F(x.procTot):''}</td><td class="num"><b>${x.total?F(x.total):''}</b></td></tr>`).join('')
+    <td class="num">${x.procTot?F(x.procTot):''}</td><td class="num"><b>${x.total?F(x.total):''}</b>${x.canDel?`<button class="xdel" onclick="event.stopPropagation();delRow('${esc(x.job)}','${esc(x.part)}')" title="금액·실적·발주가 없는 부품 — PartList·가공계획에서 삭제">✕</button>`:''}</td></tr>`).join('')
    :`<tr><td colspan="${(showJob?11:10)+(COLS.length||1)+2}" class="c" style="height:110px;color:#8a97a2">${CURJOB||ALLMODE?'부품이 없습니다. PartList 또는 가공계획을 먼저 등록하세요.':'제번을 고르거나, 비운 채 [조회]를 누르면 전체를 봅니다.'}</td></tr>`;
   /* v196: 금형 공통비 — 부품 표 아래에 항목별로 (우클릭하면 근거 화면) */
   if((CURJOB||ALLMODE)&&COMMON){const all=(showJob?11:10)+(COLS.length||1)+2,C=COMMON,hh=m=>m?H(m)+'h':'';
