@@ -52,6 +52,7 @@ tfoot tr:not(:last-child) td{bottom:var(--grandH,27px)}
 .jk.new{background:#e6f1fb;border-color:#7fa9d6;color:#1d5da3}.jk.rep{background:#fdeee2;border-color:#e6a36a;color:#a0520e}.jk.mod{background:#efe9fa;border-color:#b39ddb;color:#5e35b1}
 tr.msub td{background:#fff8ef;border-top:2px solid #e6c79a;font-size:12px}tr.msub .det{font-size:11px;color:#7a6a55;font-weight:400;margin-top:2px}
 tr.reprow td{background:#f6f0fb!important}tr.reprow td:nth-child(n+2):nth-child(-n+4){color:#7a3e9d;font-weight:700}
+#body td.go{cursor:pointer}#body td.go:hover{outline:1px solid #4e88bb;outline-offset:-1px}
 </style></head><body><div class="screen">
 <div class="title"><h1>금형원가내역 <span id="hdJob" style="font-size:16px;color:#1d5da3;margin-left:10px"></span></h1><small>원가관리 · 제조원가 &nbsp;|&nbsp; 부품(품번)별 재료비 + 공정별 가공비 · 진행현황</small></div>
 <section class="filt">
@@ -72,7 +73,7 @@ tr.reprow td{background:#f6f0fb!important}tr.reprow td:nth-child(n+2):nth-child(
   <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" class="otChk" value="개조" checked onchange="otApply()"> 개조</label>
   <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" class="otChk" value="수리" checked onchange="otApply()"> 수리</label>
   <small id="otCnt" style="color:#6b7a86"></small></span>
- <span style="color:#6b7a86">공정 열은 공정명 가나다순입니다. 셀 위 =<b style="color:#1d5da3">사내 시간</b>, 아래 =<b style="color:#7a4a12">외주 금액</b>, <span style="color:#9aa5ad">(회색)</span> = 미확정 · <b>칸을 우클릭하면 근거 화면으로 이동</b></span>
+ <span style="color:#6b7a86">공정 열은 공정명 가나다순입니다. 셀 위 =<b style="color:#1d5da3">사내 시간</b>, 아래 =<b style="color:#7a4a12">외주 금액</b>, <span style="color:#9aa5ad">(회색)</span> = 미확정 · <b>칸을 클릭하면 근거 화면으로 이동</b></span>
 </section>
 <div class="tabs">
  <button id="tab1" class="on" onclick="setTab('cost')">▤ 원가내역</button>
@@ -326,11 +327,13 @@ function goTarget(td){
   if(s['설계'])return {name:'설계실적등록',p:{job,part}};
   return {name:'사내외가공 발주',p:{job,part,proc:c}}}
  return null}
-/* v222: 더블클릭 → 우클릭으로 변경 */
-document.addEventListener('contextmenu',e=>{const td=e.target.closest&&e.target.closest('#body td.go');if(!td||e.target.closest('img'))return;e.preventDefault();
+/* v222: 더블클릭 → 우클릭 · TJD v295: 좌클릭으로도 이동 (우클릭도 그대로 됨). 글자를 끌어 선택한 경우는 이동하지 않는다 */
+function goFrom(e){const td=e.target.closest&&e.target.closest('#body td.go');if(!td||e.target.closest('img'))return;e.preventDefault();
  const t=goTarget(td);if(!t)return;
  if(!window.MESGO||!MESGO.open(t.name,t.p))return msg('메인 화면(MOLD)에서 열어야 이동할 수 있습니다.');
- msg(`${t.p.job}${t.p.part&&t.p.part!=='★'?' · '+t.p.part:''} → ${t.name} 화면으로 이동합니다.`)});
+ msg(`${t.p.job}${t.p.part&&t.p.part!=='★'?' · '+t.p.part:''} → ${t.name} 화면으로 이동합니다.`)}
+document.addEventListener('contextmenu',goFrom);
+document.addEventListener('click',e=>{if(e.button!==0)return;const sel=window.getSelection&&window.getSelection();if(sel&&String(sel).trim())return;goFrom(e)});
 function view(){
  const q=(partQ.value||'').trim().toLowerCase();
  return ROWS.filter(x=>(!q||x.part.toLowerCase().includes(q)||String(x.name).toLowerCase().includes(q))
@@ -373,7 +376,7 @@ function render(){
       if(!q)return `<td class="pc go" data-go="proc" data-proc="${esc(c)}">${(x.steps.includes(c))?'<span style="color:#c3ccd4">·</span>':''}</td>`;
       if(c==='PR'&&x.isRep){const L=x.repList||[];const t2='양산 금형수리 '+L.length+'건 · '+H(q.min)+'h × 시간당 '+F(L[0]&&L[0].rate)+'원 = '+F(q.cost)+'원\n'+L.map(y=>y.wd+' '+(y.mname||y.mc)+' '+Math.round(y.min)+'분').join('\n');return '<td class="pc" title="'+esc(t2)+'"><span class="h">'+H(q.min)+'</span><br><span class="o" style="color:#7a3e9d">'+F(q.cost)+'</span></td>'}
       const tip=`${pn(c)}${q.vendor?' · '+q.vendor:''}${q.st?' · '+q.st:''}${q.min?' · 사내 '+H(q.min)+'h':''}${q.wait?' · 미확정 '+F(q.wait)+'원':''}`;
-      return `<td class="pc go" data-go="proc" data-proc="${esc(c)}" title="${esc(tip)} — 우클릭: 근거 화면으로">`+
+      return `<td class="pc go" data-go="proc" data-proc="${esc(c)}" title="${esc(tip)} — 클릭: 근거 화면으로">`+
         (q.min?`<span class="h">${H(q.min)}</span><br>`:'')+
         (q.out?`<span class="o">${F(q.out)}</span>`:(q.wait?`<span class="w">(${F(q.wait)})</span>`:(q.cost&&!q.min?F(q.cost):'')))+'</td>'}).join('')||'<td></td>'}
     <td class="num">${x.procTot?F(x.procTot):''}</td><td class="num"><b>${x.total?F(x.total):''}</b></td></tr>`).join('')
@@ -388,7 +391,7 @@ function render(){
     ['exp','경비',C.exp.n?`경비 ${C.exp.n}건`:'경비 없음',C.exp.amt]];
    if(false&&C.prep&&C.prep.on){const ds=[...new Set(C.prep.list.map(x=>x.wd))].sort();items.push(['prep','양산 금형수리 (생산 비가동)',C.prep.n?`생산마감 비가동 「금형수리」 ${H(C.prep.min)}h · ${C.prep.n}건 · ${ds[0]}~${ds[ds.length-1]} · 시간당 ${F(C.prep.list[0].rate)}원 — `+C.prep.list.slice(0,6).map(x=>`${x.wd.slice(5)} ${x.mname||x.mc} ${x.job} ${Math.round(x.min)}분`).join(', ')+(C.prep.n>6?' …':''):'생산현황에 금형수리 기록 없음',C.prep.amt])}
    if(C.etc.n)items.push(['etc','기타 (부품 미지정)',`품번 없이 들어온 발주·실적 ${C.etc.n}건`+(C.etc.min?` · 사내 ${hh(C.etc.min)}`:''),C.etc.amt]);
-   body.innerHTML+=`<tr class="cmh"><td colspan="${all}">금형 공통비 <span>— 부품에 딸리지 않는 비용 · 우클릭하면 근거 화면으로 이동</span></td></tr>`+
+   body.innerHTML+=`<tr class="cmh"><td colspan="${all}">금형 공통비 <span>— 부품에 딸리지 않는 비용 · 클릭하면 근거 화면으로 이동</span></td></tr>`+
     items.map(([k,lab,det,amt])=>`<tr class="cm${amt?'':' zero'}" data-common="${k}"><td class="go" data-go="common" data-kind="${k}" colspan="${all-1}"><b>${lab}</b><span class="det">${esc(det)}</span></td><td class="num go" data-go="common" data-kind="${k}">${amt?F(amt):'0'}</td></tr>`).join('')}
   const S=k=>v.reduce((a,x)=>a+N(x[k]),0);
   const CT=COMMON?COMMON.total:0;
