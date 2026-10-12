@@ -359,7 +359,7 @@ function routesHtml(){
   const tip=allDone?'모든 가공공정이 입고되었습니다':wait?'직전 공정이 아직 입고되지 않아 다음 공정을 발주할 수 없습니다 (직전 공정 칸 우클릭 → 입고 처리)':'';
   return `<tr class="${dis&&n?'rdone':''}${r.old?' cycold':''}"${hideDone?' style="display:none"':''}${tip?` title="${_esc(tip)}"`:''} oncontextmenu="return rowCtx(event,${ri})">`+
    `<td class="c"><input type="checkbox" data-i="${ri}"${dis?' disabled':''}${picks.length?' checked':''} onchange="pickRow(${ri},this.checked)"></td>`+
-   `<td class="c">${_esc(String(r.jo||'').replace(/조$/,''))}</td>`+
+   `<td class="c pclk" onclick="event.stopPropagation();drawBoard(${ri})" title="클릭하면 그림보드 (공정 순서 표시 · 인쇄 · PDF)">${_esc(String(r.jo||'').replace(/조$/,''))}</td>`+
    `<td class="pimg" onclick="event.stopPropagation();drawBoard(${ri})" title="${_esc(r.part)} — 클릭하면 그림보드 (공정 순서 표시 · 인쇄 · PDF)">${PIMG[r.part]?`<img src="${_esc(window.MESDB&&MESDB.thumbUrl?MESDB.thumbUrl(PIMG[r.part]):PIMG[r.part])}" data-full="${_esc(PIMG[r.part])}" onerror="window.MESDB&&MESDB.thumbFallback&&MESDB.thumbFallback(this)" loading="lazy">`:'<span style="color:#b8c2ca;font-size:11px;cursor:pointer" title="그림 없음 — 그래도 그림보드는 열 수 있습니다">보드</span>'}</td>`+
    `<td class="pclk" onclick="event.stopPropagation();drawBoard(${ri})" title="클릭하면 그림보드 (공정 순서 표시 · 인쇄 · PDF)">${_esc(r.part)}${tag}</td>`+
    `<td class="pclk" onclick="event.stopPropagation();drawBoard(${ri})" title="클릭하면 그림보드 (공정 순서 표시 · 인쇄 · PDF)">${_esc(r.name)}</td>`+
@@ -537,7 +537,10 @@ async function allAct(ev,kind){
  const td=ev.target.closest('td'),cells=[...tr.children],ci=td?cells.indexOf(td):-1;
  const cb=ev.target.closest('input[type=checkbox]');
  const pos={clientX:ev.clientX,clientY:ev.clientY,target:td||tr,preventDefault(){},stopPropagation(){}};
- const ri=await allUse(tr);if(ri<0)return;
+ /* v306: 그림보드 창은 클릭 순간 먼저 연다 — 제번 자료를 불러온 뒤(await) 열면 브라우저가 팝업으로 막아 왼쪽 클릭이 안 먹던 문제 */
+ const brd=kind==='click'&&!cb&&td&&(td.classList.contains('pimg')||td.classList.contains('pclk'))&&window.MESDRAW&&MESDRAW.pre?MESDRAW.pre():null;
+ const ri=await allUse(tr);if(ri<0){if(brd)try{brd.close()}catch(e){}return}
+ if(brd){drawBoard(ri,brd);return}
  const si=td&&td.classList.contains('route')?cells.filter(c=>c.classList.contains('route')).indexOf(td):-1;
  const stepIdx=si>=0?ci-6:-1;
  if(cb){if(!cb.disabled)pickRow(ri,!PICK.has(ri));return}
@@ -1450,12 +1453,12 @@ function boardData(ri){
   return {code:c,name:procName(c),inhouse:isHouse(r,i),vendor:o.vendor||'',state:o.st||''}}).filter(Boolean);
  return {job:j.job||'',item:j.item||'',part:r.part,name:r.name||'',qty:r.qty,image:PIMG[r.part]||'',steps,all:PROCLIST,by:OWNER,ri,jo:r.jo??null,saved:!!r.saved,cyc:rowCyc(r),cycOld:!!r.old,cycEnded:!!(window.MESCYCLE&&MESCYCLE.isEnded(r.part,rowCyc(r)))};   /* v228: 차수 → QR·머리글 */   /* v213: saved = 가공계획에 저장된 부품 */
 }
-function drawBoard(ri){
+function drawBoard(ri,win){
  if(!window.MESDRAW)return msg('그림보드 모듈(mes_drawboard.js)이 없습니다.');
- const d=boardData(ri);if(!d)return;
+ const d=boardData(ri);if(!d){if(win)try{win.close()}catch(e){}return}
  /* v214: 지금 화면의 부품별 가공공정 리스트 순서 그대로 함께 넘긴다 — 그림보드가 ◀ 이전 · 다음 ▶ 을 스스로 넘긴다 */
  d.list=ROUTES.map((_,k)=>{const x=boardData(k);if(x){delete x.all;delete x.by;delete x.item}return x}).filter(Boolean);
- MESDRAW.open(d);
+ MESDRAW.open(d,win);
 }
 /* v213: 그림보드 [◀ 이전 품번 / 다음 품번 ▶] — 이 화면의 부품 목록 순서대로 앞·뒤 부품 자료를 보낸다 */
 window.addEventListener('message',ev=>{const d=ev.data;if(!d||d.type!=='mes_drawboard_move'||ev.origin!==location.origin)return;
@@ -1600,7 +1603,7 @@ window.MESLOOK_RELOAD_VENDORS=async()=>{MESLOOK.invalidate('vendor_outsourcing')
  if(typeof renderRoutes==='function')renderRoutes();};
 </script>
 <script src="mes_price.js?v=162"></script>
-<script src="mes_mail.js?v=263"></script><script src="mes_drawboard.js?v=260"></script><script src="mes_cycle.js?v=227"></script>
+<script src="mes_mail.js?v=263"></script><script src="mes_drawboard.js?v=306"></script><script src="mes_cycle.js?v=227"></script>
 <script>
 /* v227: 차수 관리 — 체크한 부품(없으면 전체)의 차수 취소·종료 */
 async function cycManage(){const j=jobView[jobIdx];if(!j)return msg('제번을 먼저 선택하세요.');
