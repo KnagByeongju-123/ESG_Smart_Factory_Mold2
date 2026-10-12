@@ -44,10 +44,10 @@ tfoot th{position:sticky;bottom:0;background:linear-gradient(#e6eef5,#d3e0ea)}
     </div>
   </section>
   <div class="gridbox"><div class="tablewrap"><table>
-    <colgroup><col style="width:44px"><col style="width:76px"><col style="width:104px"><col style="width:104px"><col style="width:96px"><col style="width:46px"><col style="width:58px"><col style="width:66px"><col style="width:140px"><col style="width:56px"><col style="width:140px"><col style="width:56px"><col style="width:62px"><col style="width:92px"><col style="width:96px"><col style="width:92px"><col style="width:96px"><col style="width:100px"><col style="width:70px"><col style="width:100px"></colgroup>
-    <thead><tr><th style="width:34px" title="전체 선택 / 해제"><input type="checkbox" id="chkAll" onclick="checkAll(this.checked)"></th><th>No</th><th>구분</th><th>업체명</th><th>제번</th><th>품명</th><th>공정</th><th>공정명</th><th>품번</th><th>부품명</th><th>재질</th><th>스펙</th><th>수량</th><th>단가</th><th>발주월</th><th>입고요구일</th><th>입고월</th><th>입고확정일</th><th title="매입가 = 수량 × 단가">매입가</th><th title="입고확정 때 적용한 네고율">네고율(%)</th><th title="입고확정 금액">확정가</th></tr></thead>
+    <colgroup><col style="width:44px"><col style="width:76px"><col style="width:104px"><col style="width:104px"><col style="width:96px"><col style="width:46px"><col style="width:58px"><col style="width:66px"><col style="width:140px"><col style="width:56px"><col style="width:140px"><col style="width:56px"><col style="width:62px"><col style="width:92px"><col style="width:96px"><col style="width:92px"><col style="width:96px"><col style="width:100px"><col style="width:70px"><col style="width:100px"><col style="width:64px"></colgroup>
+    <thead><tr><th style="width:34px" title="전체 선택 / 해제"><input type="checkbox" id="chkAll" onclick="checkAll(this.checked)"></th><th>No</th><th>구분</th><th>업체명</th><th>제번</th><th>품명</th><th>공정</th><th>공정명</th><th>품번</th><th>부품명</th><th>재질</th><th>스펙</th><th>수량</th><th>단가</th><th>발주월</th><th>입고요구일</th><th>입고월</th><th>입고확정일</th><th title="매입가 = 수량 × 단가">매입가</th><th title="입고확정 때 적용한 네고율">네고율(%)</th><th title="입고확정 금액">확정가</th><th>수정</th></tr></thead>
     <tbody id="body"></tbody>
-    <tfoot><tr><th colspan="12" class="r">합계</th><th class="r" id="sumQty">0</th><th colspan="5"></th><th class="r" id="sumQuote">0</th><th></th><th class="r" id="sumFix">0</th></tr></tfoot>
+    <tfoot><tr><th colspan="12" class="r">합계</th><th class="r" id="sumQty">0</th><th colspan="5"></th><th class="r" id="sumQuote">0</th><th></th><th class="r" id="sumFix">0</th><th></th></tr></tfoot>
   </table></div></div>
   <footer class="foot"><button class="btn" onclick="search()">⌕ 검색</button><button class="btn primary" onclick="exportCsv()">▤ EXCEL</button><button class="btn" onclick="cancelConfirm()" title="체크한 입고확정 건을 「입고」 상태로 되돌립니다">✖ 입고확정취소</button><button class="btn danger" onclick="cancelOrder()" title="선택한 발주 행을 취소합니다 (입고 전만 가능)">✕ 발주취소</button><button class="btn" onclick="window.parent?.closeActive?.()">⊠ 닫 기</button><span class="msg" id="message">구매품 발주현황을 조회했습니다.</span><span class="right" id="countText"></span></footer>
 </div>
@@ -62,7 +62,7 @@ const online=()=>!!(window.MESDB&&MESDB.online);
 function within(v,a,b){if(!a&&!b)return true;if(!v)return false;return (!a||v>=a)&&(!b||v<=b)}
 /* v258: 매입가 = 수량 × 단가 (단가가 없으면 발주 때 저장된 매입가) */
 const buyOf=r=>{const q=Number(r.qty)||0,u=Number(r.price)||0;return u>0&&q>0?Math.round(q*u):(Number(r.quote)||0)};
-function render(){selIdx=-1;body.innerHTML=view.length?view.map((r,i)=>`<tr onclick="sel(this,${i})" oncontextmenu="return ordCtx(event,${i})" ondblclick="return ordCtx(event,${i})" title="우클릭(또는 더블클릭) → 입고 · 입고확정 · 취소"><td class="c"><input type="checkbox" data-no="${r.no}" ${CHK.has(Number(r.no))?'checked':''} onclick="event.stopPropagation();toggleChk(${Number(r.no)},this.checked)"></td><td class="c">${i+1}</td><td class="c"><span class="tag t-${ST(r.st)}">${ST(r.st)}</span></td><td>${r.vendor}</td><td>${r.job}</td><td>${r.item}</td><td class="c">${r.proc}</td><td class="c">${r.procName}</td><td>${r.part}${window.MESCYCLE?MESCYCLE.badge(r.cyc,null,r.cycWhy):''}</td><td>${r.partName}</td><td class="c">${r.mat}</td><td>${r.spec}</td><td class="r">${r.qty}</td><td class="r">${money(r.price)}</td><td class="c">${r.odate}</td><td class="c">${r.rdate}</td><td class="c">${r.idate}</td><td class="c">${r.cdate}</td><td class="r">${money(buyOf(r))}</td><td class="r">${r.rate!=null&&r.rate!==''&&(Number(r.rate)||r.st==='확정')?Number(r.rate).toFixed(2):''}</td><td class="r">${r.fix!=null&&r.fix!==''?money(r.fix):''}</td></tr>`).join(''):`<tr><td colspan="20" class="c" style="height:90px;color:#8a97a2">조회된 발주가 없습니다. 제번·기간 조건을 지우고 [⌕ 조회]를 다시 눌러보세요.</td></tr>`;
+function render(){selIdx=-1;body.innerHTML=view.length?view.map((r,i)=>`<tr onclick="sel(this,${i})" oncontextmenu="return ordCtx(event,${i})" ondblclick="return ordCtx(event,${i})" title="우클릭(또는 더블클릭) → 입고 · 입고확정 · 취소 · 복사발주 / [✎ 수정] → 업체·일자·수량·금액 수정"><td class="c"><input type="checkbox" data-no="${r.no}" ${CHK.has(Number(r.no))?'checked':''} onclick="event.stopPropagation();toggleChk(${Number(r.no)},this.checked)"></td><td class="c">${i+1}</td><td class="c"><span class="tag t-${ST(r.st)}">${ST(r.st)}</span></td><td>${r.vendor}</td><td>${r.job}</td><td>${r.item}</td><td class="c">${r.proc}</td><td class="c">${r.procName}</td><td>${r.part}${window.MESCYCLE?MESCYCLE.badge(r.cyc,null,r.cycWhy):''}</td><td>${r.partName}</td><td class="c">${r.mat}</td><td>${r.spec}</td><td class="r">${r.qty}</td><td class="r">${money(r.price)}</td><td class="c">${r.odate}</td><td class="c">${r.rdate}</td><td class="c">${r.idate}</td><td class="c">${r.cdate}</td><td class="r">${money(buyOf(r))}</td><td class="r">${r.rate!=null&&r.rate!==''&&(Number(r.rate)||r.st==='확정')?Number(r.rate).toFixed(2):''}</td><td class="r">${r.fix!=null&&r.fix!==''?money(r.fix):''}</td><td class="c"><button class="btn edit" onclick="event.stopPropagation();openEdit(${i})" title="이 행을 수정합니다">✎ 수정</button></td></tr>`).join(''):`<tr><td colspan="21" class="c" style="height:90px;color:#8a97a2">조회된 발주가 없습니다. 제번·기간 조건을 지우고 [⌕ 조회]를 다시 눌러보세요.</td></tr>`;
 sumQty.textContent=money(view.reduce((a,r)=>a+(r.qty||0),0));sumQuote.textContent=money(view.reduce((a,r)=>a+buyOf(r),0));sumFix.textContent=money(view.reduce((a,r)=>a+(Number(r.fix)||0),0));updCount()}
 function sel(tr,i){document.querySelectorAll('#body tr').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel');selIdx=(i==null?-1:Number(i))}
 /* ── v137: 행 선택 + [입고확정취소] — 확정된 발주를 「입고」 상태로 되돌린다 ───── */
@@ -195,6 +195,97 @@ async function custLoad(){
 }
 custLoad();setTimeout(custLoad,1500);
 render();window.MES={search,exportCsv,cancelOrder,setMessage:msg};
+</script>
+<style>
+/* v112: 행 더블클릭 수정 팝업 */
+button.btn.edit{height:21px;min-width:0;padding:0 8px;font-size:11px;line-height:19px;border:1px solid #9cb5cb;background:linear-gradient(#fff,#eaf2f8);color:#2c6ca8;cursor:pointer;border-radius:3px}
+button.btn.edit:hover{background:#fff;border-color:#4e88bb}
+tbody tr.sel button.btn.edit{background:#fff;color:#2c6ca8}
+#edMask{position:fixed;inset:0;background:rgba(20,28,35,.38);z-index:9000;display:none}#edMask.on{display:block}
+#edPop{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9001;width:470px;max-width:96vw;background:#fff;border:1px solid #6f8090;box-shadow:0 8px 26px rgba(0,0,0,.3);display:none;font-size:12px;color:#22303a}
+#edPop.on{display:block}
+#edPop .h{display:flex;align-items:center;gap:8px;padding:0 8px 0 12px;height:32px;color:#fff;font-weight:700;background:linear-gradient(#5f7f9f,#3f5f7d)}
+#edPop .h .x{margin-left:auto;border:0;background:transparent;color:#fff;cursor:pointer;font:inherit;font-size:15px}
+#edPop .b{padding:10px 12px 6px}
+#edPop .sub{color:#4d5c69;margin-bottom:8px;line-height:1.5}#edPop .sub b{color:#20456b}
+#edPop .g{display:grid;grid-template-columns:84px minmax(0,1fr) 84px minmax(0,1fr);gap:6px 8px;align-items:center}
+#edPop .g label{font-weight:700;text-align:right;color:#4d5c69;white-space:nowrap}
+#edPop .g input,#edPop .g select{width:100%;min-width:0;height:26px;border:1px solid #b9c3cb;padding:0 5px;font:inherit;box-sizing:border-box;color:#22303a!important;background:#fff!important}
+#edPop .g input.r{text-align:right}
+#edPop .g input[readonly]{background:#eef1f4!important;color:#78868f!important}
+#edPop .note{font-size:11px;color:#6d7b88;margin-top:8px;line-height:1.5}
+#edPop .f{display:flex;gap:6px;justify-content:flex-end;padding:9px 12px 11px;border-top:1px solid #e3e9ed;background:#f7f9fa}
+#edPop .f .btn{height:28px;min-width:74px}
+#edPop .f .btn.go{font-weight:700;color:#fff;border-color:#2a5d95;background:linear-gradient(#4a8ad0,#2f6fb0)}
+#edPop .f .btn.go:disabled{opacity:.5}
+#edPop .f .btn.del{color:#a8231f;border-color:#d6a6a2;background:linear-gradient(#fff,#f7e4e2);margin-right:auto}
+</style>
+<div id="edMask" onclick="closeEdit()"></div>
+<div id="edPop"><div class="h"><span id="edTitle">발주 수정</span><button class="x" onclick="closeEdit()">✕</button></div>
+ <div class="b" id="edBody"></div><div class="f" id="edFoot"></div></div>
+<script>
+/* TJD v302: [✎ 수정] — 업체·일자·수량·단가·금액을 바로 고친다 (외주가공 발주현황과 같은 창) */
+const _e=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const _num=v=>Number(String(v??'').replace(/[^0-9.\-]/g,''))||0;
+const _vv=id=>{const e=document.getElementById(id);return e?e.value:''};
+let ED=null;
+function closeEdit(){document.getElementById('edMask').classList.remove('on');document.getElementById('edPop').classList.remove('on');ED=null}
+function openEdit(i){
+ const r=view[i];if(!r)return;
+ if(!(window.MESDB&&MESDB.online))return msg('DB 미연결 상태에서는 수정할 수 없습니다.');
+ ED=r;
+ const vs=[...document.getElementById('vendorQ').options].map(o=>o.value).filter(Boolean);
+ if(r.vendor&&!vs.includes(r.vendor))vs.unshift(r.vendor);
+ document.getElementById('edTitle').textContent=`구매품 발주 수정 — ${ST(r.st)||''}`;
+ document.getElementById('edBody').innerHTML=`
+  <div class="sub"><b>${_e(r.job)}</b> · ${_e(r.part)} ${_e(r.partName||'')} · 품명 ${_e(r.item||'')} · 발주 #${_e(r.no)}</div>
+  <div class="g">
+   <label>구분</label><input value="${_e(ST(r.st)||'')}" readonly>
+   <label>업체명</label><select id="edVendor">${vs.map(v=>`<option value="${_e(v)}"${v===r.vendor?' selected':''}>${_e(v)}</option>`).join('')}</select>
+   <label>재질</label><input id="edMat" value="${_e(r.mat||'')}">
+   <label>스펙</label><input id="edSpec" value="${_e(r.spec||'')}">
+   <label>수량</label><input id="edQty" class="r" value="${Number(r.qty)||''}" inputmode="numeric" onchange="edCalc()">
+   <label>단가</label><input id="edPrice" class="r" value="${Number(r.price)?money(r.price):''}" inputmode="numeric" onchange="edCalc()">
+   <label>발주일</label><input id="edOdate" type="date" value="${_e(r.odate||'')}">
+   <label>입고요구일</label><input id="edRdate" type="date" value="${_e(r.rdate||'')}">
+   <label>입고일</label><input id="edIdate" type="date" value="${_e(r.idate||'')}">
+   <label>입고확정일</label><input id="edCdate" type="date" value="${_e(r.cdate||'')}">
+   <label>매입가</label><input id="edQuote" class="r" value="${Number(r.quote)?money(r.quote):''}" inputmode="numeric" onchange="edRate()">
+   <label>확정가</label><input id="edFix" class="r" value="${Number(r.fix)?money(r.fix):''}" inputmode="numeric" onchange="edRate()">
+   <label>네고율(%)</label><input id="edNego" class="r" value="0" readonly>
+  </div>
+  <div class="note">구분(발주/입고/입고확정)은 우클릭 처리창에서 바꿉니다. 수량·단가를 고치면 매입가(수량×단가)가 따라오고, 확정가를 고치면 네고율이 맞춰집니다.</div>`;
+ const canDel=ST(r.st)==='발주'&&!r.idate&&!r.cdate;
+ document.getElementById('edFoot').innerHTML=(canDel?`<button class="btn del" onclick="edDelete()">✕ 발주취소(삭제)</button>`:'')
+  +`<button class="btn go" id="edGo" onclick="edSave()">▣ 저장</button><button class="btn" onclick="closeEdit()">취소</button>`;
+ document.getElementById('edMask').classList.add('on');document.getElementById('edPop').classList.add('on');
+ edRate();setTimeout(()=>document.getElementById('edVendor').focus(),30);
+}
+function edCalc(){const q=_num(_vv('edQty')),p=_num(_vv('edPrice'));const pe=document.getElementById('edPrice');if(pe)pe.value=p?money(p):'';
+ if(q>0&&p>0){document.getElementById('edQuote').value=money(Math.round(q*p))}edRate()}
+function edRate(){const q=_num(_vv('edQuote')),f=_num(_vv('edFix'));const qe=document.getElementById('edQuote'),fe=document.getElementById('edFix');
+ if(qe)qe.value=q?money(q):'';if(fe)fe.value=f?money(f):'';const n=document.getElementById('edNego');if(n)n.value=q&&f?((1-f/q)*100).toFixed(1):'0'}
+async function edSave(){
+ const r=ED;if(!r)return;const b=document.getElementById('edGo');if(b){b.disabled=true;b.textContent='저장 중…'}
+ const q=_num(_vv('edQuote')),f=_num(_vv('edFix')),qty=_num(_vv('edQty')),pr=_num(_vv('edPrice'));
+ const patch={line_id:Number(r.no),vendor_name:_vv('edVendor')||null,material:(_vv('edMat')||'').trim()||null,spec:(_vv('edSpec')||'').trim()||null,
+  order_qty:qty||null,unit_price:pr||null,order_date:_vv('edOdate')||null,required_date:_vv('edRdate')||null,
+  receipt_date:_vv('edIdate')||null,confirm_date:_vv('edCdate')||null,quote_price:q||null,confirm_price:f||null,
+  nego_rate:q&&f?Number(((1-f/q)*100).toFixed(2)):null,updated_at:new Date().toISOString()};
+ try{
+  await MESDB.table('order_lines').upsert([patch],'line_id');
+  try{MESDB.dropCache&&MESDB.dropCache('order_lines')}catch(e){}
+  try{MESDB.notify&&MESDB.notify(['order_lines'])}catch(e){}
+  closeEdit();if(MESDB.reloadLines)await MESDB.reloadLines();_filterNow();
+  msg(`${r.job} · ${r.part} 수정했습니다. (업체 ${patch.vendor_name||'-'} · 수량 ${qty} · 매입가 ${money(q)} · 확정가 ${money(f)})`);
+ }catch(e){msg('수정 실패: '+String(e.message||e).slice(0,130));if(b){b.disabled=false;b.textContent='▣ 저장'}}
+}
+async function edDelete(){
+ const r=ED;if(!r)return;
+ if(!confirm(`아래 구매품 발주를 취소(삭제)합니다.\n\n제 번 : ${r.job}\n품 번 : ${r.part} ${r.partName||''}\n업 체 : ${r.vendor||''}\n\n되돌릴 수 없습니다. 계속할까요?`))return;
+ try{await MESDB.delLines([Number(r.no)]);try{MESDB.notify&&MESDB.notify(['order_lines'])}catch(e){}closeEdit();if(MESDB.reloadLines)await MESDB.reloadLines();_filterNow();msg(`${r.job} · ${r.part} 발주를 취소했습니다.`)}
+ catch(e){const m=String(e.message||e);msg(/foreign key|23503/i.test(m)?'발주취소 실패: 이 발주를 참조하는 입고 자료가 있습니다.':'발주취소 실패: '+m.slice(0,120))}
+}
 </script>
 <script src="mes_db.js?v=171"></script><script src="mes_cycle.js?v=225"></script><script src="mes_ordctx.js?v=301"></script>
 <script>MESDB.lines({page:"purchase_order_status",category:"구매품",statuses:[],map:{"no": {"col": "line_id", "type": "num"}, "vendor": "vendor_name", "job": "job_no", "item": "item_name", "proc": "process_code", "procName": "process_name", "part": "part_no", "cyc": {"col": "cycle_no", "type": "num"}, "cycWhy": "cycle_reason", "partName": "part_name", "st": {"col": "status", "type": "status"}, "mat": "material", "spec": "spec", "qty": {"col": "order_qty", "type": "num"}, "price": {"col": "unit_price", "type": "num"}, "odate": {"col": "order_date", "type": "date"}, "rdate": {"col": "required_date", "type": "date"}, "idate": {"col": "receipt_date", "type": "date"}, "cdate": {"col": "confirm_date", "type": "date"}, "quote": {"col": "quote_price", "type": "num"}, "rate": {"col": "nego_rate", "type": "num"}, "fix": {"col": "confirm_price", "type": "num"}},get:()=>rows,render:()=>{view=[...rows];render()}});</script>
