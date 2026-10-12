@@ -294,6 +294,9 @@ function open(ev, title, kind, bodyHtml, footBtns) {
   const f = $('oxFoot'); f.innerHTML = '';
   /* TJD: 발주현황에서 연 창에는 자재표가 없어 [추가 발주] 를 뺀다 (발주는 발주 화면에서) */
   if (CTX && CTX.ext && Array.isArray(footBtns)) footBtns = footBtns.filter(b => !/추가 발주/.test(String(b.t || '')));
+  /* TJD v301: 발주현황에서 연 창 — [⧉ 복사발주] : 이 발주건과 같은 품번·공정을 새 발주로 등록 */
+  if (CTX && CTX.ext && CTX.line && Array.isArray(footBtns) && !CTX.copying && !footBtns.some(b => /복사발주/.test(String(b.t || ''))))
+    footBtns.splice(Math.max(0, footBtns.length - 1), 0, { t: '⧉ 복사발주', cls: 'go k-order', title: '이 발주건의 품번·공정·업체를 그대로 가져와 새 발주(신규 발주건)를 등록합니다', fn: e => formCopy(e) });
   (footBtns || [{ t: '닫기', fn: close }]).forEach(b => {
     const el = document.createElement('button');
     el.type = 'button'; el.className = 'btn ' + (b.cls || ''); el.textContent = b.t;
@@ -1014,6 +1017,72 @@ function init(opt) {
   /* 첫 로드 */
   setTimeout(refresh, 400);
   setTimeout(refresh, 1500);
+}
+
+/* ── TJD v301: 복사발주 — 발주현황의 한 발주건을 바탕으로 같은 품번·공정의 새 발주를 등록 ──
+ *   원본 라인의 품번·부품명·소재·규격·가공공정·차수 등은 그대로 복사하고, 상태는 「발주」, 입고·확정 관련 값은 비운다.
+ *   업체·수량·발주일·입고요구일·단가·비고만 이 창에서 고친다. */
+const COPY_SKIP = /^(line_id|id|status|created_at|updated_at|order_date|required_date|owner_name|remark|reorder_reason|nego_rate|confirm_price|quote_price|unit_price|order_qty|order_weight|expected_date|defect_qty|receipt_\w+|confirm_\w+|cancel\w*|received\w*|lot\w*)$/;
+async function formCopy(ev) {
+  if (!CTX || !CTX.line) return false;
+  const l = CTX.line, b = CTX.b, job = CTX.job;
+  CTX.copying = true;
+  const pos = ev && ev.clientX != null ? { clientX: ev.clientX, clientY: ev.clientY } : null;
+  const v0 = l.vendor_name || '';
+  open(pos, `${b.part} — 복사발주`, 'k-order', `<div class="sub"><b>${_esc(job.job)}</b> · ${_esc(b.part)} ${_esc(b.name || '')}${b.mat ? ' · ' + _esc(b.mat) : ''}${b.spec ? ' · ' + _esc(b.spec) : ''}` +
+    `${l.machining_process_name || l.machining_process_code ? ' · 공정 ' + _esc(l.machining_process_name || l.machining_process_code) : ''} · 원본 발주 #${_esc(l.line_id)} (${_esc(l.vendor_name || '')} · ${_esc(_dt(l.order_date))})</div>
+   <div class="g">
+    <label>협력업체</label><select id="oxVendor" class="full"><option value="${_esc(v0)}">${_esc(v0 || '(업체 선택)')}</option></select>
+    <label>발주수량</label><input id="oxQty" class="r" value="${Number(l.order_qty) || 1}" inputmode="numeric">
+    <label>발주일</label><input id="oxOdate" type="date" value="${T0()}">
+    <label>입고요구일</label><input id="oxRdate" type="date" value="">
+    <label>단가</label><input id="oxPrice" class="r" value="${_n(l.unit_price) ? _won(l.unit_price) : ''}" placeholder="예: 45,000" inputmode="numeric">
+    <label>발주금액</label><input id="oxAmt" class="r" readonly placeholder="단가 입력 시 자동">
+    <label>재발주</label><select id="oxRe"><option value="">(정상 발주)</option><option>불량</option><option>실수</option><option>예비품</option><option>기타</option></select>
+    <label>비고</label><input id="oxRemark" placeholder="선택">
+   </div>
+   <div class="note">원본 발주건의 품번·공정·차수를 그대로 가져와 <b>새 발주건</b>으로 등록합니다. 원본은 바뀌지 않습니다. 단가·금액은 손으로 고칠 수 있습니다.</div>`,
+   [{ t: '▣ 복사발주 등록', cls: 'go k-order', id: 'oxGo', fn: doCopy }, { t: '닫기', fn: close }]);
+  const calc = () => { const p = $('oxPrice'), a = $('oxAmt'); const price = _n(p.value), q = Math.max(1, _n(_v('oxQty'))); p.value = price ? _won(price) : ''; a.value = price ? _won(Math.round(price * q)) : ''; };
+  $('oxQty').onchange = calc; $('oxPrice').onchange = calc; calc();
+  /* 업체 목록 — 업체 마스터(종류별), 없으면 화면 VENDORS, 그것도 없으면 원본 업체만 */
+  try {
+    const sel = $('oxVendor');
+    const kind = CFG.category === '원재료' ? 'vendor_material' : CFG.category === '구매품' ? 'vendor_purchase' : 'vendor_outsourcing';
+    let n = 0;
+    if (window.MESLOOK && MESLOOK.fillSelect) { await MESLOOK.fillSelect(sel, kind, { value: r => r.vendor_name || '', label: r => r.vendor_name || '' }); n = sel.options.length; }
+    if (!n) { const vs = vendorList(); if (vs.length) { sel.innerHTML = vs.map(v => `<option value="${_esc(v)}">${_esc(v)}</option>`).join(''); n = vs.length; } }
+    if (n && v0 && ![...sel.options].some(o => o.value === v0)) sel.insertAdjacentHTML('afterbegin', `<option value="${_esc(v0)}">${_esc(v0)}</option>`);
+    if (n) sel.value = v0 || sel.value;
+  } catch (e) {}
+  return false;
+}
+async function doCopy() {
+  if (!CTX || !CTX.line) return;
+  const l = CTX.line, b = CTX.b;
+  const vendor = _v('oxVendor'); if (!vendor) return say('협력업체를 선택하세요.');
+  if (!_online()) return say('DB 미연결 - 발주를 등록할 수 없습니다.');
+  const qty = Math.max(1, Math.round(_n(_v('oxQty')))), price = _n(_v('oxPrice')), amt = _n(_v('oxAmt'));
+  const re = _v('oxRe'), remark0 = (_v('oxRemark') || '').trim();
+  if (!price && !confirm('단가가 입력되지 않았습니다.\n\n발주금액 0원으로 등록되어 제조원가에 반영되지 않습니다.\n그래도 발주할까요?')) return say('단가를 입력한 뒤 다시 등록하세요.');
+  try { if (window.MESVCHK && MESVCHK.gate && !(await MESVCHK.gate([vendor]))) return say('협력업체 적격성 확인에서 중단했습니다.'); } catch (e) {}
+  const btn = $('oxGo'); if (btn) { btn.disabled = true; btn.textContent = '등록 중…'; }
+  const row = {};
+  Object.keys(l).forEach(k => { if (!COPY_SKIP.test(k)) row[k] = l[k]; });
+  Object.assign(row, {
+    status: '발주', vendor_name: vendor, order_qty: qty,
+    unit_price: price || null, quote_price: amt || null, confirm_price: amt || null,
+    order_date: _v('oxOdate') || T0(), required_date: _v('oxRdate') || null, owner_name: OWNER,
+    remark: [`[복사발주 #${l.line_id}]`, re ? `[재발주:${re}]` : '', remark0].filter(Boolean).join(' '),
+    reorder_reason: re || null, nego_rate: null
+  });
+  try {
+    await MESDB.newLines([row]);
+    await after(`${b.part} ${b.name || ''} → ${vendor} 복사발주 ${qty}개 등록 (${_won(amt)}원, 원본 #${l.line_id})`);
+  } catch (e) {
+    say('복사발주 실패: ' + String(e.message || e).slice(0, 120));
+    if (btn) { btn.disabled = false; btn.textContent = '▣ 복사발주 등록'; }
+  }
 }
 
 /* ── TJD: 발주현황(원재료/구매품) 에서 한 줄 우클릭 → 그 발주 라인의 처리창 ──
