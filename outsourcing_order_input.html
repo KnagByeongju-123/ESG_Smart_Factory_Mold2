@@ -36,10 +36,10 @@ td.pclk{cursor:pointer}td.pclk:hover{background:#eef4fb}  /* v300: 그림~소요
 .panes>.box:nth-child(2) th:nth-child(6),.panes>.box:nth-child(2) td:nth-child(6){left:346px;box-shadow:1px 0 0 #c5ced6}
 td.pimg{padding:1px 2px!important;text-align:center}
 td.pimg img{width:44px;height:40px;object-fit:contain;border:1px solid #d3dbe2;background:#fff;cursor:zoom-in;vertical-align:middle}
-td.route.s-next{background:#8fdc6b!important;color:#20461a;font-weight:700;cursor:pointer}
+td.route.s-next{background:#8fdc6b!important;color:#20461a;font-weight:700;cursor:context-menu}
 td.route.s-next .st{background:#2e7d32;color:#fff}
-td.route.s-ext{background:#dff5d3!important;color:#2c5a24;cursor:pointer}
-td.route.s-pick{background:#5cb85c!important;color:#fff;font-weight:700;cursor:pointer}
+td.route.s-ext{background:#dff5d3!important;color:#2c5a24;cursor:context-menu}
+td.route.s-pick{background:#5cb85c!important;color:#fff;font-weight:700;cursor:context-menu}
 td.route.s-req{background:#efe5f7!important;color:#5a3a7a}td.route.s-req .st{background:#8e6bb0;color:#fff}
 td.route.s-out{background:#ffe9d1!important;color:#7a4a12;font-weight:700}td.route.s-out .st{background:#e07a1f;color:#fff}
 /* v112: 공정 칸 우클릭 팝업 — 발주/입고/입고확정을 그 자리에서 처리 (더블클릭도 같은 창) */
@@ -149,7 +149,7 @@ tr.rdone td{color:#8b98a3}
     <span class="label">업체</span><input id="venF" class="field" style="width:130px" placeholder="업체 입력/선택" list="venDL" autocomplete="off"><datalist id="venDL"></datalist>
     <span class="label">최종완료</span><select id="doneF" class="field" onchange="ALLMODE?searchAll():renderRoutes()" title="전 공정이 입고된 줄(이전 차수 포함)을 숨기거나 보입니다"><option value="x">제외</option><option value="i">포함</option></select>
     <button class="btn" onclick="doSearch()" title="제번을 비우고 조회하면 전체 제번의 부품을 한 표에 보여 줍니다 (업체를 넣으면 그 업체에 발주된 부품만)">⌕ 조회</button>
-    <button class="btn" id="btnRefresh" onclick="refreshAll()" title="DB에서 제번·부품별 가공공정을 다시 불러옵니다 (다른 화면의 발주·입고 반영)">⟳ 새로고침</button><button class="btn" onclick="cycOpen()" title="이미 가공 진행 중인 부품을 공정1부터 다시 — 기존 발주·입고 이력은 이전 차수로 남고 새 차수(빈 공정 칸)로 시작합니다. 부품 행을 체크하면 그 부품만 고릅니다" style="color:#7a4a12;font-weight:700">↻ 신규진행</button><button class="btn" onclick="cycManage()" title="차수 되돌리기(잘못 누른 신규진행 취소) · 차수 종료(미입고 발주를 지우고 닫기)">⚙ 차수 관리</button><span class="ctxhint" title="공정 칸에서 마우스 오른쪽 버튼을 누르면 상태에 맞는 처리 창이 열립니다 (더블클릭도 같은 창).&#10;입고·완료 칸에서는 회차별 입고취소 · 입고 전체취소 · 확정취소, 같은 업체 발주건 함께 입고(다중입고)가 됩니다.&#10;연속 공정을 한 업체에 맡길 때는 마지막 공정 칸을 우클릭하면 그 사이 공정이 한꺼번에 발주됩니다.&#10;부품 행(조~소요수량 칸)을 왼쪽 클릭하면 그림보드가 열려 공정 순서 끌어 바꾸기, 기준공정 불러오기, 가공계획 적용을 할 수 있습니다.">※ <b style="color:#7a4a12">외주 칸</b> 우클릭 → 발주 · 입고 · 확정 · 묶음 · <b>취소</b> <b>|</b> <b style="color:#8a6d3b">사내 칸</b> 우클릭 → <b>가공완료 등록</b> <b>|</b> 부품 행(조·그림·부품코드·부품명·소요수량) 왼쪽 클릭 → <b>그림보드(공정 순서·기준공정·QR)</b></span>
+    <button class="btn" id="btnRefresh" onclick="refreshAll()" title="DB에서 제번·부품별 가공공정을 다시 불러옵니다 (다른 화면의 발주·입고 반영)">⟳ 새로고침</button><button class="btn" onclick="cycOpen()" title="이미 가공 진행 중인 부품을 공정1부터 다시 — 기존 발주·입고 이력은 이전 차수로 남고 새 차수(빈 공정 칸)로 시작합니다. 부품 행을 체크하면 그 부품만 고릅니다" style="color:#7a4a12;font-weight:700">↻ 신규진행</button><button class="btn" onclick="cycManage()" title="차수 되돌리기(잘못 누른 신규진행 취소) · 차수 종료(미입고 발주를 지우고 닫기)">⚙ 차수 관리</button><span class="ctxhint" title="공정 칸에서 마우스 오른쪽 버튼을 누르면 상태에 맞는 처리 창이 열립니다 (공정 칸은 우클릭만 동작).&#10;입고·완료 칸에서는 회차별 입고취소 · 입고 전체취소 · 확정취소, 같은 업체 발주건 함께 입고(다중입고)가 됩니다.&#10;연속 공정을 한 업체에 맡길 때는 마지막 공정 칸을 우클릭하면 그 사이 공정이 한꺼번에 발주됩니다.&#10;부품 행(조~소요수량 칸)을 왼쪽 클릭하면 그림보드가 열려 공정 순서 끌어 바꾸기, 기준공정 불러오기, 가공계획 적용을 할 수 있습니다.">※ <b style="color:#7a4a12">외주 칸</b> 우클릭 → 발주 · 입고 · 확정 · 묶음 · <b>취소</b> <b>|</b> <b style="color:#8a6d3b">사내 칸</b> 우클릭 → <b>가공완료 등록</b> <b>|</b> 부품 행(조·그림·부품코드·부품명·소요수량) 왼쪽 클릭 → <b>그림보드(공정 순서·기준공정·QR)</b></span>
   </section>
   <section class="panes">
     <div class="box"><div class="box-title">제번리스트</div><div class="tablewrap"><table id="jobListTable">
@@ -372,7 +372,7 @@ function routesHtml(){
        const hlab=hdone?'✔ 완료':(i===todo?'▶ 완료등록':'사내');
        const ht=`공정${i+1} ${procName(c)} · 사내가공`+(hdone?` · 완료 ${hi.last} · ${Hh(hi.min)}h · ${_won(hi.cost)}원`:' · 아직 완료 등록 전')
          +' · 우클릭: 가공완료 등록';
-       return `<td class="${hcls}" title="${_esc(ht)}" ondblclick="return ctxMenu(event,${ri},${i})" oncontextmenu="return ctxMenu(event,${ri},${i})">${_esc(procName(c))}${hline}<span class="st">${hlab}</span></td>`;
+       return `<td class="${hcls}" title="${_esc(ht)}" oncontextmenu="return ctxMenu(event,${ri},${i})">${_esc(procName(c))}${hline}<span class="st">${hlab}</span></td>`;
      }
      const o=stepInfo(r,i),st=o.st;
      let cls='',lab='';
@@ -380,12 +380,12 @@ function routesHtml(){
      else if(picks.includes(i)){cls='s-pick';lab=i===nx?'▶ 선택':'선택'}
      else if(i===nx){cls='s-next';lab='▶ 다음'}
      else if(nx>=0&&i>nx){cls='s-ext'}
-     const click=(cls==='s-next'||cls==='s-ext'||cls==='s-pick')?` onclick="pickCellLater(${ri},${i})"`:'';
+     /* v308: 공정 칸(B)은 우클릭만 — 왼쪽 클릭(범위 선택)·더블클릭은 쓰지 않는다. 묶음 발주는 마지막 공정 칸 우클릭 */
      const oq=Number(o.orderQty)||0,iq=Number(o.receiptQty)||0;
      const qline=`<span class="qtyline${oq||iq?'':' zero'}">발주 ${oq} / 입고 ${iq}</span>`;
      const t=`공정${i+1} ${c}`+(o.vendor?` · ${o.vendor}`:'')+(st?` · ${st}`:cls==='s-ext'?' · 우클릭하면 다음 공정부터 여기까지 한 업체에 묶음 발주':'')+
        (oq||iq?` · 발주 ${oq} / 입고 ${iq}${o.remainQty?` / 미입고 ${o.remainQty}`:''}`:'');
-     return `<td class="route ${cls}" title="${_esc(t)} · 우클릭: 발주 · 입고 · 입고확정 · 취소" ondblclick="return ctxMenu(event,${ri},${i})" oncontextmenu="return ctxMenu(event,${ri},${i})"${click}>${_esc(procName(c))}${qline}${lab?`<span class="st">${lab}</span>`:''}</td>`}).join('')+
+     return `<td class="route ${cls}" title="${_esc(t)} · 우클릭: 발주 · 입고 · 입고확정 · 취소" oncontextmenu="return ctxMenu(event,${ri},${i})">${_esc(procName(c))}${qline}${lab?`<span class="st">${lab}</span>`:''}</td>`}).join('')+
    '<td></td>'.repeat(Math.max(0,MAXSTEP-(r.steps||[]).length))+   /* v149: 남는 공정 칸도 그려 표 선이 어긋나지 않게 */
    `</tr>`}).join('');
 }
@@ -537,6 +537,7 @@ async function allAct(ev,kind){
  const td=ev.target.closest('td'),cells=[...tr.children],ci=td?cells.indexOf(td):-1;
  const cb=ev.target.closest('input[type=checkbox]');
  if(kind==='contextmenu'&&!(td&&td.classList.contains('route')))return;   /* v307: 부품 행 칸 우클릭은 아무 동작 없음 */
+ if(kind==='dblclick'||(kind==='click'&&!(td&&(td.classList.contains('pimg')||td.classList.contains('pclk')))&&!cb))return;   /* v308: 공정 칸 왼쪽 클릭·더블클릭 없음 */
  const pos={clientX:ev.clientX,clientY:ev.clientY,target:td||tr,preventDefault(){},stopPropagation(){}};
  /* v306: 그림보드 창은 클릭 순간 먼저 연다 — 제번 자료를 불러온 뒤(await) 열면 브라우저가 팝업으로 막아 왼쪽 클릭이 안 먹던 문제 */
  const brd=kind==='click'&&!cb&&td&&(td.classList.contains('pimg')||td.classList.contains('pclk'))&&window.MESDRAW&&MESDRAW.pre?MESDRAW.pre():null;
@@ -545,8 +546,9 @@ async function allAct(ev,kind){
  const si=td&&td.classList.contains('route')?cells.filter(c=>c.classList.contains('route')).indexOf(td):-1;
  const stepIdx=si>=0?ci-6:-1;
  if(cb){if(!cb.disabled)pickRow(ri,!PICK.has(ri));return}
- if(kind==='contextmenu'||kind==='dblclick'){if(stepIdx>=0)ctxMenu(pos,ri,stepIdx);else if(kind==='contextmenu')rowCtx(pos,ri);return}
- if(kind==='click'){if(td&&(td.classList.contains('pimg')||td.classList.contains('pclk')))drawBoard(ri);else if(stepIdx>=0&&/s-next|s-ext|s-pick/.test(td.className))pickCellLater(ri,stepIdx)}
+ /* v308: A(조~소요수량)=왼쪽 클릭만 그림보드, B(공정 칸)=우클릭만 발주·입고 창. 더블클릭은 쓰지 않는다 */
+ if(kind==='contextmenu'){if(stepIdx>=0)ctxMenu(pos,ri,stepIdx);return}
+ if(kind==='click'&&td&&(td.classList.contains('pimg')||td.classList.contains('pclk')))drawBoard(ri)
 }
 ['contextmenu','dblclick','click','change'].forEach(k=>routeBody.addEventListener(k,ev=>{
  if(!ALLMODE||ALLBUSY)return;const tr=ev.target.closest('tr[data-job]');
