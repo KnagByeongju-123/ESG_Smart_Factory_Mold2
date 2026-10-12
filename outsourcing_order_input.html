@@ -149,7 +149,7 @@ tr.rdone td{color:#8b98a3}
     <span class="label">업체</span><input id="venF" class="field" style="width:130px" placeholder="업체 입력/선택" list="venDL" autocomplete="off"><datalist id="venDL"></datalist>
     <span class="label">최종완료</span><select id="doneF" class="field" onchange="ALLMODE?searchAll():renderRoutes()" title="전 공정이 입고된 줄(이전 차수 포함)을 숨기거나 보입니다"><option value="x">제외</option><option value="i">포함</option></select>
     <button class="btn" onclick="doSearch()" title="제번을 비우고 조회하면 전체 제번의 부품을 한 표에 보여 줍니다 (업체를 넣으면 그 업체에 발주된 부품만)">⌕ 조회</button>
-    <button class="btn" id="btnRefresh" onclick="refreshAll()" title="DB에서 제번·부품별 가공공정을 다시 불러옵니다 (다른 화면의 발주·입고 반영)">⟳ 새로고침</button><button class="btn" onclick="cycOpen()" title="이미 가공 진행 중인 부품을 공정1부터 다시 — 기존 발주·입고 이력은 이전 차수로 남고 새 차수(빈 공정 칸)로 시작합니다. 부품 행을 체크하면 그 부품만 고릅니다" style="color:#7a4a12;font-weight:700">↻ 신규진행</button><button class="btn" onclick="cycManage()" title="차수 되돌리기(잘못 누른 신규진행 취소) · 차수 종료(미입고 발주를 지우고 닫기)">⚙ 차수 관리</button><span class="ctxhint" title="공정 칸에서 마우스 오른쪽 버튼을 누르면 상태에 맞는 처리 창이 열립니다 (더블클릭도 같은 창).&#10;입고·완료 칸에서는 회차별 입고취소 · 입고 전체취소 · 확정취소, 같은 업체 발주건 함께 입고(다중입고)가 됩니다.&#10;연속 공정을 한 업체에 맡길 때는 마지막 공정 칸을 우클릭하면 그 사이 공정이 한꺼번에 발주됩니다.&#10;부품 그림 칸을 누르면 그림보드가 열려 공정 순서 끌어 바꾸기, 기준공정 불러오기, 가공계획 적용을 할 수 있습니다.">※ <b style="color:#7a4a12">외주 칸</b> 우클릭 → 발주 · 입고 · 확정 · 묶음 · <b>취소</b> <b>|</b> <b style="color:#8a6d3b">사내 칸</b> 우클릭 → <b>가공완료 등록</b> <b>|</b> 부품 행(그림·부품코드·부품명·소요수량) 클릭 또는 우클릭 → <b>그림보드(공정 순서·기준공정·QR)</b></span>
+    <button class="btn" id="btnRefresh" onclick="refreshAll()" title="DB에서 제번·부품별 가공공정을 다시 불러옵니다 (다른 화면의 발주·입고 반영)">⟳ 새로고침</button><button class="btn" onclick="cycOpen()" title="이미 가공 진행 중인 부품을 공정1부터 다시 — 기존 발주·입고 이력은 이전 차수로 남고 새 차수(빈 공정 칸)로 시작합니다. 부품 행을 체크하면 그 부품만 고릅니다" style="color:#7a4a12;font-weight:700">↻ 신규진행</button><button class="btn" onclick="cycManage()" title="차수 되돌리기(잘못 누른 신규진행 취소) · 차수 종료(미입고 발주를 지우고 닫기)">⚙ 차수 관리</button><span class="ctxhint" title="공정 칸에서 마우스 오른쪽 버튼을 누르면 상태에 맞는 처리 창이 열립니다 (더블클릭도 같은 창).&#10;입고·완료 칸에서는 회차별 입고취소 · 입고 전체취소 · 확정취소, 같은 업체 발주건 함께 입고(다중입고)가 됩니다.&#10;연속 공정을 한 업체에 맡길 때는 마지막 공정 칸을 우클릭하면 그 사이 공정이 한꺼번에 발주됩니다.&#10;부품 행(조~소요수량 칸)을 왼쪽 클릭하면 그림보드가 열려 공정 순서 끌어 바꾸기, 기준공정 불러오기, 가공계획 적용을 할 수 있습니다.">※ <b style="color:#7a4a12">외주 칸</b> 우클릭 → 발주 · 입고 · 확정 · 묶음 · <b>취소</b> <b>|</b> <b style="color:#8a6d3b">사내 칸</b> 우클릭 → <b>가공완료 등록</b> <b>|</b> 부품 행(조·그림·부품코드·부품명·소요수량) 왼쪽 클릭 → <b>그림보드(공정 순서·기준공정·QR)</b></span>
   </section>
   <section class="panes">
     <div class="box"><div class="box-title">제번리스트</div><div class="tablewrap"><table id="jobListTable">
@@ -536,6 +536,7 @@ async function allAct(ev,kind){
  const tr=ev.target.closest('tr[data-job]');if(!tr)return;
  const td=ev.target.closest('td'),cells=[...tr.children],ci=td?cells.indexOf(td):-1;
  const cb=ev.target.closest('input[type=checkbox]');
+ if(kind==='contextmenu'&&!(td&&td.classList.contains('route')))return;   /* v307: 부품 행 칸 우클릭은 아무 동작 없음 */
  const pos={clientX:ev.clientX,clientY:ev.clientY,target:td||tr,preventDefault(){},stopPropagation(){}};
  /* v306: 그림보드 창은 클릭 순간 먼저 연다 — 제번 자료를 불러온 뒤(await) 열면 브라우저가 팝업으로 막아 왼쪽 클릭이 안 먹던 문제 */
  const brd=kind==='click'&&!cb&&td&&(td.classList.contains('pimg')||td.classList.contains('pclk'))&&window.MESDRAW&&MESDRAW.pre?MESDRAW.pre():null;
@@ -1444,8 +1445,9 @@ function ctxExtraOrder(){
 }
 
 /* v196: 부품 행(그림·부품코드·부품명·소요수량 칸) 우클릭 → 그림보드. 공정 칸은 기존 우클릭 메뉴(발주·입고…) 그대로 */
+/* v307: 부품 행 칸은 왼쪽 클릭만 그림보드 — 우클릭은 헷갈리지 않게 아무 동작도 하지 않는다 (브라우저 메뉴도 띄우지 않음) */
 function rowCtx(ev,ri){const td=ev.target.closest('td');if(!td||td.classList.contains('route')||td.querySelector('input[type=checkbox]'))return true;
- ev.preventDefault();drawBoard(ri);return false}
+ ev.preventDefault();return false}
 /* v203: 부품 그림보드 — 그림 위에 가공공정 순서를 표시해 인쇄·PDF 저장 (mes_drawboard.js) */
 function boardData(ri){
  const r=ROUTES[ri];if(!r)return null;const j=jobView[jobIdx]||{};
