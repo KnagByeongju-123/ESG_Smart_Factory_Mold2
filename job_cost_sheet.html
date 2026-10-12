@@ -94,6 +94,7 @@ let TAB='cost', ROWS=[], COLS=[], PROCNAME={}, PROCORD={}, CURJOB='', BASEMODE=f
 /* TJD v279: 관리제번을 비우고 [조회] → 전체(수주유형·고객사 필터에 맞는 모든 제번). 고객사 = job_pool.customer_name */
 const CUST=new Map(),JOBALL=[];   /* 제번 → 고객사 · 전체 제번 목록 */
 const CU=j=>CUST.get(j)||'';let ALLSETJ=new Set();
+const MODELMAP=new Map();   /* TJD v296: 제번 → 수주 품번 (양산수리 줄의 품번) */
 /* ── TJD v270: 금형 전체(제작+수리) — 원 관리제번 + origin_base 로 연결된 수리(-R)·개조(-M) 관리제번 ── */
 const RMRE=/-(R|M)(\d+)$/;
 async function moldJobs(curBase){
@@ -172,6 +173,7 @@ async function load(){
  const job=String(jobQ.value||'').trim();
  if(!online()){msg('DB 미연결 상태입니다.');return}
  ALLMODE=!job;
+ if(!MODELMAP.size){try{await custLoad()}catch(e){}}
  MOLDMODE=!ALLMODE&&!!(window.moldQ&&moldQ.checked);BASEMODE=!ALLMODE&&grpQ.checked&&!MOLDMODE;CURJOB=job;
  const base=baseOf(job), key=BASEMODE?base:job;
  const cu=(document.getElementById('custQ')||{}).value||'';
@@ -283,7 +285,7 @@ function build(plan,pl,lines,res,meta,exps,reps){
  /* TJD v294: 양산 금형수리 — 제번마다 「양산수리」 부품 줄 하나로 넣고, 공정 열 「양산수리(PR)」 에 시간·금액을 쓴다 (기준정보 작업단가 PR) */
  COMMON.prep={on:!!reps,min:0,amt:0,n:0,list:reps||[]};
  (reps||[]).forEach(x=>{COMMON.prep.min+=x.min;COMMON.prep.amt+=x.amt;COMMON.prep.n++;
-  const r=at(x.job,'양산수리');r.name='생산 비가동 금형수리';r.isRep=true;r.repN=(r.repN||0)+1;r.repList=(r.repList||[]).concat([x]);
+  const r=at(x.job,'양산수리');r.isRep=true;r.model=MODELMAP.get(x.job)||'';r.name='양산수리 · '+(x.item||'생산 비가동 금형수리');r.repN=(r.repN||0)+1;r.repList=(r.repList||[]).concat([x]);
   const q=r.proc.PR||(r.proc.PR={min:0,cost:0,out:0,wait:0,dOut:'',dIn:'',st:'',src:{}});q.min+=x.min;q.cost+=x.amt;q.st='양산수리';q.vendor=`${x.mname||x.mc}`;q.dIn=q.dIn&&q.dIn>x.wd?q.dIn:x.wd});
  COMMON.total=COMMON.dex.amt+COMMON.sex.amt+COMMON.din.amt+COMMON.asm.amt+COMMON.insp.amt+COMMON.exp.amt+COMMON.etc.amt;
  CJ=commonByJob(lines,res,exps||[]);
@@ -317,6 +319,7 @@ function goTarget(td){
    insp:{name:'검사실적등록',p:{job,part:'★'}},exp:{name:'경비현황',p:{job:BASEMODE?base:job,base}},etc:{name:'사내외가공 발주',p:{job}}})[k]||null}
  const tr=td.closest('tr[data-part]');if(!tr)return null;
  const job=tr.dataset.job,part=tr.dataset.part,x=ROWS.find(r=>r.job===job&&r.part===part)||{};
+ if(x.isRep){msg(`${job} 양산수리 — 근거는 생산현황(mes_work) 생산마감 기록입니다. 양산수리 칸에 마우스를 올리면 날짜·호기별 분이 보입니다.`);return null}
  const kind=td.dataset.go;
  if(kind==='mat'){const cat=td.dataset.cat||x.mat_cat||x.pl_cat||'원재료';return {name:cat==='구매품'?'구매품 발주':'원재료 발주',p:{job,part}}}
  if(kind==='pl'){const cat=x.pl_cat||x.mat_cat||'원재료';return {name:cat==='구매품'?'PartList 등록(구매품)':'PartList 등록(원재료)',p:{job,part}}}
@@ -336,7 +339,7 @@ document.addEventListener('contextmenu',goFrom);
 document.addEventListener('click',e=>{if(e.button!==0)return;const sel=window.getSelection&&window.getSelection();if(sel&&String(sel).trim())return;goFrom(e)});
 function view(){
  const q=(partQ.value||'').trim().toLowerCase();
- return ROWS.filter(x=>(!q||x.part.toLowerCase().includes(q)||String(x.name).toLowerCase().includes(q))
+ return ROWS.filter(x=>(!q||x.part.toLowerCase().includes(q)||String(x.model||'').toLowerCase().includes(q)||String(x.name).toLowerCase().includes(q))
   &&(!hideEmpty.checked||x.total>0||x.minTot>0||x.mat_in));
 }
 
@@ -370,7 +373,7 @@ function render(){
     <th style="width:70px">가공비</th><th style="width:104px">합계</th></tr>`;
   body.innerHTML=v.length?v.map(x=>`<tr class="${x.isRep?'reprow':''}" title="${esc(x.part)} ${esc(x.name)}${x.isRep?' — 생산현황 생산마감 비가동 「금형수리」 '+(x.repN||0)+'건':''}" data-job="${esc(x.job)}" data-part="${esc(x.part)}">
     <td class="c go" data-go="mat">${esc(MD(x.mat_in))}</td>${showJob?`<td class="c">${jtag(x)}</td>`:''}
-    <td class="go" data-go="pl">${x.img&&window.MESDB&&MESDB.imgBox?MESDB.imgBox(x.img,20)+' ':''}${esc(x.part)}</td><td class="go" data-go="pl">${esc(x.name)}</td><td class="c go" data-go="pl">${esc(x.mat)}</td>
+    <td class="go" data-go="pl">${x.img&&window.MESDB&&MESDB.imgBox?MESDB.imgBox(x.img,20)+' ':''}${esc(x.isRep?(x.model||x.part):x.part)}</td><td class="go" data-go="pl">${esc(x.name)}</td><td class="c go" data-go="pl">${esc(x.mat)}</td>
     <td class="c go" data-go="pl">${esc(x.shape||'')}</td><td class="go" data-go="pl">${esc(x.spec)}</td><td class="num go" data-go="mat">${x.mat_price?F(x.mat_price):''}</td><td class="num go" data-go="mat">${x.qty??''}</td><td class="num go" data-go="mat" data-cat="원재료">${x.rawTot?F(x.rawTot):''}</td><td class="num go" data-go="mat" data-cat="구매품">${x.buyTot?F(x.buyTot):''}</td>
     ${COLS.map(c=>{const q=x.proc[c];
       if(!q)return `<td class="pc go" data-go="proc" data-proc="${esc(c)}">${(x.steps.includes(c))?'<span style="color:#c3ccd4">·</span>':''}</td>`;
@@ -412,7 +415,7 @@ function render(){
     <th style="width:70px">진행률</th><th style="width:92px">상태</th></tr>`;
   body.innerHTML=v.length?v.map(x=>{
    const pct=x.stepN?Math.round(x.doneN/x.stepN*100):0;
-   return `<tr title="${esc(x.part)} ${esc(x.name)}">${showJob?`<td class="c">${jtag(x)}</td>`:''}
+   return `<tr title="${esc(x.part)} ${esc(x.name)}"${x.isRep?' class="reprow"':''}>${showJob?`<td class="c">${jtag(x)}</td>`:''}
     <td>${x.img&&window.MESDB&&MESDB.imgBox?MESDB.imgBox(x.img,20)+' ':''}${esc(x.part)}</td><td>${esc(x.name)}</td><td class="c">${esc(x.mat)}</td><td class="c">${esc(x.shape||'')}</td><td>${esc(x.spec)}</td><td class="num">${x.qty??''}</td>
     ${COLS.map(c=>{const q=x.proc[c],plan=x.steps.includes(c);
       if(!q)return `<td class="dt">${plan?'<span style="color:#c3ccd4">예정</span>':''}</td>`;
@@ -438,7 +441,7 @@ function csv(){
  if(TAB==='cost'){
   h=['입고일',...(showJob?[ALLMODE?'제번':'공정']:[]),'품번','부품명','재질','형태','규격','단가','수량','원재료비','구매품비',
      ...COLS.flatMap(c=>[pn(c)+' 사내(h)',pn(c)+' 외주(원)']),'가공비','합계'];
-  rows=v.map(x=>[D(x.mat_in),...(showJob?[ALLMODE?x.job:x.seq]:[]),x.part,x.name,x.mat,x.shape||'',x.spec,Math.round(x.mat_price)||'',x.qty??'',Math.round(x.rawTot)||'',Math.round(x.buyTot)||'',
+  rows=v.map(x=>[D(x.mat_in),...(showJob?[ALLMODE?x.job:x.seq]:[]),x.isRep?(x.model||x.part):x.part,x.name,x.mat,x.shape||'',x.spec,Math.round(x.mat_price)||'',x.qty??'',Math.round(x.rawTot)||'',Math.round(x.buyTot)||'',
    ...COLS.flatMap(c=>{const q=x.proc[c];return q?[q.min?(q.min/60).toFixed(1):'',Math.round(q.out+q.cost)||'']:['','']}),
    Math.round(x.procTot)||'',Math.round(x.total)||'']);
   if(COMMON){const w=h.length,row=(l,a)=>{const r=Array(w).fill('');r[0]=l;r[w-1]=Math.round(a)||0;return r};
@@ -479,8 +482,8 @@ let _custDone=false;
 async function custLoad(){
  if(_custDone)return;
  try{await waitDB();if(!online())return;
-  let rs;try{rs=await MESDB.table('job_pool').select('select=job_no,customer_name')}catch(e){rs=[]}
-  CUST.clear();JOBALL.length=0;CUB.clear();(rs||[]).forEach(r=>{JOBALL.push(String(r.job_no));const c=String(r.customer_name||'').trim();if(c)CUST.set(String(r.job_no),c)});
+  let rs;try{rs=await MESDB.table('job_pool').select('select=job_no,customer_name,model')}catch(e){try{rs=await MESDB.table('job_pool').select('select=job_no,customer_name')}catch(_){rs=[]}}
+  CUST.clear();JOBALL.length=0;CUB.clear();MODELMAP.clear();(rs||[]).forEach(r=>{JOBALL.push(String(r.job_no));const c=String(r.customer_name||'').trim();if(c)CUST.set(String(r.job_no),c);const m=String(r.model||'').trim();if(m)MODELMAP.set(String(r.job_no),m)});
   const sel=document.getElementById('custQ');if(sel){const keep=sel.value,cs=[...new Set(CUST.values())].sort((a,b)=>a.localeCompare(b,'ko'));
    sel.innerHTML='<option value="">전체</option>'+cs.map(c=>`<option value="${c.replace(/"/g,'')}">${c.replace(/</g,'')}</option>`).join('');if([...sel.options].some(o=>o.value===keep))sel.value=keep}
   _custDone=!!(rs&&rs.length);
