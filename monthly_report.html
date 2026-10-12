@@ -11,7 +11,7 @@
 .filters{padding:7px 14px;border-bottom:1px solid var(--line2);background:#fafbfc;display:flex;gap:6px;align-items:center;flex-wrap:wrap}.label{font-weight:700}.field{height:26px;border:1px solid #b7c2cb;background:#fff;padding:0 6px;outline:none}.field:focus{border-color:#4e88bb}
 .btn{height:28px;min-width:70px;border:1px solid #9ca9b5;background:linear-gradient(#fff,#dfe6eb);cursor:pointer;padding:0 10px}.btn:hover{background:#fff}.btn.primary{background:linear-gradient(#f9ffff,#d2e7f6);color:#1e5e91;font-weight:700}.btn:disabled{opacity:.5;cursor:default}
 .body{flex:1;min-height:0;overflow:auto;padding:10px 14px;background:#eef2f5}
-.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:10px}
+.kpis{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:10px}
 .kpi{background:#fff;border:1px solid var(--line2);border-left:4px solid var(--blue);padding:8px 10px}.kpi small{display:block;color:#6b7885;font-size:11px}.kpi b{display:block;font-size:18px;margin-top:2px;color:#1f3a56}.kpi i{font-style:normal;color:#8795a1;font-size:11px}
 .sec{background:#fff;border:1px solid var(--line2);margin-bottom:10px}.sec h3{margin:0;padding:6px 10px;font-size:13px;background:linear-gradient(#dbe9f4,#c7d9e8);color:#405266;display:flex;align-items:center;gap:8px}.sec h3 span{font-weight:400;color:#6b7885;font-size:11px}
 .sec .in{padding:6px 10px;overflow:auto}.sec .note{color:#6b7885;font-size:11px;margin-top:4px}
@@ -20,7 +20,7 @@ table{border-collapse:collapse;width:100%}th,td{height:24px;padding:0 6px;border
 textarea{width:100%;min-height:70px;border:1px solid #b7c2cb;padding:6px;resize:vertical}
 .foot{height:42px;display:flex;align-items:center;padding:5px 14px;border-top:1px solid var(--line);background:#eef2f5;gap:5px}.msg{margin-left:10px;color:#687784}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-@media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:1300px){.kpis{grid-template-columns:repeat(4,1fr)}}@media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:900px){.title h1{font-size:18px}.kpis{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}.filters .label{min-width:0}}
 </style>
 </head>
@@ -241,6 +241,7 @@ function render(){
   <div class="kpi"><small>매입(입고확정)</small><b>${F(R.buyTot)}원</b><i>전월 ${F(R.buyPrev)}원</i></div>
   <div class="kpi"><small>사내 공수</small><b>${H(R.laborMin)}h</b><i>${F(R.laborTot)}원</i></div>
   <div class="kpi"><small>경비</small><b>${F(R.expTot)}원</b><i>${R.byExp.length}항목</i></div>
+  <div class="kpi" style="border-left-color:#7c4dbd"><small>양산수리</small><b>${HM(R.repSum.min)}</b><i>${F(R.repSum.amt)}원 · ${R.repSum.n}건${R.repSum.ok?'':' · DB 미연결'}</i></div>
   <div class="kpi" style="border-left-color:${R.lateN?'#e05a4a':'#2fb27c'}"><small>진행 중 금형</small><b>${R.progN}건</b><i>지연 ${R.lateN}건</i></div>
  </div>
  ${R.legN?`<div class="sec" style="border-left:4px solid #8a4f08"><h3>기존 양산 금형 <span>일괄등록 ${R.legN}개 — 수주·납품·진행 목록에서는 뺐고, 이달 수리 매입 ${F(R.legBuy)}원은 매입에 포함</span></h3></div>`:''}
@@ -317,10 +318,10 @@ async function makePpt(){
   /* 2 요약 */
   {const s=page('월간 요약');
    const K=[['신규 수주',`${R.newOrd.length}건`,`${F(R.ordAmt)}원`],['납품(완료) 금형',`${R.doneM.length}건`,`${F(R.doneAmt)}원`],['매입(입고확정)',`${F(R.buyTot)}원`,`전월 ${F(R.buyPrev)}원`],
-            ['사내 공수',`${H(R.laborMin)}h`,`${F(R.laborTot)}원`],['경비',`${F(R.expTot)}원`,`${R.byExp.length}항목`],['진행 중 금형',`${R.progN}건`,`지연 ${R.lateN}건`+(R.legN?` · 양산 금형 ${R.legN}개 별도`:'')]];
-   K.forEach((k,i)=>{const x=0.3+(i%3)*3.15,y=1.0+Math.floor(i/3)*1.55;
-    s.addShape(P.ShapeType.rect,{x,y,w:2.95,h:1.35,fill:{color:'F4F7FA'},line:{color:'C5CED6',width:0.5}});s.addShape(P.ShapeType.rect,{x,y,w:0.08,h:1.35,fill:{color:i===5&&R.lateN?'E05A4A':BLUE}});
-    s.addText(k[0],{x:x+0.2,y:y+0.1,w:2.6,h:0.3,fontFace:FONT,fontSize:10,color:GRAY});s.addText(k[1],{x:x+0.2,y:y+0.4,w:2.6,h:0.55,fontFace:FONT,fontSize:22,bold:true,color:'1F3A56'});s.addText(k[2],{x:x+0.2,y:y+0.95,w:2.6,h:0.3,fontFace:FONT,fontSize:9,color:GRAY})});
+            ['사내 공수',`${H(R.laborMin)}h`,`${F(R.laborTot)}원`],['경비',`${F(R.expTot)}원`,`${R.byExp.length}항목`],['양산수리',`${HM(R.repSum.min)}`,`${F(R.repSum.amt)}원 · ${R.repSum.n}건`],['진행 중 금형',`${R.progN}건`,`지연 ${R.lateN}건`+(R.legN?` · 양산 금형 ${R.legN}개 별도`:'')]];
+   K.forEach((k,i)=>{const x=0.3+(i%4)*2.37,y=1.0+Math.floor(i/4)*1.5;
+    s.addShape(P.ShapeType.rect,{x,y,w:2.25,h:1.35,fill:{color:'F4F7FA'},line:{color:'C5CED6',width:0.5}});s.addShape(P.ShapeType.rect,{x,y,w:0.08,h:1.35,fill:{color:i===6&&R.lateN?'E05A4A':i===5?'7C4DBD':BLUE}});
+    s.addText(k[0],{x:x+0.18,y:y+0.1,w:2.0,h:0.3,fontFace:FONT,fontSize:10,color:GRAY});s.addText(k[1],{x:x+0.18,y:y+0.4,w:2.0,h:0.55,fontFace:FONT,fontSize:20,bold:true,color:'1F3A56'});s.addText(k[2],{x:x+0.18,y:y+0.95,w:2.0,h:0.3,fontFace:FONT,fontSize:9,color:GRAY})});
    const top=R.byCust.slice(0,6);
    if(top.length)s.addChart(P.ChartType.bar,[{name:'수주 금액',labels:top.map(x=>x.cust),values:top.map(x=>x.ordAmt)},{name:'매입 금액',labels:top.map(x=>x.cust),values:top.map(x=>x.buy)}],{x:0.3,y:4.15,w:9.4,h:1.3,barDir:'bar',barGrouping:'clustered',chartColors:[BLUE,AMB],showLegend:true,legendPos:'r',legendFontSize:8,catAxisLabelFontSize:8,valAxisLabelFontSize:7,valAxisLabelFormatCode:'#,##0',showTitle:true,title:'고객사별 수주·매입 (상위)',titleFontSize:9,dataLabelFontSize:7});}
   /* 3 신규 수주 */
