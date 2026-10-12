@@ -468,6 +468,11 @@ async function searchAll(){
  if(my!==_allSeq)return;
  const targets=list.filter(j=>(!has||has.has(j.job))&&(!vset||vset.has(j.job)));
  const html=[];let nRow=0,nJob=0,nHid=0;
+ /* TJD v305: 제번마다 6번씩 DB를 읽던 것을, 표 5개를 한 번에 읽어 두고 제번별로 걸러 쓴다 (전체 보기 속도) */
+ msg(`전체 부품을 불러오는 중… (자료 한 번에 읽기 · 제번 ${targets.length}개)`);
+ const PRE=await preloadAll();if(my!==_allSeq)return;
+ const _origTable=MESDB.table,_wrap=preTable(_origTable,PRE);MESDB.table=_wrap;
+ try{
  for(let k=0;k<targets.length;k++){
   const j=targets[k];jobIdx=jobView.indexOf(j);
   const s0=_routeSeq+1;await loadRoutes();
@@ -480,13 +485,35 @@ async function searchAll(){
    allTag(tr,j,r);rows.push(tr.outerHTML)});
   if(rows.length){nJob++;nRow+=rows.length;
    html.push(`<tr class="allhd" data-hjob="${_esc(j.job)}"><td colspan="30"><span class="hdl">제번 ${_esc(j.job)}${j.model?' · '+_esc(j.model):''}${j.item?' · '+_esc(j.item):''} <span style="font-weight:400;color:#56708a">(부품 <i>${rows.length}</i>)</span></span></td></tr>`,...rows)}
-  msg(`전체 부품을 불러오는 중… ${k+1}/${targets.length}`);
+  if((k&7)===7)msg(`전체 부품을 불러오는 중… ${k+1}/${targets.length}`);
  }
+ }finally{if(MESDB.table===_wrap)MESDB.table=_origTable}
  ALLBUSY=false;ROUTES.length=0;jobIdx=-1;renderJobs();
  routeBody.innerHTML=html.length?html.join(''):`<tr><td colspan="30" style="height:70px;text-align:center;color:#8a4f08;background:#fff8ec;white-space:normal">표시할 부품이 없습니다${vf?` — 업체 「${_esc(vf)}」에 발주된 부품 없음`:''}${nHid?` (전 공정 완료 ${nHid}건은 숨김 — 최종완료 [포함]으로 보기)`:''}</td></tr>`;
  msg(`전체 부품 ${nRow}건 (제번 ${nJob}개)${vf?` · 업체 ${vf}`:''}${nHid?` · 전공정 완료 ${nHid}건 숨김`:''} — 이 표에서 바로 우클릭해 발주·입고하세요.`);
 }
 var ALLVF='';
+/* TJD v305: 전체 보기용 일괄 읽기 — 표 5개를 통째로 읽어 두고, 제번별 조회(job_no=eq.…)를 그 자료에서 걸러 돌려준다 */
+async function preloadAll(){
+ const get=async(name,q)=>{try{return await MESDB.table(name).select(q,{fresh:true})}catch(e){return null}};
+ const [a,b,c,d,e,f]=await Promise.all([
+  get('machining_plan_parts','select=*&order=row_no'),
+  get('partlist_materials','select=job_no,part_no,part_name,process_code,qty,row_no&order=row_no'),
+  get('order_lines',`select=*&category=eq.${encodeURIComponent('외주가공')}&order=line_id`),
+  get('part_cycles',`select=*&category=eq.${encodeURIComponent('외주가공')}&order=cycle_no`),
+  get('design_results',`select=row_no,job_no,part_no,machining_process_code,work_date,work_minutes,labor_cost,worker_name,equipment_code,work_type&work_type=eq.${encodeURIComponent('가공')}&order=work_date`),
+  get('machining_standard_routes','select=*&order=standard_process_no')]);
+ const o={};if(f)o.machining_standard_routes=f;if(a)o.machining_plan_parts=a;if(b)o.partlist_materials=b;if(c)o.order_lines=c;if(d)o.part_cycles=d;if(e)o.design_results=e;return o;
+}
+function preTable(orig,PRE){
+ const filt=(rows,q)=>{let out=rows;String(q||'').split('&').forEach(kv=>{const i=kv.indexOf('=');if(i<0)return;const k=kv.slice(0,i),v=kv.slice(i+1);
+   if(k==='select'||k==='order'||k==='limit'||k==='offset')return;
+   if(v.startsWith('eq.')){const want=decodeURIComponent(v.slice(3));out=out.filter(r=>String(r[k]??'')===want)}
+   else if(v.startsWith('neq.')){const want=decodeURIComponent(v.slice(4));out=out.filter(r=>String(r[k]??'')!==want)}});
+  return out.map(r=>({...r}))};
+ return name=>{const t=orig(name);const rows=PRE[name];if(!rows)return t;
+  return Object.assign({},t,{select:async q=>filt(rows,q)})};
+}
 const allKeep=(r,vfl)=>!vfl||(r.steps||[]).some((c,i)=>String(stepInfo(r,i).vendor||'').toLowerCase().includes(vfl));
 function allTag(tr,j,r){tr.dataset.job=j.job;tr.dataset.part=r.part;tr.dataset.cyc=rowCyc(r);tr.dataset.jo=r.jo??'';
  tr.removeAttribute('oncontextmenu');tr.querySelectorAll('[onclick],[ondblclick],[oncontextmenu],[onchange]').forEach(e=>{e.removeAttribute('onclick');e.removeAttribute('ondblclick');e.removeAttribute('oncontextmenu');e.removeAttribute('onchange')})}
