@@ -190,6 +190,7 @@ async function saveOne(mode){
  const o={};for(const[el,k]of Object.entries(MAP)){const n=document.getElementById(el);if(n)o[k]=n.value||null}
  if(!/외주설계/.test(o.development_type||''))o.design_vendor_name=null;   /* v242: 외주설계가 아니면 설계업체 없음 */
  o.origin_base=(o.order_type==='수리'||o.order_type==='개조')&&o.origin_base?String(o.origin_base).trim().toUpperCase():null;   /* TJD v270 */
+ if(o.origin_base&&o.origin_base===(window.MESDB&&MESDB.jobSplit?MESDB.jobSplit(o.job_no).base:o.job_no))o.origin_base=null;   /* 수리를 원 금형과 같은 관리제번으로 쓰는 경우 — 자기 자신을 원 금형으로 걸지 않는다 */
  o.plant_name='1공장';o.attachments=ATT;
  for(const k of NUMF){const v=Number(o[k]);o[k]=(o[k]===null||o[k]===''||Number.isNaN(v))?null:v}
  for(const k of DATEF)if(o[k]==='')o[k]=null;
@@ -526,7 +527,7 @@ model.addEventListener('change',()=>{if(!document.querySelector('.oriRow.off'))o
   const typ=otype.value,b=String(base_job.value||'').trim().toUpperCase();
   if(typ==='수리'||typ==='개조'){
    if(!String(origin_base.value||'').trim()){const mm=RMRE.exec(b);if(mm)origin_base.value=b.slice(0,mm.index)}   /* 번호에서 원 관리제번을 읽는다 */
-   if(!String(origin_base.value||'').trim()&&!confirm(`${typ} 수주인데 원 관리제번이 비어 있습니다.\n원 금형과 연결하지 않고 저장할까요? (금형원가내역 「금형 전체」에 묶이지 않습니다)`)){msg('원 관리제번을 고른 뒤 저장하세요.');return false}
+   if(typ==='개조'&&!String(origin_base.value||'').trim()&&!confirm(`${typ} 수주인데 원 관리제번이 비어 있습니다.\n원 금형과 연결하지 않고 저장할까요? (금형원가내역 「금형 전체」에 묶이지 않습니다)`)){msg('원 관리제번을 고른 뒤 저장하세요.');return false}
    if(b&&!/\d$/.test(b)&&!confirm(`관리제번 ${b} 이(가) 숫자로 끝나지 않습니다.\n공정 제번(A·B·C)을 나눌 수 없게 됩니다. (예: ${b}1, ${origin_base.value||'원관리제번'}-R1)\n그래도 저장할까요?`)){msg('관리제번을 숫자로 끝나게 고친 뒤 저장하세요.');return false}
   }
   if(typ==='수리'&&String(comp_date.value||'').trim()&&!confirm(`수리 제번에 정산완료일(${comp_date.value})이 들어가 있습니다.\n정산완료일이 오늘 이전이면 수주상태와 관계없이 종결로 보고 제번 목록에서 빠져 수리 발주를 낼 수 없습니다.\n양산 중 계속 수리할 제번이면 정산완료일을 비워 두세요.\n그래도 저장할까요?`)){msg('계속 수리할 제번이면 정산완료일을 비우고 저장하세요.');return false}
@@ -573,7 +574,7 @@ const XL_COLS=[   /* [머리글, 입력칸 id, 필수, 설명] */
  ['품번','model',1,''],
  ['품명','product_name',1,''],
  ['수주유형','otype',0,'신작 / 개조 / 수리 (비우면 신작)'],
- ['원 관리제번','origin_base',0,'수리·개조일 때 원 금형의 관리제번 (필수)'],
+ ['원 관리제번','origin_base',0,'개조일 때 원 금형의 관리제번. 수리는 비워도 됨 (관리제번과 같으면 비운 것과 같음)'],
  ['수주상태','status',0,'진행 / 보류 / 완료 / 취소 (비우면 진행)'],
  ['아이템','item',0,'기준정보 아이템 코드 또는 이름'],
  ['금형타입','mold',0,'기준정보 금형타입 코드 또는 이름'],
@@ -654,7 +655,8 @@ async function xlLoad(file){
   v.base_job=v.base_job.toUpperCase();v.origin_base=v.origin_base.toUpperCase();
   if(v.proc_cnt!==''){const n=Number(v.proc_cnt);if(!Number.isInteger(n)||n<1||n>26)err.push('공정수는 1~26')}
   for(const[id,ok]of Object.entries(XL_SEL))if(v[id]&&!ok.includes(v[id]))err.push(`${XL_COLS.find(c=>c[1]===id)[0]} 「${v[id]}」 (${ok.join('/')} 중 하나)`);
-  if((v.otype==='수리'||v.otype==='개조')&&!v.origin_base)err.push(v.otype+' 수주는 원 관리제번 필수');
+  if(v.origin_base===v.base_job)v.origin_base='';   /* 수리: 원 관리제번 = 관리제번 → 따로 연결하지 않음 */
+  if(v.otype==='개조'&&!v.origin_base)err.push('개조 수주는 원 관리제번 필수');
   if(v.devtype){const bad=v.devtype.split(/[,\s/·]+/).filter(x=>x&&!DEVS.includes(x));if(bad.length)err.push('개발유형 「'+bad.join(',')+'」')}
   if(v.proc_cat&&!cats.includes(v.proc_cat))err.push(`카테고리 「${v.proc_cat}」 기준정보에 없음`);
   for(const k of Object.keys(XL_LOOK)){if(!v[k])continue;const L=ref[k];
