@@ -460,12 +460,15 @@ window.MESCTX={confirm:dlgConfirm};
    /* v114: 값이 그대로면 setVal(=input/change 재발신)을 생략한다 — change 에
       dirty·자동이름 같은 부수효과가 있는 화면에서 포커스 이동만으로 상태가
       바뀌는 것을 막는다 (가공계획등록 기준공정명 덮어쓰기 버그) */
-   if(o){if(String(box.src.value)!==String(o.v))setVal(box,o.v,o.l);else box.inp.value=o.l;}
+   /* 목록에 똑같은 글자가 없어도 후보가 하나뿐이면 그것으로 고른다 (예: 9DHA036 → 9DHA036 · 품명 (A·B)) */
+   const q=t.toLowerCase(),one=!o&&q?optionsOf(box).filter(x=>(x.l+' '+x.v+' '+x.s).toLowerCase().includes(q)):[];
+   const p=o||(one.length===1?one[0]:null);
+   if(p){if(String(box.src.value)!==String(p.v))setVal(box,p.v,p.l);else box.inp.value=p.l;}
    else box.inp.value=labelOf(box,box.src.value);
   }else if(t!==box.src.value)setVal(box,t,t);
  }
  function build(el){
-  if(el.__mescb||el.hasAttribute('data-nocombo'))return;
+  if(el.__mescb||el.hasAttribute('data-nocombo')||el.classList.contains('mescb-in'))return;   /* 콤보 안에 콤보를 만들지 않는다 */
   const isSel=el.tagName==='SELECT';
   const dl=isSel?null:document.getElementById(el.getAttribute('list')||'');
   if(!isSel&&!dl)return;
@@ -492,6 +495,7 @@ window.MESCTX={confirm:dlgConfirm};
    if(cur===box&&pop&&pop.classList.contains('on'))close();else{inp.focus();open(box,true)}});
   inp.addEventListener('focus',()=>open(box,true));
   inp.addEventListener('input',()=>{open(box,false);
+   if(isSel&&hi<0&&items.length&&String(inp.value||'').trim()){hi=0;mark()}   /* 글자를 치면 첫 후보를 잡아 둔다 → Enter 로 바로 선택 */
    if(!isSel){el.value=inp.value;el.dispatchEvent(new Event('input',{bubbles:true}))}});
   inp.addEventListener('blur',()=>{setTimeout(()=>{if(cur===box)close();commit(box)},120)});
   inp.addEventListener('keydown',e=>{
@@ -1336,6 +1340,9 @@ window.MESCTX={confirm:dlgConfirm};
   if(t!=='text'&&t!=='search')return false;
   if(el.readOnly||el.disabled||el.hasAttribute('list')||el.hasAttribute('data-nojoblist'))return false;
   if(el.closest('#meslk,#mesdlg,.mescb-pop'))return false;
+  /* 콤보의 글자 입력칸(.mescb-in)은 제외 — 「제번」 라벨 옆 선택 콤보의 입력칸을 제번칸으로 잘못 보고 콤보를 한 겹 더 씌워,
+     800ms 마다 안쪽 콤보가 바깥 입력칸을 비우면서 치던 글자가 사라지던 문제 */
+  if(el.classList.contains('mescb-in'))return false;
   return true;
  }
  function isJobBox(el){
