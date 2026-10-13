@@ -573,7 +573,7 @@ const XL_COLS=[   /* [머리글, 입력칸 id, 필수, 설명] */
  ['고객사','cust',1,'기준정보 업체(고객사)의 코드 또는 이름'],
  ['품번','model',1,''],
  ['품명','product_name',1,''],
- ['수주유형','otype',0,'신작 / 개조 / 수리 (비우면 신작)'],
+ ['수주유형','otype',1,'신작 / 개조 / 수리 중 하나 (관리제번 예: 신작 26DHA001 · 개조 26DHB001 · 수리 26DHC001)'],
  ['원 관리제번','origin_base',0,'개조일 때 원 금형의 관리제번. 수리는 비워도 됨 (관리제번과 같으면 비운 것과 같음)'],
  ['수주상태','status',0,'진행 / 보류 / 완료 / 취소 (비우면 진행)'],
  ['아이템','item',0,'기준정보 아이템 코드 또는 이름'],
@@ -676,7 +676,7 @@ function xlRender(){
   const st=x.done?`<span style="color:#1d6b3a">✔ ${esc(x.done)}</span>`:x.fail?`<span style="color:#b02a37">저장 실패 — ${esc(x.fail)}</span>`
    :x.err.length?`<span style="color:#b02a37">✖ ${esc(x.err.join(' · '))}</span>`
    :x.exist?(xlOver.checked?'<span style="color:#8a4f08">기존 수주 덮어쓰기</span>':'<span style="color:#8a97a2">이미 있음 — 건너뜀</span>'):'<span style="color:#1d5da3">신규 등록</span>';
-  return `<tr><td class="c">${x.row}</td><td>${esc(v.base_job)}</td><td class="c">${esc(v.proc_cnt||1)}</td><td class="c">${esc(v.order_date)}</td><td>${esc(nm(v.cust))}</td><td>${esc(v.model)}</td><td>${esc(v.product_name)}</td><td class="c">${esc(v.otype||'신작')}</td><td title="${esc(x.err.join('\n'))}">${st}</td></tr>`}).join('');
+  return `<tr><td class="c">${x.row}</td><td>${esc(v.base_job)}</td><td class="c">${esc(v.proc_cnt||1)}</td><td class="c">${esc(v.order_date)}</td><td>${esc(nm(v.cust))}</td><td>${esc(v.model)}</td><td>${esc(v.product_name)}</td><td class="c">${esc(v.otype||'-')}</td><td title="${esc(x.err.join('\n'))}">${st}</td></tr>`}).join('');
  const ok=XL.filter(xlOk).length,bad=XL.filter(x=>x.err.length).length;
  xlInfo.textContent=`전체 ${XL.length}줄 · 저장 대상 ${ok}건${bad?` · 오류 ${bad}건`:''}`;
  xlGo.disabled=!ok;
