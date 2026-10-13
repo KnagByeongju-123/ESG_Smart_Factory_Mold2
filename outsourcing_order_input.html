@@ -335,6 +335,7 @@ function renderVendors(){venBody.innerHTML=venView.map((v,i)=>`<tr class="${i===
 var MAXSTEP=10;  /* v149: 부품별 가공공정은 공정1~10 까지 (화면보다 넓으면 가로 스크롤) */
 function renderRoutes(){
  if(ALLMODE&&!ALLBUSY){allPatch();return}   /* TJD v275: 전체 부품 보기 중에는 그 제번 줄만 바꿔 끼운다 */
+ if(ALLBUSY){ALLTMP.innerHTML=routesHtml();return}   /* 전체 보기를 모으는 중에는 화면 밖 표에 그린다 — 제번마다 화면이 바뀌며 깜빡이던 문제 */
  routeBody.innerHTML=routesHtml();
  afterRender()}
 function routesHtml(){
@@ -455,11 +456,13 @@ function fixSticky(){try{
 try{new ResizeObserver(()=>fixSticky()).observe(routeBody.closest('table'))}catch(e){window.addEventListener('resize',fixSticky)}
 setTimeout(fixSticky,300);
 var ALLMODE=false,ALLBUSY=false,_allSeq=0;
+const ALLTMP=document.createElement('tbody');   /* 전체 보기용 화면 밖 작업 표 */
 function doSearch(){search();if(!String(jobQ.value||'').trim())searchAll();else{const i=jobView.findIndex(x=>x.job===jobQ.value.trim());if(i>=0)pickJob(i)}}
-async function searchAll(){
+async function searchAll(keep){
  const my=++_allSeq;ALLMODE=true;ALLBUSY=true;PICK.clear();
  const list=jobView.slice(),vf=String((document.getElementById('venF')||{}).value||'').trim(),vfl=vf.toLowerCase();ALLVF=vf;
- routeBody.innerHTML='<tr><td colspan="30" style="height:60px;text-align:center;color:#56708a">전체 부품을 불러오는 중…</td></tr>';
+ /* 새로고침(keep)일 때는 지금 표를 그대로 두었다가 다 모이면 한 번에 바꾼다 */
+ if(!keep||!routeBody.querySelector('tr.allhd'))routeBody.innerHTML='<tr><td colspan="30" style="height:60px;text-align:center;color:#56708a">전체 부품을 불러오는 중…</td></tr>';
  msg('전체 부품을 불러오는 중…');
  let has=null,vset=null;
  try{const [a,b]=await Promise.all([MESDB.table('partlist_materials').select('select=job_no',{fresh:true}),MESDB.table('machining_plan_parts').select('select=job_no',{fresh:true})]);
@@ -479,7 +482,7 @@ async function searchAll(){
   if(my!==_allSeq)return;
   if(_routeSeq!==s0){j.__retry=(j.__retry||0)+1;if(j.__retry<=3){k--;continue}}   /* TJD v304: 다른 조회와 겹쳐 결과가 버려졌으면 그 제번을 다시 읽는다 */
   const rows=[];
-  ROUTES.forEach((r,ri)=>{const tr=routeBody.children[ri];if(!tr)return;
+  ROUTES.forEach((r,ri)=>{const tr=ALLTMP.children[ri];if(!tr)return;
    if(tr.style.display==='none'){nHid++;return}
    if(!allKeep(r,vfl))return;
    allTag(tr,j,r);rows.push(tr.outerHTML)});
@@ -488,7 +491,7 @@ async function searchAll(){
   if((k&7)===7)msg(`전체 부품을 불러오는 중… ${k+1}/${targets.length}`);
  }
  }finally{if(MESDB.table===_wrap)MESDB.table=_origTable}
- ALLBUSY=false;ROUTES.length=0;jobIdx=-1;renderJobs();
+ ALLBUSY=false;ROUTES.length=0;jobIdx=-1;renderJobs();ALLTMP.innerHTML='';
  routeBody.innerHTML=html.length?html.join(''):`<tr><td colspan="30" style="height:70px;text-align:center;color:#8a4f08;background:#fff8ec;white-space:normal">표시할 부품이 없습니다${vf?` — 업체 「${_esc(vf)}」에 발주된 부품 없음`:''}${nHid?` (전 공정 완료 ${nHid}건은 숨김 — 최종완료 [포함]으로 보기)`:''}</td></tr>`;
  msg(`전체 부품 ${nRow}건 (제번 ${nJob}개)${vf?` · 업체 ${vf}`:''}${nHid?` · 전공정 완료 ${nHid}건 숨김`:''} — 이 표에서 바로 우클릭해 발주·입고하세요.`);
 }
@@ -729,7 +732,7 @@ window.qrRefresh=async function(jobs){
 async function refreshAll(){
  const b=document.getElementById('btnRefresh');
  const keep=(jobView[jobIdx]||{}).job||'',wasAll=ALLMODE;
- if(wasAll){ALLMODE=false;ALLBUSY=false;_allSeq++}
+ if(wasAll){ALLBUSY=true;_allSeq++}   /* 전체 보기는 화면을 비우지 않고 뒤에서 다시 모은다 */
  if(b){b.disabled=true;b.textContent='⟳ 조회중…'}
  msg('DB에서 다시 불러오는 중…');
  try{
@@ -740,8 +743,8 @@ async function refreshAll(){
    const i=jobView.findIndex(x=>x.job===keep);
    if(i>=0&&i!==jobIdx){jobIdx=i;renderJobs();await loadRoutes()}
   }
-  if(wasAll)await searchAll();
- }catch(e){msg('새로고침 실패: '+String(e.message||e).slice(0,110))}
+  if(wasAll&&ALLMODE)await searchAll(true);
+ }catch(e){if(wasAll&&ALLMODE)ALLBUSY=false;msg('새로고침 실패: '+String(e.message||e).slice(0,110))}
  finally{if(b){b.disabled=false;b.textContent='⟳ 새로고침'}}
 }
 /* ════════════════════════════════════════════════════════════════
@@ -1562,7 +1565,7 @@ async function ctxAfter(job,text){
 }
 window.MES={search,save,exportCsv,setMessage:msg,reload:refreshAll};
 /* 다른 화면에서 발주·입고가 저장되면 자동으로 다시 읽는다 */
-(function(){let t=null;const go=()=>{clearTimeout(t);t=setTimeout(()=>{if(window.__applyBusy){go();return}refreshAll()},500)};
+(function(){let t=null;const go=()=>{if(window.__applyBusy)return;clearTimeout(t);t=setTimeout(()=>{if(window.__applyBusy)return;refreshAll()},500)};   /* 가공계획 적용 중 이 화면이 저장한 변경은 적용 끝에 그 제번 줄만 다시 그리므로 전체 새로고침(재정렬·깜빡임)을 하지 않는다 */
  const bind=()=>{if(window.MESDB&&MESDB.onChange){MESDB.onChange(['order_lines','machining_plan_parts','partlist_materials'],go);return true}return false};
  if(!bind()){let n=0;const iv=setInterval(()=>{if(bind()||++n>40)clearInterval(iv)},100)}})();
 </script>
