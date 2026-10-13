@@ -574,7 +574,6 @@ const XL_COLS=[   /* [머리글, 입력칸 id, 필수, 설명] */
  ['품번','model',1,''],
  ['품명','product_name',1,''],
  ['수주유형','otype',1,'신작 / 개조 / 수리 중 하나 (관리제번 예: 신작 26DHA001 · 개조 26DHB001 · 수리 26DHC001)'],
- ['원 관리제번','origin_base',0,'개조일 때 원 금형의 관리제번. 수리는 비워도 됨 (관리제번과 같으면 비운 것과 같음)'],
  ['수주상태','status',0,'진행 / 보류 / 완료 / 취소 (비우면 진행)'],
  ['아이템','item',0,'기준정보 아이템 코드 또는 이름'],
  ['금형타입','mold',0,'기준정보 금형타입 코드 또는 이름'],
@@ -652,11 +651,9 @@ async function xlLoad(file){
    else x=String(x??'').trim();
    if(req&&x==='')err.push(h+' 비어 있음');
    v[id]=x}
-  v.base_job=v.base_job.toUpperCase();v.origin_base=v.origin_base.toUpperCase();
+  v.base_job=v.base_job.toUpperCase();
   if(v.proc_cnt!==''){const n=Number(v.proc_cnt);if(!Number.isInteger(n)||n<1||n>26)err.push('공정수는 1~26')}
   for(const[id,ok]of Object.entries(XL_SEL))if(v[id]&&!ok.includes(v[id]))err.push(`${XL_COLS.find(c=>c[1]===id)[0]} 「${v[id]}」 (${ok.join('/')} 중 하나)`);
-  if(v.origin_base===v.base_job)v.origin_base='';   /* 수리: 원 관리제번 = 관리제번 → 따로 연결하지 않음 */
-  if(v.otype==='개조'&&!v.origin_base)err.push('개조 수주는 원 관리제번 필수');
   if(v.devtype){const bad=v.devtype.split(/[,\s/·]+/).filter(x=>x&&!DEVS.includes(x));if(bad.length)err.push('개발유형 「'+bad.join(',')+'」')}
   if(v.proc_cat&&!cats.includes(v.proc_cat))err.push(`카테고리 「${v.proc_cat}」 기준정보에 없음`);
   for(const k of Object.keys(XL_LOOK)){if(!v[k])continue;const L=ref[k];
@@ -692,7 +689,7 @@ async function xlSave(){
   for(const[,id]of XL_COLS){if(XL_LOOK[id]){const[,c,n]=XL_LOOK[id];if(v[id]){document.getElementById(c).value=v[id].code;document.getElementById(n).value=v[id].name}continue}
    const el=document.getElementById(id);if(el&&v[id]!=='')el.value=v[id]}
   if(!v.otype)otype.value='신작';if(!v.status)document.getElementById('status').value='진행';if(!v.dom)dom.value='국내';
-  if(otype.value!=='수리'&&otype.value!=='개조')origin_base.value='';
+  origin_base.value='';   /* 엑셀 등록은 원 관리제번을 쓰지 않는다 */
   devFromValue();if(v.design_vendor&&!design_vendor.disabled)design_vendor.value=v.design_vendor;
   if(x.exist){const ex=await existingJobs(v.base_job);if(ex.some(r=>r.job_no===v.base_job))OLD_SINGLE=v.base_job;   /* 공정 문자 없는 옛 제번은 그대로 */
    const a=(ex.find(r=>Array.isArray(r.attachments)&&r.attachments.length)||{}).attachments;if(a){ATT.length=0;ATT.push(...a)}}   /* 덮어쓸 때 첨부는 유지 */
