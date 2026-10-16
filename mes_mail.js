@@ -13,10 +13,12 @@ const won=v=>Math.round(Number(v)||0).toLocaleString('ko-KR');
 const T0=()=>new Date().toLocaleDateString('sv-SE');
 let O=null,VEND=null;
 /* v171: 발주서 메일 발송 — 구글 앱스 스크립트 웹앱 (doPost) */
-/* TJD: 메일 발송 사용 안 함 — [✉ 보내기] 비활성화. 발주서(A4) 보기·인쇄는 그대로.
-   다시 쓰려면 MAIL_OFF=false 로 바꾸고 GAS_URL 에 태진다이텍 구글 앱스 스크립트 주소를 넣는다. */
-const MAIL_OFF=true;
+/* TJD: 태진다이텍 구글 계정의 앱스 스크립트 웹앱으로 보낸다 (설치 방법은 mes_mail_gas.gs 맨 위).
+   GAS_URL 이 비어 있으면 [✉ 보내기] 는 꺼져 있고(설정 전), 발주서(A4)·메일 앱은 그대로 쓴다.
+   MAIL_TOKEN 은 mes_mail_gas.gs 의 TOKEN 과 같아야 한다. */
 const GAS_URL='';
+const MAIL_TOKEN='iyvdb9leFEi5DK-YXhgFsDti';
+const MAIL_OFF=!GAS_URL;
 
 function ensureUI(){
  if($('mlMask'))return;
@@ -38,7 +40,7 @@ function ensureUI(){
  const p=document.createElement('div');p.id='mlPop';p.innerHTML=`<div class="mh"><span id="mlTitle">발주서 메일</span><button class="x" onclick="MESMAIL.close()">×</button></div>
  <div class="g"><label>받는 사람</label><input id="mlTo" placeholder="업체 이메일 (기준정보 › 협력업체관리의 이메일)"><label>참조</label><input id="mlCc" placeholder="선택"><label>제목</label><input id="mlSubj"><label>본문</label><textarea id="mlBody"></textarea></div>
  <div id="mlLines"></div><div class="note" id="mlNote"></div>
- <div class="mf"><span class="msg" id="mlMsg"></span><button onclick="MESMAIL.preview()">🖨 발주서(A4)</button><button onclick="MESMAIL.mailto()" title="메일 앱으로 열기 (그림은 링크로)">📨 메일 앱</button><button class="go" id="mlSend" onclick="MESMAIL.send()" disabled>✉ 보내기 (사용 안 함)</button><button onclick="MESMAIL.close()">닫기</button></div>`;
+ <div class="mf"><span class="msg" id="mlMsg"></span><button onclick="MESMAIL.preview()">🖨 발주서(A4)</button><button onclick="MESMAIL.mailto()" title="메일 앱으로 열기 (그림은 링크로)">📨 메일 앱</button><button class="go" id="mlSend" onclick="MESMAIL.send()" disabled>✉ 보내기 (설정 전)</button><button onclick="MESMAIL.close()">닫기</button></div>`;
  document.body.appendChild(p);
 }
 const say=t=>{const m=$('mlMsg');if(m)m.textContent=t};
@@ -79,7 +81,7 @@ window.MESMAIL={
   $('mlNote').className='note'+(v.email?'':' warn');
   $('mlNote').innerHTML=(v.email?`업체 이메일: <b>${esc(v.email)}</b>${v.contact_name?' ('+esc(v.contact_name)+')':''}`:`<b>${esc(O.vendor)}</b> 의 이메일이 기준정보 › 협력업체관리에 없습니다. 받는 사람을 직접 넣거나 업체관리에 등록하세요.`)
    +` · 부품 그림 ${ni}장 ${ni?'본문 아래에 A4 로 첨부':'(PartList [📷 이미지]로 등록하면 함께 갑니다)'}`;
-  {const sb=$('mlSend');sb.disabled=MAIL_OFF;sb.textContent=MAIL_OFF?'✉ 보내기 (사용 안 함)':'✉ 보내기';sb.title=MAIL_OFF?'메일 발송은 사용하지 않습니다':''}   /* v172: 직전 전송의 '보내는 중…' 상태가 남지 않게 */
+  {const sb=$('mlSend');sb.disabled=MAIL_OFF;sb.textContent=MAIL_OFF?'✉ 보내기 (설정 전)':'✉ 보내기';sb.title=MAIL_OFF?'메일 발송 설정 전입니다 (구글 앱스 스크립트 주소 GAS_URL 미설정)':'태진다이텍 구글 계정으로 바로 보냅니다'}   /* v172: 직전 전송의 '보내는 중…' 상태가 남지 않게 */
   $('mlMask').classList.add('on');$('mlPop').classList.add('on');say('');
  },
  close(){if($('mlMask'))$('mlMask').classList.remove('on');if($('mlPop'))$('mlPop').classList.remove('on');O=null},
@@ -87,12 +89,12 @@ window.MESMAIL={
  mailto(){if(!O)return;O.message=$('mlBody').value;
   const u=`mailto:${encodeURIComponent($('mlTo').value)}?${$('mlCc').value?'cc='+encodeURIComponent($('mlCc').value)+'&':''}subject=${encodeURIComponent($('mlSubj').value)}&body=${encodeURIComponent(textBody(O))}`;
   location.href=u;MESMAIL.preview();say('메일 앱을 열었습니다. 발주서 창을 PDF 로 저장해 첨부하세요.')},
- async send(){if(!O)return;if(MAIL_OFF||!GAS_URL)return say('메일 발송은 사용하지 않습니다.');O.message=$('mlBody').value;
+ async send(){if(!O)return;if(MAIL_OFF)return say('메일 발송 설정 전입니다. [📨 메일 앱]으로 보내세요.');O.message=$('mlBody').value;
   const to=$('mlTo').value.trim();if(!to)return say('받는 사람 이메일을 넣으세요.');
   const b=$('mlSend');b.disabled=true;b.textContent='보내는 중…';
   try{
    /* v171: 구글 앱스 스크립트 웹앱으로 발송 (text/plain 으로 보내 CORS 사전요청을 피한다) */
-   const payload={action:'sendOrderMail',to,cc:$('mlCc').value.trim()||'',subject:$('mlSubj').value,text:textBody(O),html:sheetHtml(O,true).replace(/<div class="bar">[\s\S]*?<\/div>/,''),
+   const payload={action:'sendOrderMail',token:MAIL_TOKEN,to,cc:$('mlCc').value.trim()||'',subject:$('mlSubj').value,text:textBody(O),html:sheetHtml(O,true).replace(/<div class="bar">[\s\S]*?<\/div>/,''),
      attachments:O.lines.filter(l=>l.image_url).map(l=>({name:`${O.job}_${l.part}.png`,url:l.image_url})),
      meta:{category:O.category,vendor:O.vendor,job:O.job,by:O.by||'',lines:O.lines.length}};
    let res=null;
@@ -106,7 +108,7 @@ window.MESMAIL={
    }
    if(!res||res.ok===false)throw new Error((res&&(res.error||res.raw))||'구글 스크립트 응답 오류');
    try{await MESDB.table('mail_log').upsert([{kind:'발주서',category:O.category,vendor_name:O.vendor,job_no:O.job,to_addr:to,subject:$('mlSubj').value,sent_by:O.by||null,lines:O.lines.length}])}catch(e){}
-   say(res.unverified?`${to} 로 보냈습니다 (응답 확인 불가 — 받은편지함을 확인하세요).`:`${to} 로 발주서를 보냈습니다.`);b.disabled=false;b.textContent='✉ 보내기';setTimeout(MESMAIL.close,1200);
+   say(res.unverified?`${to} 로 보냈습니다 (응답 확인 불가 — 보낸편지함을 확인하세요).`:`${to} 로 발주서를 보냈습니다.`+(res.skipped&&res.skipped.length?` (그림 ${res.skipped.length}장은 첨부 못 함)`:''));b.disabled=false;b.textContent='✉ 보내기';setTimeout(MESMAIL.close,1200);
   }catch(e){say('전송 실패: '+String(e.message||e).slice(0,140)+' — [📨 메일 앱]으로 보내세요.');b.disabled=false;b.textContent='✉ 보내기'}
  },
  sheet:sheetHtml,
