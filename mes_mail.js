@@ -16,7 +16,7 @@ let O=null,VEND=null;
 /* TJD: 태진다이텍 구글 계정의 앱스 스크립트 웹앱으로 보낸다 (설치 방법은 mes_mail_gas.gs 맨 위).
    GAS_URL 이 비어 있으면 [✉ 보내기] 는 꺼져 있고(설정 전), 발주서(A4)·메일 앱은 그대로 쓴다.
    MAIL_TOKEN 은 mes_mail_gas.gs 의 TOKEN 과 같아야 한다. */
-const GAS_URL='';
+const GAS_URL='https://script.google.com/macros/s/AKfycbx5F0lgnTWEwqerkGfCbPgKofVbkoObzneXmiMWzQspDLiMtY2g7bsQND_otRZh7AStqw/exec';
 const MAIL_TOKEN='iyvdb9leFEi5DK-YXhgFsDti';
 const MAIL_OFF=!GAS_URL;
 
@@ -108,7 +108,7 @@ window.MESMAIL={
    }
    if(!res||res.ok===false)throw new Error((res&&(res.error||res.raw))||'구글 스크립트 응답 오류');
    try{await MESDB.table('mail_log').upsert([{kind:'발주서',category:O.category,vendor_name:O.vendor,job_no:O.job,to_addr:to,subject:$('mlSubj').value,sent_by:O.by||null,lines:O.lines.length}])}catch(e){}
-   say(res.unverified?`${to} 로 보냈습니다 (응답 확인 불가 — 보낸편지함을 확인하세요).`:`${to} 로 발주서를 보냈습니다.`+(res.skipped&&res.skipped.length?` (그림 ${res.skipped.length}장은 첨부 못 함)`:''));b.disabled=false;b.textContent='✉ 보내기';setTimeout(MESMAIL.close,1200);
+   say(res.unverified?`${to} 로 전송을 시도했지만 결과를 확인하지 못했습니다 — 태진다이텍 Gmail 보낸편지함을 확인하세요. (스크립트 배포의 액세스 권한이 「모든 사용자」인지 확인)`:`${to} 로 발주서를 보냈습니다.`+(res.skipped&&res.skipped.length?` (그림 ${res.skipped.length}장은 첨부 못 함)`:''));b.disabled=false;b.textContent='✉ 보내기';setTimeout(MESMAIL.close,1200);
   }catch(e){say('전송 실패: '+String(e.message||e).slice(0,140)+' — [📨 메일 앱]으로 보내세요.');b.disabled=false;b.textContent='✉ 보내기'}
  },
  sheet:sheetHtml,
