@@ -57,8 +57,8 @@ h1{font-size:18px;margin:0 0 6px;letter-spacing:3px;text-align:center}
 .strip .lab small{font-weight:400;font-size:10.5px;color:#666}
 .strip .cells{display:flex;flex-wrap:nowrap;align-items:stretch;min-height:64px}   /* v218: 한 줄 — 공정이 많으면 칸이 좁아진다 */
 .strip .empty{color:#999;font-size:11.5px;padding:10px 8px;align-self:center}
-.cell{flex:1 1 0;min-width:0;max-width:150px;display:flex;flex-direction:column;border-right:1px solid #333}
-.cell:last-child{border-right:0}
+.cell{flex:1 1 0;min-width:0;max-width:150px;display:flex;flex-direction:column;border-right:1px solid #333;border-bottom:1px solid #333}   /* 확인란 아래 선 */
+.cell:last-child{border-right:1px solid #333}   /* 마지막 칸도 닫는다 (공정이 적을 때 오른쪽이 열려 보이던 것) */
 .cell .chip{flex:0 0 auto;display:flex;align-items:center;gap:3px;min-height:28px;padding:3px 3px;font-size:var(--fs,11.5px);font-weight:700;color:#1d3f63;background:#f3f8fd;cursor:pointer;border-bottom:1px dashed #9aa}
 .chip .n{flex:0 0 auto;display:inline-block;min-width:18px;height:18px;line-height:18px;border-radius:9px;background:#2f5f8a;color:#fff;text-align:center;font-size:11px}
 .cells.many .chip .n{min-width:15px;height:15px;line-height:15px;font-size:9.5px}
