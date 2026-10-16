@@ -16,7 +16,7 @@ let O=null,VEND=null;
 /* TJD: 태진다이텍 구글 계정의 앱스 스크립트 웹앱으로 보낸다 (설치 방법은 mes_mail_gas.gs 맨 위).
    GAS_URL 이 비어 있으면 [✉ 보내기] 는 꺼져 있고(설정 전), 발주서(A4)·메일 앱은 그대로 쓴다.
    MAIL_TOKEN 은 mes_mail_gas.gs 의 TOKEN 과 같아야 한다. */
-const GAS_URL='https://script.google.com/macros/s/AKfycbx5F0lgnTWEwqerkGfCbPgKofVbkoObzneXmiMWzQspDLiMtY2g7bsQND_otRZh7AStqw/exec';
+const GAS_URL='https://script.google.com/macros/s/AKfycbzmYGmPH68wu8Xwhsuf2bQv2hz-mlRA6v8B0KyFZlD2Ngwj5ih9uieE82sicR0SUO-j5A/exec';
 const MAIL_TOKEN='iyvdb9leFEi5DK-YXhgFsDti';
 const MAIL_OFF=!GAS_URL;
 
