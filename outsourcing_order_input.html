@@ -338,7 +338,7 @@ function renderRoutes(){
  if(ALLBUSY){ALLTMP.innerHTML=routesHtml();return}   /* 전체 보기를 모으는 중에는 화면 밖 표에 그린다 — 제번마다 화면이 바뀌며 깜빡이던 문제 */
  routeBody.innerHTML=routesHtml();
  afterRender()}
-function routesHtml(){
+function routesHtml0(){
  return ROUTES.map((r,ri)=>{
   if(r.steps&&r.steps.length>MAXSTEP)r.steps=r.steps.slice(0,MAXSTEP);   /* v115: 어떤 경로로 들어와도 공정1~7 까지만 */
   const codes=(r.steps||[]).map(stepCode).filter(Boolean), n=codes.length;
@@ -387,8 +387,13 @@ function routesHtml(){
      const t=`공정${i+1} ${c}`+(o.vendor?` · ${o.vendor}`:'')+(st?` · ${st}`:cls==='s-ext'?' · 우클릭하면 다음 공정부터 여기까지 한 업체에 묶음 발주':'')+
        (oq||iq?` · 발주 ${oq} / 입고 ${iq}${o.remainQty?` / 미입고 ${o.remainQty}`:''}`:'');
      return `<td class="route ${cls}" title="${_esc(t)} · 우클릭: 발주 · 입고 · 입고확정 · 취소" ondblclick="return ctxMenu(event,${ri},${i})" oncontextmenu="return ctxMenu(event,${ri},${i})"${click}>${_esc(procName(c))}${qline}${lab?`<span class="st">${lab}</span>`:''}</td>`}).join('')+
-   '<td></td>'.repeat(Math.max(0,MAXSTEP-(r.steps||[]).length))+   /* v149: 남는 공정 칸도 그려 표 선이 어긋나지 않게 */
+   (Math.max(0,MAXSTEP-(r.steps||[]).length)?'<td></td>'.repeat(Math.max(0,MAXSTEP-(r.steps||[]).length)-1)+`<td class="c"><!--DEL${ri}--></td>`:'')+   /* v149: 남는 공정 칸도 그려 표 선이 어긋나지 않게 */
    `</tr>`}).join('');
+}
+/* TJD: 공정10 칸에 [✕ 삭제] — 잘못 등록된 품번 행 삭제 (전체 보기·이전 차수 줄에서는 숨김) */
+const DELBTN=(r,ri)=>(ALLMODE||ALLBUSY||r.old)?'':`<button class="btn" style="height:20px;padding:0 7px;font-size:11px;color:#a03235" onclick="event.stopPropagation();partDel(${ri})" oncontextmenu="event.stopPropagation();return true" title="잘못 등록된 품번 — 이 품번의 외주가공 발주·입고·사내완료 기록과 가공계획·PartList(원재료) 행을 지웁니다">✕ 삭제</button>`;
+function routesHtml(){
+ return routesHtml0().replace(/<!--DEL(\d+)-->/g,(m,ri)=>{const r=ROUTES[Number(ri)];return r?DELBTN(r,Number(ri)):''});
 }
 function afterRender(){
  /* TJD: 부품은 있는데 전부 '최종완료 제외' 로 숨겨지면 빈 표만 보여 부품이 없는 줄 안다 → 안내줄을 넣는다 */
@@ -1218,7 +1223,7 @@ function ctxReceive(ev,head){
  return false;
 }
 /* v177: 이 창의 발주취소·입고취소·완료취소는 자체 확인문(품번·공정·업체·수량)을 띄우므로 공용 삭제확인창(mes_ctx)은 건너뛴다 */
-(function(){try{const opt=window.MES_CTX_OPT||{};const mine=/ctxOrderCancel|ctxRecvCancel|ctxRecvCancelLine|ctxRoundCancel|ctxConfirmCancel|ctxHouseUndo/;const prev=opt.noGuard;
+(function(){try{const opt=window.MES_CTX_OPT||{};const mine=/ctxOrderCancel|ctxRecvCancel|ctxRecvCancelLine|ctxRoundCancel|ctxConfirmCancel|ctxHouseUndo|partDel|purgeOpen|purgeRun/;const prev=opt.noGuard;
  opt.noGuard=prev?{test:s=>prev.test(s)||mine.test(String(s))}:mine;window.MES_CTX_OPT=opt}catch(e){}})();
 /* v177: 미입고 발주건 취소(삭제) — 뒤 공정이 이미 진행 중이면 막는다 */
 async function ctxOrderCancel(){
@@ -1669,6 +1674,43 @@ function purgeInfo(){if(!PURGE)return;const sel=purgeSel(),h=document.getElement
  document.getElementById('purgeSum').innerHTML=sel.length?`품번 <b>${sel.length}개</b> · 발주 <b style="color:#a03235">${nl}건</b> 삭제`+(nr?` · 입고된 발주 ${nr}건 포함`:'')+(nf?` · <span style="color:#a03235">입고확정 ${nf}건 (제조원가에서 빠집니다)</span>`:'')+(nh?` · 사내가공 완료 ${nh}건 삭제`:''):'지울 품번을 체크하세요.';
  document.getElementById('purgeBtn').disabled=!(sel.length&&String(document.getElementById('purgeConfirm').value||'').trim()===PURGE.job);
 }
+/* 한 품번의 외주가공 발주(모든 차수)·입고 회차·차수, (선택) 사내가공 완료 기록을 지운다 */
+async function purgePart(job,p,withHouse,ng){let nl=0,nh=0;
+ for(const l of p.lines){const id=Number(l.line_id);
+  try{
+   if(_n(l.receipt_qty)>0||/입고/.test(String(l.status||'')))await ospRpcOr('fn_osp_receive_cancel_all',{p_line_id:id},()=>_cancelAllDirect(id));
+   try{await MESDB.table('outsourcing_moves').delete({line_id:id})}catch(e){}
+   await MESDB.delLines([id]);nl++;
+  }catch(e){ng.push(`${p.part} #${id}: ${String(e.message||e).slice(0,60)}`)}
+ }
+ try{await MESDB.table('part_cycles').delete({job_no:job,category:'외주가공',part_no:p.part})}catch(e){}
+ if(withHouse)for(const e of p.house){try{await MESDB.table('design_results').delete({row_no:Number(e.row_no)});nh++}catch(x){ng.push(`${p.part} 사내완료 #${e.row_no}: ${String(x.message||x).slice(0,60)}`)}}
+ return {nl,nh};
+}
+/* TJD: 공정10 칸 [✕ 삭제] — 잘못 등록된 품번 행을 없앤다.
+   진행삭제(발주·입고·차수·사내완료)에 더해 가공계획(machining_plan_parts)·PartList(원재료) 행도 지워 리스트에서 사라지게 한다. */
+async function partDel(ri){const r=ROUTES[Number(ri)],j=jobView[jobIdx];if(!r||!j)return;
+ if(!_online())return msg('DB 미연결 — 삭제는 DB 연결 상태에서만 됩니다.');
+ const job=j.job,J=encodeURIComponent(job),P=encodeURIComponent(r.part);
+ let lines=[],pl=[];
+ try{[lines,pl]=await Promise.all([
+   MESDB.table('order_lines').select(`select=line_id,part_no,status,order_qty,receipt_qty&category=eq.${encodeURIComponent('외주가공')}&job_no=eq.${J}&part_no=eq.${P}`,{fresh:true}),
+   MESDB.table('partlist_materials').select(`select=row_no&job_no=eq.${J}&part_no=eq.${P}`,{fresh:true})]);lines=lines||[];pl=pl||[]}
+ catch(e){return msg('조회 실패: '+String(e.message||e).slice(0,120))}
+ try{await loadHouse(job)}catch(e){}
+ const house=[...HOUSE.entries()].filter(([k])=>k.split('|')[0]===r.part).reduce((a,[,v])=>a.concat(v.rows),[]);
+ const recv=lines.filter(l=>_n(l.receipt_qty)>0||/입고/.test(String(l.status||''))).length,fixed=lines.filter(l=>String(l.status||'')==='입고확정').length;
+ const what=[lines.length?`외주가공 발주 ${lines.length}건`+(recv?` (입고 ${recv}건${fixed?` · 입고확정 ${fixed}건 — 제조원가에서 빠집니다`:''})`:''):'',
+  house.length?`사내가공 완료 ${house.length}건`:'','가공계획(공정 순서)',pl.length?`PartList(원재료) ${pl.length}행`:''].filter(Boolean);
+ if(!confirm(`${job} · ${r.part} ${r.name||''}\n잘못 등록된 품번으로 보고 아래 기록을 모두 지웁니다.\n\n · ${what.join('\n · ')}\n\n되돌릴 수 없습니다. 계속할까요?`))return;
+ const ng=[];
+ const {nl,nh}=await purgePart(job,{part:r.part,lines,house},true,ng);
+ try{await MESDB.table('machining_plan_parts').delete({job_no:job,part_no:r.part})}catch(e){ng.push('가공계획: '+String(e.message||e).slice(0,60))}
+ for(const x of pl){try{await MESDB.table('partlist_materials').delete({row_no:Number(x.row_no)})}catch(e){ng.push('PartList: '+String(e.message||e).slice(0,60))}}
+ try{['design_results','part_cycles','machining_plan_parts','partlist_materials'].forEach(t=>MESDB.dropCache&&MESDB.dropCache(t));MESDB.notify&&MESDB.notify(['design_results','part_cycles','machining_plan_parts','partlist_materials'])}catch(e){}
+ PICK.clear();await loadRoutes();
+ await ctxAfter(job,`${job} · ${r.part} 을(를) 삭제했습니다 — 발주 ${nl}건`+(nh?` · 사내완료 ${nh}건`:'')+` · 가공계획`+(pl.length?` · PartList ${pl.length}행`:'')+'.'+(ng.length?` · 실패 ${ng.length}건: ${ng.slice(0,3).join(' / ')}`:''));
+}
 async function purgeRun(){if(!PURGE)return;const job=PURGE.job,sel=purgeSel(),withHouse=document.getElementById('purgeHouse').checked;
  if(!sel.length)return;
  if(!confirm(`${job} · 품번 ${sel.map(p=>p.part).join(', ')}
@@ -1677,15 +1719,7 @@ async function purgeRun(){if(!PURGE)return;const job=PURGE.job,sel=purgeSel(),wi
  const btn=document.getElementById('purgeBtn');if(btn){btn.disabled=true;btn.textContent='삭제 중…'}
  let nl=0,nh=0;const ng=[];
  for(const p of sel){
-  for(const l of p.lines){const id=Number(l.line_id);
-   try{
-    if(_n(l.receipt_qty)>0||/입고/.test(String(l.status||'')))await ospRpcOr('fn_osp_receive_cancel_all',{p_line_id:id},()=>_cancelAllDirect(id));
-    try{await MESDB.table('outsourcing_moves').delete({line_id:id})}catch(e){}
-    await MESDB.delLines([id]);nl++;
-   }catch(e){ng.push(`${p.part} #${id}: ${String(e.message||e).slice(0,60)}`)}
-  }
-  try{await MESDB.table('part_cycles').delete({job_no:job,category:'외주가공',part_no:p.part})}catch(e){}
-  if(withHouse)for(const e of p.house){try{await MESDB.table('design_results').delete({row_no:Number(e.row_no)});nh++}catch(x){ng.push(`${p.part} 사내완료 #${e.row_no}: ${String(x.message||x).slice(0,60)}`)}}
+  const x=await purgePart(job,p,withHouse,ng);nl+=x.nl;nh+=x.nh;
  }
  purgeClose();
  try{MESDB.dropCache&&MESDB.dropCache('design_results');MESDB.dropCache&&MESDB.dropCache('part_cycles')}catch(e){}
