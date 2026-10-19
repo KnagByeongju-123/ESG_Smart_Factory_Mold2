@@ -264,24 +264,28 @@ const RECV=st=>st==='입고'||st==='완료';
    직전 '외주' 공정이 입고되면 다음 외주 공정을 발주할 수 있다. */
 const isHouse=(r,i)=>!!(r&&Array.isArray(r.inhouse)&&r.inhouse[i]);
 /* ── v161: 사내가공도 진행(실적)을 남긴다 — design_results(work_type=가공) ── */
-const HOUSE=new Map();                       /* 품번|공정코드 → {min,cost,last,rows[]} */
+const HOUSE=new Map();                       /* 품번|공정코드|차수 → {min,cost,last,rows[]} */
+let HOUSE_CYC=false;                         /* design_results.cycle_no 칸이 있는지 */
 const Hh=m=>(Number(m)||0)/60>=10?((Number(m)||0)/60).toFixed(0):((Number(m)||0)/60).toFixed(1);
 async function loadHouse(job){
  HOUSE.clear();
  if(!job||!_online())return;
  try{
-  const rs=await MESDB.table('design_results').select(
-    `select=row_no,part_no,machining_process_code,work_date,work_minutes,labor_cost,worker_name,equipment_code`
-    +`&job_no=eq.${encodeURIComponent(job)}&work_type=eq.가공&order=work_date`,{fresh:true});
+  /* TJD: 사내가공 실적도 차수(cycle_no)로 나눈다 — 신규진행한 새 차수 줄에 이전 차수의 완료가 그대로 보이던 문제.
+     cycle_no 칸이 없으면(sql_v318 미실행) 전부 1차로 본다 */
+  const _q=c=>`select=row_no,part_no,machining_process_code,work_date,work_minutes,labor_cost,worker_name,equipment_code${c?',cycle_no':''}`
+    +`&job_no=eq.${encodeURIComponent(job)}&work_type=eq.가공&order=work_date`;
+  let rs;try{rs=await MESDB.table('design_results').select(_q(1),{fresh:true});HOUSE_CYC=true}
+  catch(e){rs=await MESDB.table('design_results').select(_q(0),{fresh:true});HOUSE_CYC=false}
   (rs||[]).forEach(e=>{
-    const k=okey(e.part_no,stepCode(e.machining_process_code));
+    const k=okey(e.part_no,stepCode(e.machining_process_code),e.cycle_no);
     const o=HOUSE.get(k)||{min:0,cost:0,last:'',rows:[]};
     o.min+=Number(e.work_minutes)||0;o.cost+=Number(e.labor_cost)||0;
     const d=String(e.work_date||'');if(d>o.last)o.last=d;
     o.rows.push(e);HOUSE.set(k,o)});
  }catch(e){}
 }
-const houseInfo=(r,i)=>HOUSE.get(okey(r.part,stepCode((r.steps||[])[i])))||{min:0,cost:0,last:'',rows:[]};
+const houseInfo=(r,i)=>HOUSE.get(okey(r.part,stepCode((r.steps||[])[i]),rowCyc(r)))||{min:0,cost:0,last:'',rows:[]};
 const houseDone=(r,i)=>houseInfo(r,i).min>0;
 /* 사내·외주를 통틀어 아직 끝나지 않은 첫 공정 — 사내 칸의 [▶ 사내작업] 표시에 쓴다 */
 function firstTodo(r){
@@ -359,7 +363,7 @@ function routesHtml0(){
   const tag=cyc+(n===0?'':allDone?'<span class="tagd">전공정 완료</span>':(nx===-1&&hTodo)?`<span class="tagd" style="background:#f6edd9;color:#7a4a12">사내 ${hTodo}공정 남음</span>`:wait?`<span class="tagd">공정${wp+1} ${wp>=0?stepState(r,wp):''} 대기</span>`:nx>0?`<span class="tagd">${nx}/${n} 진행</span>`:'')+fixTag;
   const tip=allDone?'모든 가공공정이 입고되었습니다':wait?'직전 공정이 아직 입고되지 않아 다음 공정을 발주할 수 없습니다 (직전 공정 칸 우클릭 → 입고 처리)':'';
   return `<tr class="${dis&&n?'rdone':''}${r.old?' cycold':''}"${hideDone?' style="display:none"':''}${tip?` title="${_esc(tip)}"`:''} oncontextmenu="return rowCtx(event,${ri})">`+
-   `<td class="c"><input type="checkbox" data-i="${ri}"${dis?' disabled':''}${picks.length?' checked':''} onchange="pickRow(${ri},this.checked)"></td>`+
+   `<td class="c"><input type="checkbox" data-i="${ri}"${PICK.has(ri)?' checked':''} onchange="pickRow(${ri},this.checked)" title="${dis?'발주할 다음 공정은 없지만 신규진행·차수 관리·진행삭제 대상으로 고를 수 있습니다':'체크 → 다음 공정 발주 선택 (신규진행·차수 관리·진행삭제 대상 선택도 겸함)'}"></td>`+
    `<td class="c">${_esc(String(r.jo||'').replace(/조$/,''))}</td>`+
    `<td class="pimg" onclick="event.stopPropagation();drawBoard(${ri})" title="${_esc(r.part)} — 클릭하면 그림보드 (공정 순서 표시 · 인쇄 · PDF)">${PIMG[r.part]?`<img src="${_esc(window.MESDB&&MESDB.thumbUrl?MESDB.thumbUrl(PIMG[r.part]):PIMG[r.part])}" data-full="${_esc(PIMG[r.part])}" onerror="window.MESDB&&MESDB.thumbFallback&&MESDB.thumbFallback(this)" loading="lazy">`:'<span style="color:#b8c2ca;font-size:11px;cursor:pointer" title="그림 없음 — 그래도 그림보드는 열 수 있습니다">보드</span>'}</td>`+
    `<td class="pclk" onclick="event.stopPropagation();drawBoard(${ri})" title="클릭하면 그림보드 (공정 순서 표시 · 인쇄 · PDF)">${_esc(r.part)}${tag}</td>`+
@@ -911,10 +915,13 @@ async function ctxHouseSave(){
  if(!(m>0))return msg('가공시간(분)을 입력하세요.');
  const rt=_n(_v('hxRate'))||30000,cost=Math.round(m/60*rt);
  try{
-  await MESDB.table('design_results').upsert({work_type:'가공',job_no:j.job,part_no:r.part,
+  const row={work_type:'가공',job_no:j.job,part_no:r.part,
     process_code:r.jo||null,machining_process_code:c,machining_process_name:procName(c),
     equipment_code:_v('hxEquip')||null,worker_name:_v('hxWorker')||null,
-    work_date:_v('hxDate')||T0(),work_minutes:m,headcount:1,hourly_rate:rt,labor_cost:cost},'row_no');
+    work_date:_v('hxDate')||T0(),work_minutes:m,headcount:1,hourly_rate:rt,labor_cost:cost};
+  if(HOUSE_CYC)row.cycle_no=rowCyc(r);   /* TJD: 몇 차 가공인지 함께 저장 */
+  else if(rowCyc(r)>1)msg('※ DB 에 사내가공 차수 칸이 없어 1차로 저장됩니다 — Supabase 에서 sql_v318_house_cycle.sql 을 실행해 주세요.');
+  await MESDB.table('design_results').upsert(row,'row_no');
   ctxClose();
   await loadHouse(j.job);renderRoutes();
   msg(`${r.part} 공정${i+1} ${procName(c)} 사내가공 완료 — ${m}분 (${_won(cost)}원) · 제조원가에 반영됩니다.`);
@@ -1623,8 +1630,9 @@ async function cycOpen(){const j=jobView[jobIdx];if(!j)return msg('제번을 먼
  try{await loadOrdered(j.job)}catch(e){}
  const chk=new Set([...document.querySelectorAll('#routeBody input[data-i]:checked')].map(c=>Number(c.dataset.i)));
  const parts=ROUTES.map((r,ri)=>{if(r.old)return null;const codes=(r.steps||[]).map(stepCode).filter(Boolean);let any=0,done=0;
-  codes.forEach((c,i)=>{if(isHouse(r,i))return;const st=stepState(r,i);if(st&&st!=='요청'){any++;if(st==='완료')done++}});
-  return {part:r.part,name:r.name||'',info:any?`외주 ${any}/${codes.length} 공정 발주 · 완료 ${done}`:'미발주',can:any>0,why:'현재 차수에 외주 발주가 없어 신규진행할 것이 없습니다 (공정 칸 우클릭으로 그냥 발주하세요)',_i:ri}});
+  let hd=0;codes.forEach((c,i)=>{if(isHouse(r,i)){if(houseDone(r,i))hd++;return}const st=stepState(r,i);if(st&&st!=='요청'){any++;if(st==='완료')done++}});
+  const info=[any?`외주 ${any}/${codes.length} 공정 발주 · 완료 ${done}`:'',hd?`사내 완료 ${hd}`:''].filter(Boolean).join(' · ')||'미발주';
+  return {part:r.part,name:r.name||'',info,can:any>0||hd>0,why:'현재 차수에 외주 발주·사내 완료가 없어 신규진행할 것이 없습니다 (공정 칸 우클릭으로 그냥 발주하세요)',_i:ri}});
  const list=(chk.size?parts.filter(p=>p&&chk.has(p._i)):parts).filter(Boolean);
  MESCYCLE.start({job:j.job,category:'외주가공',parts:list,by:OWNER,onDone:async(ps,why)=>{PICK.clear();await loadRoutes();msg(`${ps.join(', ')} 신규진행 시작 (사유: ${why}) — 이전 차수 줄 아래에 새 차수 줄(빈 공정 칸)이 생겼습니다. 새 줄에서 공정1부터 다시 발주하세요.`)}})}
 </script>
