@@ -1,0 +1,6 @@
+# 접속정보(비밀번호·secret 키)는 절대 올리지 않는다
+.env
+out/
+__pycache__/
+*.pyc
+.venv/

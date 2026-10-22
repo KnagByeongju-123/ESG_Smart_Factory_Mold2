@@ -1,4 +1,39 @@
-# 회사 DB(Oracle) 마이그레이션 순서
+# 회사 DB 이전 순서
+
+> **2026-10-22 갱신 — 실제 계획**
+> 지금은 개별 3곳(각자 GitHub + Supabase)에서 운용 중이다. 회사용 GitHub·Supabase 를 새로 만들었다.
+> 1) **듀얼**: 같은 화면 코드가 기존 DB / 회사 DB 둘 다 붙을 수 있게 한다 (`mes_config.js`)
+> 2) **이전**: 파이썬 도구(`tools/`)로 기존 → 회사 DB 로 구조·데이터·파일을 옮긴다
+> 3) **통합**: 흩어진 3곳을 하나씩 회사 DB 로 모은다 (`--from site2 --to company`)
+> 4) **오라클**: 회사 오라클(ERP 등)에는 파이썬으로 필요한 테이블을 내보낸다 (`tools/oracle_export.py`)
+>
+> 회사 DB 도 Supabase 이므로 아래 "파이썬 API 서버" 단계는 **화면 자체를 오라클로 옮길 때만** 필요하다.
+
+## 지금 된 것 (1단계: 파이썬 + 회사 DB 연결)
+
+| 할 일 | 상태 | 어디 |
+|---|---|---|
+| 화면의 DB 주소를 한 곳으로 모으기 | 완료 | `mes_config.js` (7개 파일에 흩어져 있던 주소 정리) |
+| 기존/회사 DB 고르기 | 완료 | 화면 위쪽 **DB 기존/회사** 표시를 누르거나 주소창 `?db=company` |
+| 사이트 주소로 자동 선택 | 완료 | `mes_config.js` 의 `company.hosts` 에 회사 GitHub Pages 주소 |
+| 파이썬 연결 확인·비교 | 완료 | `tools/check.py`, `tools/tables.py` |
+| 구조·데이터·파일 복사 | 완료 | `tools/schema.py`, `copy_data.py`, `copy_storage.py`, `rewrite_urls.py` |
+| 오라클 연결·내보내기 | 완료 | `tools/oracle_export.py`, `oracle_query.py` |
+
+## 다음에 할 일
+
+1. 회사 Supabase 의 URL·publishable key 를 `mes_config.js` 의 `company` 에 넣는다
+2. `tools/.env` 에 회사 DB 접속정보(secret key, DB 연결 문자열)를 넣고 `python tools/check.py`
+3. `tools/README.md` 3장 순서대로 기존 → 회사 복사
+4. 회사 GitHub 저장소에 이 코드를 올리고 GitHub Pages 를 켠 뒤, 그 주소를 `company.hosts` 에 넣는다
+   → 기존 사이트는 기존 DB, 회사 사이트는 회사 DB 로 자동 접속 (듀얼 운영)
+5. 듀얼 기간 동안 `copy_data.py` 로 주기적으로 맞추고, 문제 없으면 기존 사이트를 닫는다
+6. 나머지 2곳도 `.env` 에 site2·site3 로 추가해 같은 방법으로 모은다 (겹치는 코드 먼저 정리)
+
+---
+
+## (참고) 화면 자체를 오라클로 옮길 경우
+
 
 > 작성 2026-10-22. 지금은 **GitHub Pages 의 화면(HTML/JS) 이 Supabase(PostgreSQL) 에 직접 접속**하는 구조입니다.
 > 회사 Oracle 로 옮기면 브라우저가 Oracle 에 직접 붙을 수 없으므로, 중간에 **파이썬 API 서버**가 반드시 필요합니다.

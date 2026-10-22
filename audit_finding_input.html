@@ -106,7 +106,7 @@ function makeFno(){
 document.addEventListener('change',e=>{if(e.target.id==='ano')makeFno()});
 </script>
 <script src="mes_lookup.js?v=67"></script>
-<script src="mes_sample.js?v=169"></script><script src="mes_demo.js?v=67"></script><script src="mes_db.js?v=171"></script>
+<script src="mes_sample.js?v=169"></script><script src="mes_demo.js?v=67"></script><script src="mes_config.js?v=1"></script><script src="mes_db.js?v=172"></script>
 <script src="mes_paste.js?v=67"></script>
 <script>MESDB.master({page:"audit_finding_input",table:"quality_audit_findings",pk:"fno",
   map:{"fno": "finding_no", "ano": "audit_no", "item": "item_no", "area": "finding_area", "grade": "finding_grade", "req": "requirement", "desc": "description", "evid": "evidence", "owner": "owner", "due": {"col": "due_date", "type": "text"}, "plan": "action_plan", "done": {"col": "done_date", "type": "text"}, "verify": "verify_result", "status": "finding_status", "car": "car_no", "remark": "remark"},get:()=>data,render:()=>{view=[...data];render()}});

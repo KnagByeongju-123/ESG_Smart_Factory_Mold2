@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MOLD</title>
-<link rel="preconnect" href="https://jgvikmakenpllwxwdugk.supabase.co" crossorigin>
-<link rel="dns-prefetch" href="https://jgvikmakenpllwxwdugk.supabase.co">
+<script src="mes_config.js?v=1"></script>
+<script>try{var l=document.createElement('link');l.rel='preconnect';l.crossOrigin='';l.href=MES_DB_CFG.url;document.head.appendChild(l)}catch(e){}</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
 :root{
@@ -226,6 +226,7 @@ a.menu-off,a.menu-off:hover{color:#9aa5ae!important;opacity:.55;cursor:not-allow
     </div>
 
     <div class="top-actions">
+      <button class="icon-btn txt" id="btnDb" title="접속 DB — 눌러서 바꾸기"></button>
       <button class="icon-btn txt" id="btnReq" title="수정요청게시판">✎<span>수정요청</span></button>
       <div class="dd" id="ddBell">
         <button class="icon-btn" title="알림">🔔<span class="bell-n" id="bellN" hidden>0</span></button>
@@ -250,6 +251,14 @@ a.menu-off,a.menu-off:hover{color:#9aa5ae!important;opacity:.55;cursor:not-allow
       <div class="user"></div>
     </div>
   </header>
+  <script>
+  /* 접속 DB 표시 · 바꾸기 (mes_config.js) */
+  (function(){const b=document.getElementById('btnDb'),c=window.MES_DB_CFG;if(!b||!c)return;
+    b.innerHTML='<span style="display:inline-block;padding:1px 7px;border-radius:9px;color:#fff;font-size:11px;background:'+c.color+'">DB '+c.label+'</span>';
+    if(c.fallback)b.title='회사 DB 접속정보가 없어 기존 DB 로 접속 중 (mes_config.js 확인)';
+    b.onclick=()=>{const P=window.MES_DB_PROFILES,ids=Object.keys(P),o=ids.find(k=>k!==c.id);
+      if(confirm('지금: '+c.label+' DB\n\n'+P[o].label+' DB 로 바꿀까요?\n(다시 로그인해야 합니다)'))MES_DB_SWITCH(o)}})();
+  </script>
 
   <section class="main">
     <div class="tabs">
@@ -284,7 +293,7 @@ a.menu-off,a.menu-off:hover{color:#9aa5ae!important;opacity:.55;cursor:not-allow
 </nav>
 
 <script>
-const APP_VER='323';
+const APP_VER='324';
 const APP={
   '영업관리':{
     secondary:[
@@ -886,7 +895,7 @@ $('#btnLogout').onclick=()=>{closeDd();if(window.MES_AUTH&&typeof MES_AUTH.logou
  * pg_net 이 없는 DB 면 ntfy 를 이 화면이 대신 보낸다(fn_alert_ntfy_claim — 여러 PC 중 한 곳만).
  * 하루 한 번 제작계획 지연 점검(fn_alert_plan_check)도 여기서 부른다 (pg_cron 이 없어도 돌도록). */
 window.MESBELL=(function(){
-  const URL_='https://jgvikmakenpllwxwdugk.supabase.co',KEY='sb_publishable_sKp-6nz2PQ9LxQ5pF-nYkg_YwoEJN6S';
+  const URL_=MES_DB_CFG.url,KEY=MES_DB_CFG.key;   /* mes_config.js */
   let LIST=[],timer=null,busy=false,lastId=0;
   const me=()=>String(window.MES_AUTH?.name||'').trim();
   const H=()=>({apikey:KEY,Authorization:'Bearer '+(window.MES_AUTH?.token||KEY),'Content-Type':'application/json'});

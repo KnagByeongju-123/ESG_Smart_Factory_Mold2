@@ -109,7 +109,7 @@ document.addEventListener('change',e=>{if(e.target.id==='proc'||e.target.id==='s
 document.addEventListener('input',e=>{if(e.target.id==='proc')makePno()});
 </script>
 <script src="mes_lookup.js?v=67"></script>
-<script src="mes_sample.js?v=169"></script><script src="mes_demo.js?v=67"></script><script src="mes_db.js?v=171"></script>
+<script src="mes_sample.js?v=169"></script><script src="mes_demo.js?v=67"></script><script src="mes_config.js?v=1"></script><script src="mes_db.js?v=172"></script>
 <script src="mes_paste.js?v=67"></script>
 <script>MESDB.master({page:"control_plan_input",table:"control_plans",pk:"pno",
   map:{"pno": "plan_no", "proc": "process_code", "pname": "process_name", "seq": {"col": "item_seq", "type": "num"}, "item": "control_item", "cls": "spec_class", "spec": "control_spec", "lo": {"col": "spec_lower", "type": "num"}, "hi": {"col": "spec_upper", "type": "num"}, "unit": "unit", "cycle": "inspection_cycle", "sample": "sample_size", "method": "measure_method", "gauge": "gauge_code", "form": "record_form", "react": "reaction_plan", "resp": "responsible", "use": {"col": "is_active", "type": "ynbool"}, "remark": "remark"},get:()=>data,render:()=>{view=[...data];render()}});

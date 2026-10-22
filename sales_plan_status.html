@@ -338,7 +338,7 @@ function csv(){
  const t='\ufeff'+[h,...rows].map(a=>a.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv;charset=utf-8'}));
  a.download='sales_plan_status.csv';a.click();URL.revokeObjectURL(a.href);msg(`${view.length}건을 엑셀로 내보냈습니다.`)}
-window.MES={search,csv,editPlan,delPlan,setMessage:msg};render();</script><script src="mes_db.js?v=196"></script>
+window.MES={search,csv,editPlan,delPlan,setMessage:msg};render();</script><script src="mes_config.js?v=1"></script><script src="mes_db.js?v=197"></script>
 <script>
 
 /* v60: 제작계획등록에서 저장하면 자동으로 다시 불러온다 */

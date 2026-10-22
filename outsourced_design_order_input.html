@@ -259,7 +259,7 @@ function exportCsv(){const out=[['제번','협력업체','공정','공정명','�
 function msg(t){message.textContent=t}
 renderJobs();renderPool();renderVendors();renderOrd();window.MES={search,save,exportCsv,setMessage:msg,reload:loadJobs};loadJobs().then(loadJobList);
 </script>
-<script src="mes_sample.js?v=169"></script><script src="mes_scene.js?v=74"></script><script src="mes_demo.js?v=74"></script><script src="mes_db.js?v=171"></script>
+<script src="mes_sample.js?v=169"></script><script src="mes_scene.js?v=74"></script><script src="mes_demo.js?v=74"></script><script src="mes_config.js?v=1"></script><script src="mes_db.js?v=172"></script>
 <script>/* v76: ORD 는 저장 전 임시 목록이라 page_state 스냅샷에서 뺀다.
    복원되면 예전 발주행이 살아남아 다른 제번·공정으로 발주가 나갔다. (MESDB.bind 제거) */
 try{ORD.length=0;renderOrd()}catch(e){}</script>

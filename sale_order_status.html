@@ -208,7 +208,7 @@ async function openDetail(g){
   rows.map(r=>`<tr><td class="c"><b>${esc(JS(r.job_no).seq||'-')}</b></td><td>${esc(r.job_no)}</td><td>${esc(r.process_category||'')}</td><td>${esc(r.machine_spec_name||'')}</td><td class="num">${mv(r.quotation_price)}</td><td class="num">${mv(r.order_price)}</td><td class="num">${mv(r.nego_amount)}</td><td class="c">${esc(r.order_status||'')}</td></tr>`).join('')}</tbody>
   <tfoot><tr class="gtot"><td colspan="4" class="c">합계 (공정 ${rows.length}개)</td><td class="num">${mv(sq)}</td><td class="num">${mv(so)}</td><td class="num">${mv(sn)}</td><td></td></tr></tfoot></table>`;
  let att='';const at=rows.find(r=>Array.isArray(r.attachments)&&r.attachments.length);
- if(at){att='<div class="dl">첨부파일</div><div class="dv">'+at.attachments.map(a=>`<a href="https://jgvikmakenpllwxwdugk.supabase.co/storage/v1/object/public/mes-attach/${a.path.split('/').map(encodeURIComponent).join('/')}" target="_blank">${esc(a.name)}</a>`).join('<br>')+'</div>';}
+ if(at){att='<div class="dl">첨부파일</div><div class="dv">'+at.attachments.map(a=>`<a href="${MESDB.cfg.url}/storage/v1/object/public/mes-attach/${a.path.split('/').map(encodeURIComponent).join('/')}" target="_blank">${esc(a.name)}</a>`).join('<br>')+'</div>';}
  dQBody.innerHTML=`<div class="dgrid"><div class="dl">관리제번</div><div class="dv"><b>${esc(g.base)}</b></div><div class="dl">공정수</div><div class="dv">${rows.length}${g.seqs.length?' ('+g.seqs.join('·')+')':''}</div>${common}${att}</div>${procs}`;
  dQTitle.textContent=`수주 상세 - ${g.base}`;
  dQMask.classList.add('on');
@@ -288,7 +288,7 @@ function exportCsv(){
 document.querySelectorAll('.otS').forEach(c=>c.addEventListener('change',search));
 window.MES={search,exportCsv,delOrder,editOrder,newOrder,setMessage:t=>message.textContent=t};
 render();
-</script><script src="mes_db.js?v=171"></script>
+</script><script src="mes_config.js?v=1"></script><script src="mes_db.js?v=172"></script>
 <script>
 MESDB.master({page:"sale_order_status:data",table:"sale_order_status_rows",pk:"row_no",map:{"row_no": {"col": "row_no", "type": "num"}, "job_no": "job_no", "model": "model", "drawing_no": "drawing_no", "item_name": "item_name", "eco": "eco", "customer_name": "customer_name", "set_qty": {"col": "set_qty", "type": "num"}, "development_type": "development_type", "order_type": "order_type", "mold_type_name": "mold_type_name", "machine_spec_name": "machine_spec_name", "order_date": {"col": "order_date", "type": "date"}, "s1_planned_date": {"col": "s1_planned_date", "type": "date"}, "completion_date": {"col": "completion_date", "type": "date"}, "mass_production_vendor_name": "mass_production_vendor_name", "order_status": "order_status", "plant_name": "plant_name"},get:()=>data,render:()=>{if(typeof view!=="undefined")view=[...data];(window.render||window.search||function(){})();loadAmounts()}});
 

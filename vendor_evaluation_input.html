@@ -107,7 +107,7 @@ function calcTotal(){
 document.addEventListener('input',e=>{if(['qs','ds','rs','ps'].includes(e.target.id))calcTotal()});
 </script>
 <script src="mes_lookup.js?v=67"></script>
-<script src="mes_sample.js?v=169"></script><script src="mes_demo.js?v=67"></script><script src="mes_db.js?v=171"></script>
+<script src="mes_sample.js?v=169"></script><script src="mes_demo.js?v=67"></script><script src="mes_config.js?v=1"></script><script src="mes_db.js?v=172"></script>
 <script src="mes_paste.js?v=67"></script>
 <script>MESDB.master({page:"vendor_evaluation_input",table:"vendor_evaluations",pk:"eno",
   map:{"eno": "eval_no", "vcode": "vendor_code", "vname": "vendor_name", "edate": {"col": "eval_date", "type": "text"}, "period": "eval_period", "etype": "eval_type", "area": "supply_area", "qs": {"col": "quality_score", "type": "num"}, "ds": {"col": "delivery_score", "type": "num"}, "rs": {"col": "response_score", "type": "num"}, "ps": {"col": "price_score", "type": "num"}, "total": {"col": "total_score", "type": "text"}, "grade": "grade", "evaluator": "evaluator", "action": "action_taken", "due": {"col": "improve_due", "type": "text"}, "result": "improve_result", "remark": "remark"},get:()=>data,render:()=>{view=[...data];render()}});

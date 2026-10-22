@@ -34,7 +34,8 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;touch-action:manip
 .empty{padding:26px 10px;text-align:center;color:var(--ink3)}
 .foot{font-size:11px;color:var(--ink3);text-align:center;margin-top:16px}
 .cyc{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:10px;background:#fbe6c8;color:#7a4a12;font-size:13px;font-weight:700;vertical-align:middle}.cyc.end{background:#e3e7ea;color:#5d6b77;text-decoration:line-through}.cyc.old{background:#f4f1ea;color:#8a8073;text-decoration:none}
-</style></head><body><div class="wrap">
+</style><script src="mes_config.js?v=1"></script>
+</head><body><div class="wrap">
  <div class="hd"><h1>✅ QR 작업완료</h1><span class="live" id="live">연결 확인 중…</span></div>
  <div class="card" id="head"><div class="empty">QR 을 읽어 들어오면 부품 정보가 보입니다.</div></div>
  <div id="steps"></div>
@@ -46,7 +47,7 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;touch-action:manip
  * 가공 공정 도면(그림보드)의 QR: qr_work.html?key=제번_공정_품번~차수   (v228: ~차수 — 없으면 현재 차수)
  * DB 는 sql_tjd_qr_work.sql 의 두 함수(fn_qr_part_c · fn_qr_done_c)로만 읽고 쓴다 — anon 키로 실행. 작업 PIN 은 기본 없음(설정에서 켤 수 있음).
  *   외주 공정 → 작업완료 = 입고 처리(fn_osp_receive)   ·   사내 공정 → 작업완료 = 가공 실적 1건(design_results) */
-const CFG={url:'https://jgvikmakenpllwxwdugk.supabase.co',key:'sb_publishable_sKp-6nz2PQ9LxQ5pF-nYkg_YwoEJN6S'};
+const CFG={url:MES_DB_CFG.url,key:MES_DB_CFG.key};   /* mes_config.js (기존/회사 듀얼) */
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const n0=v=>Number(v)||0;

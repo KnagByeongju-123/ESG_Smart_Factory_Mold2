@@ -88,7 +88,8 @@ html[data-mw="xs"] .formgrid{grid-template-columns:84px minmax(0,1fr)}
 #attDrop.drag{outline:2px dashed #2f75b5;outline-offset:-4px;background:#eef5fc}
 /* 첨부파일: 비어 있을 때 과도한 여백 축소 */
 .filearea .empty,#fileEmpty{height:64px!important}
-</style></head><body><div class="screen">
+</style><script src="mes_config.js?v=1"></script>
+</head><body><div class="screen">
 <div class="title"><h1>수주등록</h1><small>영업관리 · 수주</small></div>
 <section class="formgrid">
  <div class="label" title="관리제번. 공정수가 2 이상이면 저장할 때 관리제번 뒤에 A·B·C… 를 붙인 제번이 공정 수만큼 생깁니다 (v179)">관리제번</div><div><input id="base_job" class="field" placeholder="예) 26TJD001" style="text-transform:uppercase"></div>
@@ -295,8 +296,8 @@ const SAVE_CORE=save;   /* 엑셀 일괄등록용 — 확인창·완료 팝업 �
 
 /* ── v46 첨부파일: Supabase Storage(mes-attach) 업로드 ─────────── */
 const ATT=[];   /* {name,path,size,ext,note} */
-const SB_URL='https://jgvikmakenpllwxwdugk.supabase.co';
-const SB_KEY='sb_publishable_sKp-6nz2PQ9LxQ5pF-nYkg_YwoEJN6S';
+const SB_URL=MES_DB_CFG.url;   /* mes_config.js (기존/회사 듀얼) — head 에서 먼저 로드 */
+const SB_KEY=MES_DB_CFG.key;
 /* TJD: PIN 로그인은 토큰이 없으므로 공개키(anon)로 저장소에 접근 */
 function sbTok(){try{return (window.MES_AUTH||window.parent.MES_AUTH)?.token||SB_KEY}catch(e){return SB_KEY}}
 function attUrl(p){return SB_URL+'/storage/v1/object/public/mes-attach/'+p.split('/').map(encodeURIComponent).join('/')}
@@ -640,7 +641,7 @@ async function xlSave(){
  msg(`엑셀 등록 완료 — 저장 ${ok}건${ng?` · 실패 ${ng}건 (미리보기 상태 칸 확인)`:''}`);
 }
 </script>
-<script src="mes_sample.js?v=169"></script><script src="mes_demo.js?v=116"></script><script src="mes_db.js?v=171"></script>
+<script src="mes_sample.js?v=169"></script><script src="mes_demo.js?v=116"></script><script src="mes_db.js?v=172"></script>
 <script src="mes_ctx.js?v=306"></script>
 
 <script>

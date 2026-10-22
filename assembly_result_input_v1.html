@@ -264,7 +264,7 @@ const renderWorkers=fillWorkers;
 fillWorkers();workDate.value=new Date().toISOString().slice(0,10);
 renderJobs();renderSteps();renderResults();window.MES={search,save:addResult,exportCsv,setMessage:msg,reload:loadJobs};loadJobs();loadProcs();
 </script>
-<script src="mes_db.js?v=171"></script>
+<script src="mes_config.js?v=1"></script><script src="mes_db.js?v=172"></script>
 <script>/* v113: WORKERS 는 기준정보(사용자정보)에서 매번 새로 읽는다 — 스냅샷에 넣으면 옛 이름이 복원된다 */
 MESDB.bind("assembly_result_input",()=>({JOBS,STEPS}));</script>
 <script src="mes_ctx.js?v=306"></script>

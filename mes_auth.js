@@ -1,4 +1,4 @@
-/* TJD MES 접속 인증 (v116) — 사원 PIN 방식
+/* TJD MES 접속 인증 (v117) — 사원 PIN 방식
  * ESG Smart Factory 인트로(index.html)와 같은 규칙:
  *   · user_pin 테이블의 pin_hash(SHA-256) 조회
  *   · 마스터 PIN 2480
@@ -6,8 +6,8 @@
  * 화면(iframe)들은 mes_db.js 가 publishable key 로 접속하므로 토큰은 쓰지 않는다.
  * index.html(부모)에서만 로드한다. */
 (function(){
-const URL_='https://jgvikmakenpllwxwdugk.supabase.co';
-const KEY='sb_publishable_sKp-6nz2PQ9LxQ5pF-nYkg_YwoEJN6S';
+const URL_=(window.MES_DB_CFG||{}).url;   /* mes_config.js (기존/회사 듀얼) */
+const KEY=(window.MES_DB_CFG||{}).key;
 const TBL='user_pin';
 
 const MASTER_PIN_HASH='18167da210996cf3525e400870f7d4955d6b983a7b7d237586e242e59888ad86'; /* 2480 */
@@ -70,6 +70,9 @@ function gateHTML(){return `<style>
 #pinGate .key.fn{font-size:17px;color:#8b8fa3}
 #pinGate .lockout{display:none;margin-top:14px;font-size:12px;color:#ef4444;font-weight:700}
 @media(max-height:640px){#pinGate .key{height:48px}#pinGate .logo{display:none}}
+#pinGate .dbsel{margin-top:16px;font-size:11px;color:#8b8fa3}
+#pinGate .dbsel b{display:inline-block;padding:1px 8px;border-radius:9px;color:#fff;font-weight:600}
+#pinGate .dbsel button{margin-left:6px;border:1px solid #3a3f52;background:none;color:#c9ccd8;border-radius:9px;padding:2px 9px;font-size:11px;cursor:pointer}
 </style>
 <div class="box">
   <div class="logo">T</div>
@@ -79,6 +82,7 @@ function gateHTML(){return `<style>
   <div class="hint" id="pinHint">사원 PIN 4자리를 입력하세요</div>
   <div class="kp" id="pinKp"></div>
   <div class="lockout" id="pinLock"></div>
+  <div class="dbsel" id="pinDb"></div>
 </div>`;}
 
 function ui(){
@@ -95,6 +99,13 @@ function ui(){
   });
   document.addEventListener('keydown',keyIn,true);
   checkLockout();
+  /* v117: 접속 DB 표시 · 로그인 전에도 바꿀 수 있게 (회사 DB 에 아직 사용자가 없을 수 있음) */
+  try{const c=window.MES_DB_CFG,P=window.MES_DB_PROFILES,el=document.getElementById('pinDb');
+    if(c&&P&&el){const o=Object.keys(P).find(k=>k!==c.id);
+      el.innerHTML='접속 DB <b style="background:'+c.color+'">'+c.label+'</b>'+
+        (c.fallback?' <span style="color:#e2b04a">(회사 DB 정보 없음)</span>':'')+
+        (o?'<button type="button" id="pinDbSw">'+P[o].label+' DB 로</button>':'');
+      const b=document.getElementById('pinDbSw');if(b)b.onclick=()=>window.MES_DB_SWITCH(o)}}catch(e){}
 }
 function keyIn(e){
   if(!document.getElementById('pinGate'))return;

@@ -105,6 +105,7 @@ body.locked{overflow:hidden}
 .modal-actions .btn{flex:1;justify-content:center}
 .dept-auto-info{background:rgba(79,140,255,.08);border:1px solid rgba(79,140,255,.25);border-radius:8px;padding:8px 10px;font-size:11px;color:#7dd3fc;line-height:1.6;margin-top:6px}
 </style>
+<script src="mes_config.js?v=1"></script>
 </head>
 <body class="locked">
 
@@ -279,8 +280,8 @@ function toggleAcc(id){
 /* ============================================================
    Supabase 설정
    ============================================================ */
-const SUPABASE_URL = 'https://jgvikmakenpllwxwdugk.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_sKp-6nz2PQ9LxQ5pF-nYkg_YwoEJN6S';
+const SUPABASE_URL = MES_DB_CFG.url;   /* mes_config.js (기존/회사 듀얼) */
+const SUPABASE_KEY = MES_DB_CFG.key;
 const TBL = 'user_pin';
 
 /* 마스터 PIN 2580 → SHA-256 */

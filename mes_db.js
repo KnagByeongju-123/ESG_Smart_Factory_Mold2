@@ -25,12 +25,17 @@
     setTimeout(function(){if(!window.__mesdbBound)window.__mesdbReady()},0)});
   /* v36: DNS/TLS 를 미리 열어 첫 REST 요청 지연 제거 */
   try{var lk=document.createElement('link');lk.rel='preconnect';lk.crossOrigin='';
-      lk.href='https://jgvikmakenpllwxwdugk.supabase.co';
+      var c0=window.MES_DB_CFG;try{c0=c0||window.parent.MES_DB_CFG}catch(_){}
+      if(!c0||!c0.url)return; lk.href=c0.url;
       (document.head||document.documentElement).appendChild(lk)}catch(e){}
 })();
 
-const MES_VER='v75';window.MES_VER=MES_VER;
-const CFG={url:'https://jgvikmakenpllwxwdugk.supabase.co',key:'sb_publishable_sKp-6nz2PQ9LxQ5pF-nYkg_YwoEJN6S'};
+const MES_VER='v76';window.MES_VER=MES_VER;
+/* v76: 접속 DB 는 mes_config.js 에서 가져온다 (기존/회사 듀얼). 화면에 config 가 없으면 부모창(index) 것을 쓴다. */
+const CFG=(function(){let c=window.MES_DB_CFG;try{c=c||window.parent.MES_DB_CFG}catch(e){}
+  if(c&&c.url)return{url:c.url,key:c.key,id:c.id,label:c.label};
+  console.error('MESDB: mes_config.js 를 찾지 못했습니다 — 이 화면에 <script src="mes_config.js"> 를 추가하세요');
+  return{url:'',key:'',id:'none',label:'없음'}})();
 /* v117: DB 에 아직 없는 컬럼 하나 때문에 저장 전체가 실패하지 않게 한다.
    PostgREST 가 PGRST204(해당 컬럼 없음)로 거절하면 그 컬럼만 빼고 다시 보낸다.
    (예: 새 Supabase 로 옮길 때 order_lines.reorder_reason 가 빠진 경우)

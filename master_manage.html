@@ -49,6 +49,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.85);color:#fff;padding:8px 18px;border-radius:18px;font-size:12px;font-weight:600;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none}.toast.show{opacity:1}
 input[type="file"]{display:none}
 </style>
+<script src="mes_config.js?v=1"></script>
 </head>
 <body>
 <div class="hdr">
@@ -900,7 +901,8 @@ GRANT USAGE, SELECT ON SEQUENCE public.machine_master_tj_id_seq TO anon, authent
 
 // ===== 초기화 =====
 window.addEventListener('DOMContentLoaded',()=>{
-  if(!localStorage.getItem(LS)){localStorage.setItem(LS,JSON.stringify({sb_url:'https://jgvikmakenpllwxwdugk.supabase.co',sb_key:'sb_publishable_sKp-6nz2PQ9LxQ5pF-nYkg_YwoEJN6S'}))}
+  {const C=MES_DB_CFG,known=Object.values(MES_DB_PROFILES).map(p=>p.url).filter(Boolean);let s=null;try{s=JSON.parse(localStorage.getItem(LS)||'null')}catch(e){}
+   if(!s||!s.sb_url||(known.includes(s.sb_url)&&s.sb_url!==C.url))localStorage.setItem(LS,JSON.stringify({sb_url:C.url,sb_key:C.key}))}   /* mes_config.js */
   if(isOk()){loadMM();loadCustTab()}
   else{document.getElementById('pnl0').insertAdjacentHTML('afterbegin','<div style="background:rgba(239,68,68,.15);border:1.5px solid rgba(239,68,68,.3);border-radius:10px;padding:12px;margin:0 12px 12px;font-size:12px;color:#fca5a5;text-align:center">⚠️ Supabase 미설정 — localStorage에 연결정보를 확인하세요</div>')}
 });
