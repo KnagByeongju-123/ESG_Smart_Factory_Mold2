@@ -107,6 +107,8 @@ body.portrait .fig{height:200mm}
 @media print{.ov{display:none!important}}
 @page{size:A4 landscape;margin:6mm}
 body.portrait .sheet{width:198mm}
+/* v325: 화면에서는 도면을 50% 크기로 — 오른쪽 공정 버튼 칸을 넓게 쓴다 (인쇄 크기는 그대로) */
+@media screen{.sheet{zoom:.5}}
 @media print{
  body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
  .wrap{padding:0;display:block}.side{display:none}.chip{cursor:default}
