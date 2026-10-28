@@ -1756,7 +1756,7 @@ try{pnQ.addEventListener("change",()=>{try{pnPick()}catch(e){}});
  [jobQ,pnQ,venF].forEach(el=>el.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();el.blur()}}));}catch(e){}
 </script>
 <script src="mes_go.js?v=196"></script>
-<script src="mes_xlresult.js?v=1"></script>
+<script src="mes_xlresult.js?v=2"></script>
 <script>/* v196: 금형원가내역 더블클릭으로 들어왔을 때 — 제번 고르고 부품 행(과 공정 칸)을 표시 */
 MES.go=async function(p){p=p||{};const job=String(p.job||'');if(!job)return;
  if(!await MESGO.wait(()=>JOBS.length))return msg('제번 목록을 불러오지 못했습니다.');
