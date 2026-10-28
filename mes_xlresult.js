@@ -19,6 +19,7 @@
  *   사내완료   → design_results (work_type=가공) upsert(row_no) / delete
  *
  * outsourcing_order_input.html 의 전역(ROUTES·jobView·loadRoutes·stepInfo …)을 그대로 쓴다. 그 화면 끝에서만 로드한다.
+ * 태진(TJD)·IPTK 두 저장소의 화면에서 같은 파일을 쓴다 — 다른 곳은 '전체 보기' 구현만이라 아래 A 에서 갈라 탄다.
  */
 (function(){
 'use strict';
@@ -75,6 +76,16 @@ function xdate(v){
 function lib(){if(window.XLSX)return Promise.resolve();return new Promise((ok,no)=>{const s=document.createElement('script');
  s.src=XL_LIB;s.onload=()=>ok();s.onerror=()=>no(new Error('엑셀 모듈을 불러오지 못했습니다 (인터넷 연결 확인)'));document.head.appendChild(s)})}
 const online=()=>!!(window.MESDB&&MESDB.online);
+/* ── 저장소별 '전체 보기' 차이 ──
+ *   TJD : ALLMODE/ALLBUSY, searchAll(), preloadAll()/preTable() — 제번마다 loadRoutes 를 돌려 표를 모은다
+ *   IPTK: ALL/JS/CURJ, loadAll(), useJob(job,true) — ROUTES 에 모든 제번 줄(r.job)을 두고 제번별 상태를 바꿔 끼운다 */
+const A={
+ tjd:()=>typeof ALLMODE!=='undefined',
+ isAll(){return this.tjd()?!!ALLMODE:(typeof ALL!=='undefined'&&!!ALL)},
+ leave(){if(this.tjd()){if(ALLMODE||ALLBUSY){ALLMODE=false;ALLBUSY=false;_allSeq++}}else if(typeof ALL!=='undefined'&&ALL){ALL=false;JS.clear();CURJ=''}},
+ async restore(){if(this.tjd()){if(typeof searchAll==='function')await searchAll(true)}else if(typeof loadAll==='function'){ALL=true;await loadAll()}},
+ allJobs(){return this.tjd()?[...routeBody.querySelectorAll('tr.allhd')].map(t=>t.dataset.hjob).filter(Boolean):[...new Set(ROUTES.map(r=>r.job).filter(Boolean))]}
+};
 
 /* ───────── 현재 상태 ───────── */
 function stateOf(r,i){
@@ -91,6 +102,7 @@ const houseRate=e=>{const m=Number(e.work_minutes)||0,c=Number(e.labor_cost)||0;
 function rowsOfJob(j,hideDone){
  const out=[];
  ROUTES.forEach(r=>{
+  if(r.job&&r.job!==j.job)return;                  /* IPTK 전체 보기: 다른 제번 줄 */
   if(r.old)return;                                  /* 이전 차수 줄은 손댈 수 없다 */
   if(hideDone&&(rowAllDone(r)||(window.MESCYCLE&&MESCYCLE.isEnded(r.part,rowCyc(r)))))return;
   const codes=(r.steps||[]).map(stepCode).filter(Boolean);
@@ -114,10 +126,10 @@ function rowsOfJob(j,hideDone){
  return out;
 }
 /* 제번 하나를 골라 부품별 가공공정을 읽는다 (pickJob 과 같은 뒷정리) */
-async function useJob(job){
+async function openJob(job){
  let i=jobView.findIndex(x=>x.job===job);
  if(i<0){const k=JOBS.findIndex(x=>x.job===job);if(k<0)return null;jobView.length=0;jobView.push(...JOBS);renderJobs();i=k}
- if(ALLMODE||ALLBUSY){ALLMODE=false;ALLBUSY=false;_allSeq++}
+ A.leave();
  jobIdx=i;renderJobs();
  await loadRoutes();
  return jobView[i];
@@ -129,20 +141,24 @@ async function exportXl(){
  if(!online())return msg('DB 미연결 — 엑셀로 내보낼 수 없습니다.');
  const hideDone=(document.getElementById('doneF')||{}).value==='x';
  let jobs=[];
- if(ALLMODE)jobs=[...routeBody.querySelectorAll('tr.allhd')].map(t=>t.dataset.hjob).filter(Boolean);
+ if(A.isAll())jobs=A.allJobs();
  else{const j=jobView[jobIdx];if(j)jobs=[j.job]}
  if(!jobs.length)return msg('내보낼 제번이 없습니다. 제번을 고르거나 [조회]로 전체 부품을 먼저 불러오세요.');
- const wasAll=ALLMODE,keepIdx=jobIdx;
+ const wasAll=A.isAll(),keepIdx=jobIdx;let left=false;
  const rows=[];
  const b=document.getElementById('btnXlOut');if(b)b.disabled=true;
  try{
-  if(jobs.length===1){
-   if(wasAll)await useJob(jobs[0]);
+  if(wasAll&&!A.tjd()){
+   /* IPTK 전체 보기: 줄은 이미 ROUTES 에 다 있다 — 제번별 상태(ORDERED·HOUSE)만 바꿔 끼우며 읽는다 */
+   for(const job of jobs){const j=jobView.find(x=>x.job===job);if(!j)continue;useJob(job,true);rows.push(...rowsOfJob(j,hideDone))}
+  }else if(jobs.length===1){
+   if(wasAll){left=true;await openJob(jobs[0])}
    rows.push(...rowsOfJob(jobView[jobIdx],hideDone));
   }else{
+   left=true;
    /* 전체 보기: 표 5개를 한 번에 읽어 두고 제번별로 걸러 쓴다 (searchAll 과 같은 방법) */
    msg(`엑셀 내보내기 — 제번 ${jobs.length}개 자료를 읽는 중…`);
-   ALLMODE=false;ALLBUSY=false;_allSeq++;
+   A.leave();
    const PRE=await preloadAll();const orig=MESDB.table;MESDB.table=preTable(orig,PRE);
    try{for(let k=0;k<jobs.length;k++){
      const i=jobView.findIndex(x=>x.job===jobs[k]);if(i<0)continue;
@@ -169,7 +185,7 @@ async function exportXl(){
   msg(`${name} — 공정 ${rows.length}줄(제번 ${jobs.length}개, 기존 발주 ${nl}건·사내실적 ${nr}건 포함)을 내보냈습니다. 고치거나 채워서 [⇪ 엑셀 실적등록]으로 올리세요.`);
  }catch(e){msg('엑셀 내보내기 실패: '+String(e.message||e).slice(0,120))}
  finally{if(b)b.disabled=false;
-  if(wasAll){try{await searchAll(true)}catch(e){}}else if(jobIdx!==keepIdx&&jobView[keepIdx]){jobIdx=keepIdx;renderJobs();await loadRoutes()}}
+  if(wasAll&&left){try{await A.restore()}catch(e){}}else if(!wasAll&&jobIdx!==keepIdx&&jobView[keepIdx]){jobIdx=keepIdx;renderJobs();await loadRoutes()}}
 }
 
 /* ───────── ② 엑셀 읽기 → 미리보기 ───────── */
@@ -205,7 +221,7 @@ async function loadXl(file){
  });
  if(!XL.length)return msg('엑셀에 줄이 없습니다.');
  if(!XL.some(v=>v.touched))return msg(`${XL.length}줄을 읽었지만 ▶ 입력 칸이 채워진 줄이 없습니다.`);
- XL_WASALL=ALLMODE;
+ XL_WASALL=A.isAll();
  await analyze();
  ui();render();
  document.getElementById('xlrMask').classList.add('on');
@@ -218,7 +234,7 @@ async function analyze(){
  const venMap=new Map((VENDORS||[]).map(v=>[String(v).trim().toLowerCase(),String(v).trim()]));
  for(let k=0;k<jobs.length;k++){
   const job=jobs[k];msg(`엑셀 확인 중… ${k+1}/${jobs.length} — ${job}`);
-  const j=await useJob(job);
+  const j=await openJob(job);
   const mine=XL.filter(v=>v.touched&&v.job===job);
   if(!j){mine.forEach(v=>v.err.push(`제번 ${job} 이(가) 제번리스트에 없습니다`));continue}
   for(const v of mine){planRow(v,venMap);await priceCheck(v)}
@@ -387,7 +403,7 @@ async function run(){
  const say=t=>{const e=document.getElementById('xlrMsg');if(e)e.textContent=t;msg(t)};
  const jobs=[...new Set(todo.map(v=>v.job))];let ok=0,ng=0,done=0;
  for(const job of jobs){
-  const j=await useJob(job);if(!j){todo.filter(v=>v.job===job).forEach(v=>{v.fail='제번을 찾지 못함';ng++});render();continue}
+  const j=await openJob(job);if(!j){todo.filter(v=>v.job===job).forEach(v=>{v.fail='제번을 찾지 못함';ng++});render();continue}
   /* 부품 → 공정 순서 (뒤 공정 발주가 앞 공정 입고 뒤에 오게) */
   const mine=todo.filter(v=>v.job===job).sort((a,b)=>String(a.part).localeCompare(String(b.part),'ko',{numeric:true})||(Number(a.cyc)||0)-(Number(b.cyc)||0)||Number(a.sn)-Number(b.sn)||(Number(a.lid)||0)-(Number(b.lid)||0));
   for(const v of mine){
@@ -412,7 +428,7 @@ async function run(){
  try{window.MESMOVE&&MESMOVE.invalidate()}catch(e){}
  say(`엑셀 실적등록 끝 — 성공 ${ok}건${ng?` · 실패 ${ng}건 (확인 열 참고)`:''}`);
  try{window.MESPOP&&MESPOP.ok(`엑셀 실적등록: 성공 ${ok}건${ng?` · 실패 ${ng}건`:''}`,'처리 완료')}catch(e){}
- if(XL_WASALL){try{await searchAll(true)}catch(e){}}
+ if(XL_WASALL){try{await A.restore()}catch(e){}}
 }
 async function refreshJob(job){
  ['order_lines','outsourcing_moves','v_outsourcing_position','design_results'].forEach(t=>{try{MESDB.dropCache&&MESDB.dropCache(t)}catch(e){}});
