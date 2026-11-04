@@ -247,7 +247,8 @@ async function saveChecked(){
    material:r.material||null,shape:r.shape||null,image_url:r.image_url||null,spec:r.spec||null,thickness_dia:r.thickness_dia??null,length:r.length??null,width:r.width??null,
    qty:r.qty??null,registered_by:by,registered_date:dt});
  }
- const fin=[...mp.values()];
+  const fin=[...mp.values()];
+ if(window.MESPARTNAME)MESPARTNAME.fillRows(fin);   /* 품명 비어 있으면 금형번호 코드로 */
  try{localStorage.setItem('pl_mat_by',by)}catch(e){}
  try{
   if(MESDB.ensureRefs)await MESDB.ensureRefs(fin.map(r=>({part_no:r.part_no,part_name:r.part_name,material:r.material})));
@@ -514,6 +515,7 @@ async function xlsApply(){
  for(const r of rows){if(mp.has(r.part_no))dups.push(r.part_no);
   mp.set(r.part_no,{job_no:job,process_code:joOf(r.part_no),...r,registered_by:by,registered_date:dt})}
  const fin=[...mp.values()];
+ if(window.MESPARTNAME)MESPARTNAME.fillRows(fin);
  if(dups.length&&!confirm(`금형번호가 중복된 행이 ${dups.length}개 있습니다.\n중복 금형번호: ${[...new Set(dups)].slice(0,10).join(', ')}\n\n같은 금형번호는 마지막 행 기준 1건으로 합쳐 ${fin.length}건을 등록합니다.\n계속할까요?`))return;
  try{
   if(MESDB.ensureRefs)await MESDB.ensureRefs(fin.map(r=>({part_no:r.part_no,part_name:r.part_name,material:r.material})));
@@ -601,7 +603,7 @@ function manAdd(){
 let EDIT=null;
 function editOpen(id){
  const r=rowById(id);if(!r)return;EDIT=id;
- eJob.textContent=r.job_no||curJob||'';ePn.value=r.part_no||'';eName.value=r.part_name||'';eMat.value=r.material||'';
+ eJob.textContent=r.job_no||curJob||'';ePn.value=r.part_no||'';eName.value=r.part_name||(window.MESPARTNAME?MESPARTNAME.nameOf(r.part_no):'');eMat.value=r.material||'';
  eShape.value=r.shape||'';eSpec.value=SPECOF(r)||'';eThk.value=fmt(r.thickness_dia);eQty.value=fmt(r.qty);
  eInfo.innerHTML=r._new?'<b>미등록</b> 행입니다. 리스트 값만 바뀌며, 체크 후 <b>[▤ 등록]</b>을 눌러야 저장됩니다.'
   :'저장하면 바로 DB 에 반영됩니다. (등록자·등록일자는 그대로)';
@@ -687,7 +689,7 @@ function search(){const j=(q_job.value||'').trim();if(j&&online())return loadJob
 window.MES={search,save,saveChecked,setMessage:msg,reload:loadJob,manOpen};render();
 (async()=>{await waitDB();const j=curJobNo();if(j)loadJob(j)})();
 </script>
-<script src="mes_sample.js?v=169"></script><script src="mes_scene.js?v=92"></script><script src="mes_demo.js?v=92"></script><script src="mes_config.js?v=1"></script><script src="mes_db.js?v=197"></script><script src="mes_partname.js?v=1"></script><script>window.addEventListener("DOMContentLoaded",()=>{try{MESPARTNAME.load()}catch(e){}})</script>
+<script src="mes_sample.js?v=169"></script><script src="mes_scene.js?v=92"></script><script src="mes_demo.js?v=92"></script><script src="mes_config.js?v=1"></script><script src="mes_db.js?v=197"></script><script src="mes_partname.js?v=2"></script><script>window.addEventListener("DOMContentLoaded",()=>{try{MESPARTNAME.load()}catch(e){}})</script>
 <script>
 /* v86: MESDB.master 자동동기화 제거 — partlist_materials 전체 스냅샷과 화면(선택 제번) 차이를
    '삭제'로 판단해 다른 제번의 PartList 를 지우던 문제. 저장·삭제는 위 함수가 직접 처리한다. */
