@@ -46,36 +46,38 @@ async function findByPin(hash){
 let curPin='', busy=false, lockTimer=null;
 
 function gateHTML(){return `<style>
-#pinGate{position:fixed;inset:0;z-index:99999;background:linear-gradient(180deg,#181b26,#0f1117);
-  display:flex;align-items:center;justify-content:center;padding:20px;
-  font-family:'Noto Sans KR','Malgun Gothic',sans-serif;color:#e8eaf0}
-#pinGate .box{width:100%;max-width:330px;text-align:center}
-#pinGate .logo{width:56px;height:56px;margin:0 auto 14px;border-radius:14px;display:grid;place-items:center;
-  background:linear-gradient(135deg,#f6d365,#e2b04a);color:#1a1d27;font-weight:800;font-size:24px}
-#pinGate h1{font-size:21px;font-weight:800;letter-spacing:-.5px;margin-bottom:4px;
-  background:linear-gradient(135deg,#f6d365,#e2b04a,#fda085,#e2b04a);background-size:200% 200%;
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
-#pinGate .sub{font-size:12px;color:#8b8fa3;margin-bottom:22px}
+#pinGate{position:fixed;inset:0;z-index:99999;background-color:#0b1628;--ring-d:min(560px,90vw);--ring-x:calc(50% - 60px);--ring-y:calc(50% - 470px);
+  display:flex;align-items:center;justify-content:center;padding:16px;
+  font-family:Pretendard,'Noto Sans KR','Malgun Gothic',sans-serif;color:#e8eef7}
+/* 어두운 남색 바탕(.mesbg 는 index.html) 위 유리 카드 */
+#pinGate .box{width:100%;max-width:390px;text-align:center;background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.3);border-radius:12px;
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 20px 60px rgba(0,6,18,.5);padding:34px 34px 26px}
+#pinGate .logo{width:60px;height:56px;margin:0 auto 14px;border-radius:14px;display:grid;place-items:center;
+  background:linear-gradient(135deg,#f6d365,#e2b04a);color:#0b1626;font-weight:800;font-size:23px;letter-spacing:-.5px;font-family:Arial,sans-serif;box-shadow:0 6px 18px rgba(0,6,18,.4)}
+#pinGate h1{font-size:23px;font-weight:800;letter-spacing:-.5px;margin-bottom:4px;color:#fff}
+#pinGate .sub{font-size:13px;color:#aebbd0;margin-bottom:24px}
 #pinGate .dots{display:flex;justify-content:center;gap:14px;margin-bottom:12px}
-#pinGate .dot{width:13px;height:13px;border-radius:50%;border:2px solid #3a3f52;transition:.15s}
-#pinGate .dot.filled{background:#e2b04a;border-color:#e2b04a;box-shadow:0 0 10px rgba(226,176,74,.5)}
+#pinGate .dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.35);transition:.15s}
+#pinGate .dot.filled{background:#2bb8f0;border-color:#2bb8f0;box-shadow:0 0 12px rgba(43,184,240,.7)}
 #pinGate .dot.err{background:#ef4444;border-color:#ef4444;animation:pshake .4s}
 @keyframes pshake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
-#pinGate .hint{font-size:12px;color:#8b8fa3;min-height:18px;margin-bottom:16px}
-#pinGate .hint.err{color:#ef4444}#pinGate .hint.ok{color:#22c55e}
+#pinGate .hint{font-size:13px;color:#b5c2d6;min-height:18px;margin-bottom:16px}
+#pinGate .hint.err{color:#ff8a80}#pinGate .hint.ok{color:#4ade80}
 #pinGate .kp{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
-#pinGate .key{height:58px;border:1px solid #2a2e3d;background:#1a1d27;color:#e8eaf0;border-radius:13px;
+#pinGate .key{height:58px;border:1px solid rgba(255,255,255,.18);background:rgba(4,10,22,.6);color:#fff;border-radius:13px;
   font-size:21px;font-weight:700;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent}
-#pinGate .key:active{background:#252a38;transform:scale(.96)}
-#pinGate .key.fn{font-size:17px;color:#8b8fa3}
-#pinGate .lockout{display:none;margin-top:14px;font-size:12px;color:#ef4444;font-weight:700}
-@media(max-height:640px){#pinGate .key{height:48px}#pinGate .logo{display:none}}
-#pinGate .dbsel{margin-top:16px;font-size:11px;color:#8b8fa3}
+#pinGate .key:hover{border-color:#2bb8f0}
+#pinGate .key:active{background:rgba(43,184,240,.3);transform:scale(.96)}
+#pinGate .key.fn{font-size:17px;color:#aebbd0}
+#pinGate .lockout{display:none;margin-top:14px;font-size:12px;color:#ff8a80;font-weight:700}
+@media(max-height:640px){#pinGate .key{height:48px}#pinGate .logo{display:none}#pinGate .box{padding:22px 26px 18px}}
+@media(max-width:420px){#pinGate .box{padding:28px 22px 22px}}
+#pinGate .dbsel{margin-top:16px;font-size:11px;color:#aebbd0}
 #pinGate .dbsel b{display:inline-block;padding:1px 8px;border-radius:9px;color:#fff;font-weight:600}
-#pinGate .dbsel button{margin-left:6px;border:1px solid #3a3f52;background:none;color:#c9ccd8;border-radius:9px;padding:2px 9px;font-size:11px;cursor:pointer}
+#pinGate .dbsel button{margin-left:6px;border:1px solid rgba(255,255,255,.3);background:none;color:#dbe4f0;border-radius:9px;padding:2px 9px;font-size:11px;cursor:pointer}
 </style>
 <div class="box">
-  <div class="logo">T</div>
+  <div class="logo">TJ</div>
   <h1>태진다이텍 MES</h1>
   <div class="sub">금형제작관리 시스템</div>
   <div class="dots" id="pinDots"><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
@@ -87,7 +89,7 @@ function gateHTML(){return `<style>
 
 function ui(){
   if(document.getElementById('pinGate'))return;
-  const d=document.createElement('div');d.id='pinGate';d.innerHTML=gateHTML();
+  const d=document.createElement('div');d.id='pinGate';d.className='mesbg';d.innerHTML=gateHTML();
   document.body.appendChild(d);
   const kp=document.getElementById('pinKp');
   ['1','2','3','4','5','6','7','8','9','','0','DEL'].forEach(k=>{
