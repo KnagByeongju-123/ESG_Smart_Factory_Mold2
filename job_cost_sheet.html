@@ -44,7 +44,27 @@ tr.cmh td{background:#eef3f7!important;font-weight:700;color:#34495e;border-top:
 tr.cm td{background:#fbfcfd}tr.cm td b{display:inline-block;min-width:130px;color:#1d3f63}tr.cm td .det{color:#5d6e7d;font-size:11.5px}
 tr.cm.zero td b,tr.cm.zero td{color:#a9b4bc!important}
 tfoot tr.grand td{background:#cfe0ee!important;color:#12365a;font-size:12.5px}
-tfoot tr:not(:last-child) td{bottom:var(--grandH,27px)}
+/* v343: 목표 대비 (제작계획) */
+tfoot tr.tgt td{background:#fff8e1!important;color:#5d4a00;font-weight:400;height:auto;min-height:28px;white-space:normal;word-break:keep-all;line-height:1.9;padding-top:2px;padding-bottom:2px}
+tfoot tr.tgt td b{color:#7a5c00}tfoot tr.tgt .bar{display:inline-block;vertical-align:middle;width:140px;height:11px;border:1px solid #c9b36a;background:#fff;border-radius:2px;overflow:hidden;margin:0 6px}
+tfoot tr.tgt .bar i{display:block;height:100%;background:#f0b429}tfoot tr.tgt .bar i.over{background:#d9534f}
+tfoot tr.tgt .ok{color:#2e7d32;font-weight:700}tfoot tr.tgt .over{color:#c62828;font-weight:700}
+/* v349: 목표 대비 — 한 줄 나열 대신 [목표]·[실적]·[결과] 세 묶음, 항목명은 위 작게 · 금액은 아래 크게 */
+tfoot tr.tgt td{line-height:1.3!important;padding:5px 8px!important}
+.tg{display:flex;flex-wrap:wrap;gap:6px;align-items:stretch}
+.tg .g{display:flex;align-items:center;gap:0;border:1px solid #e6d28f;background:#fffdf3;border-radius:4px;padding:3px 4px}
+.tg .h{writing-mode:horizontal-tb;font-weight:700;color:#fff;background:#b58a00;border-radius:3px;padding:2px 7px;margin-right:6px;font-size:11.5px;white-space:nowrap}
+.tg .g.act .h{background:#2f75b5}.tg .g.res .h{background:#4b5c6a}
+.tg .k{display:flex;flex-direction:column;align-items:flex-end;padding:0 9px;border-left:1px dotted #e0cf95;white-space:nowrap}
+.tg .h+.k{border-left:0}
+.tg .k small{font-size:10.5px;color:#8a7a3a;font-weight:400}
+.tg .k b{font-size:13px;color:#3f3000!important;font-weight:700;min-width:0!important}
+.tg .k.sum b{color:#7a2e00!important}.tg .k.sum{background:#fff1c2;border-radius:3px}
+.tg .op{color:#a08b46;font-weight:700;padding:0 1px;align-self:flex-end;margin-bottom:1px}
+.tg .k.overk b{color:#c62828!important}.tg .k b.ok{color:#2e7d32!important}.tg .k b.over{color:#c62828!important}
+.tg .bar{display:inline-block;vertical-align:middle;width:110px!important;height:9px!important;margin:0 0 0 6px!important}
+.tg .na{color:#9aa5ad;font-weight:400;font-size:11px}
+tfoot tr td{bottom:var(--sb,0px)}   /* v343: 바닥 고정 줄이 3개 — 각 줄의 아래 간격은 스크립트가 계산 */
 /* v196: 더블클릭 이동 */
 #body td.go{cursor:pointer}#body td.go:hover{box-shadow:inset 0 0 0 1px #2f75b5}
 /* TJD v270: 금형 전체 구분 */
@@ -91,7 +111,7 @@ const online=()=>!!(window.MESDB&&MESDB.online);
 const N=v=>Number(v)||0, F=v=>Math.round(N(v)).toLocaleString('ko-KR');
 const H=m=>{const h=N(m)/60;return h?(h>=10?h.toFixed(0):h.toFixed(1)):''};
 const D=v=>String(v||'').slice(0,10), MD=v=>{const d=D(v);return d?d.slice(5).replace('-','/'):''};
-let TAB='cost', ROWS=[], COLS=[], PROCNAME={}, PROCORD={}, CURJOB='', BASEMODE=false, MOLDMODE=false, ALLMODE=false, JOBKIND=new Map();
+let TAB='cost', ROWS=[], COLS=[], PROCNAME={}, PROCORD={}, CURJOB='', BASEMODE=false, MOLDMODE=false, ALLMODE=false, JOBKIND=new Map(), PLAN=null;   /* v340: PLAN = 제작계획(수주가·목표가·이익금·관리비) — 제번·관리제번 조회일 때만 */
 /* TJD v279: 관리제번을 비우고 [조회] → 전체(수주유형·고객사 필터에 맞는 모든 제번). 고객사 = job_pool.customer_name */
 const CUST=new Map(),JOBALL=[];   /* 제번 → 고객사 · 전체 제번 목록 */
 const CU=j=>CUST.get(j)||'';let ALLSETJ=new Set();
@@ -202,15 +222,17 @@ async function load(){
    F1=jobs.length<=200?`job_no=in.${encodeURIComponent('('+jobs.map(j=>'"'+String(j).replace(/"/g,'')+'"').join(',')+')')}`:'job_no=not.is.null';
   }
   const inScope=r=>ALLMODE?ALLSET.has(String(r.job_no||'')):MOLDMODE?JOBKIND.has(String(r.job_no||'')):(!BASEMODE||baseOf(r.job_no)===base);   /* TJD v270: 관리제번 전체가 26RDE606-R1 같은 수리 제번까지 끌어오지 않게 */
-  const [plan0,pl0,lines0,res0,exps0]=await Promise.all([
+  const [plan0,pl0,lines0,res0,exps0,sp0]=await Promise.all([
    MESDB.table('machining_plan_parts').select(`select=*&${F1}&order=row_no`).catch(()=>[]),
    MESDB.table('partlist_all').select(`select=*&${F1}`).catch(()=>[]),
    MESDB.table('order_lines').select(`select=*&${F1}&order=line_id`).catch(()=>[]),
    MESDB.table('design_results').select(`select=*&${F1}&work_type=in.(가공,조립,검사,설계)`).catch(()=>[]),   /* v169: 조립·검사 실적도 공정 칸에 */
-   MESDB.table('expenses').select(`select=*&${F1}`).catch(()=>[])   /* v196: 경비 → 금형 공통비 */
+   MESDB.table('expenses').select(`select=*&${F1}`).catch(()=>[]),   /* v196: 경비 → 금형 공통비 */
+   (MOLDMODE||ALLMODE)?Promise.resolve([]):MESDB.table('sales_plans').select(`select=*&${F1}`).catch(()=>[])   /* v340: 제작계획 — 목표 대비 */
   ]);
   const inPer=d=>{const f=pFrom.value,t=pTo.value;if(!f&&!t)return true;d=D(d);if(!d)return false;return (!f||d>=f)&&(!t||d<=t)};
   const PER=!!(pFrom.value||pTo.value);
+  PLAN=PER?null:planSum((sp0||[]).filter(inScope));   /* v340: 기간 조회는 원가가 일부라 목표 대비를 빼고 보여 준다 */
   const plan=(plan0||[]).filter(inScope),pl=(pl0||[]).filter(inScope);
   const lines=(lines0||[]).filter(inScope).filter(l=>!PER||inPer(l.confirm_date||l.receipt_date||l.order_date));
   const res=(res0||[]).filter(inScope).filter(r=>!PER||inPer(r.work_date));
@@ -375,6 +397,43 @@ function moldSub(v){
  return `<tr class="msub"><td class="c" colspan="${all-1}"><span class="jk new">제작</span> <b>${F(K.제작)}</b> &nbsp; <span class="jk rep">수리 누계</span> <b>${F(K.수리)}</b> &nbsp; <span class="jk mod">개조</span> <b>${F(K.개조)}</b>
    <div class="det">${per}${(pFrom.value||pTo.value)?` · 기간 ${esc(pFrom.value||'…')} ~ ${esc(pTo.value||'…')}`:''}</div></td><td class="num"><b>${F(tot)}</b></td></tr>`;
 }
+/* v340: 제작계획 합산 (관리제번 전체면 공정 제번들의 합) — 전체 이익금·관리비는 sql_v343 실행 후 저장된 계획에만 있다 */
+function planSum(rows){
+ if(!rows.length)return null;
+ const S=k=>rows.reduce((a,r)=>a+N(r[k]),0);
+ const o={n:rows.length,order:S('order_price'),target:S('target_price'),profit:S('total_profit'),mgmt:S('mgmt_amount'),
+  pct:rows.find(r=>r.mgmt_pct!=null&&r.mgmt_pct!=='')?.mgmt_pct??null};
+ /* 저장 안 된 계획(옛 자료)은 이익금 = 수주가 − 목표가 로 대신 */
+ if(!o.profit&&o.order&&o.target)o.profitEst=o.order-o.target;
+ return o}
+/* v340: 관리비 실적 = 금형 총원가 × 관리비용(%) — 목표 = 목표가 + 관리비(목표), 실적 = 총원가 + 관리비(실적) 로 달성률·잔여 계산 */
+function mgmtPct(P){if(!P)return 0;if(P.pct!=null&&P.pct!=='')return N(P.pct);return P.order&&P.mgmt?P.mgmt/P.order*100:0}
+function tgtCalc(cost){const P=PLAN;if(!P||!P.target)return null;
+ const mp=mgmtPct(P),mgT=N(P.mgmt),mgA=Math.round(cost*mp/100);
+ const goal=P.target+mgT,act=cost+mgA,pct=goal?act/goal*100:0,remain=goal-act,cur=P.order?P.order-act:0;
+ return {P,mp,mgT,mgA,goal,act,pct,remain,cur,over:act>goal}}
+function targetHtml(cost,cols){
+ const t=tgtCalc(cost);if(!t)return '';const P=t.P;
+ const cls=t.over?'over':(t.pct>=90?'ok':''),bar=Math.min(100,Math.round(t.pct));
+ const prof=P.profit||P.profitEst||0;
+ const pc=t.mp?` ${+t.mp.toFixed(2)}%`:'';
+ const k=(lab,val,c)=>`<span class="k${c?' '+c:''}"><small>${lab}</small><b>${val}</b></span>`;
+ const op=o=>`<span class="op">${o}</span>`;
+ const mgT=t.mgT?F(t.mgT):'<span class="na" title="제작계획을 다시 저장하면 표시됩니다">미저장</span>';
+ return `<tr class="tgt"><td colspan="${cols}" style="text-align:left"><div class="tg">
+  <div class="g goal" title="목표 합계 = 목표가 + 관리비(목표)"><span class="h">목표</span>
+   ${k('수주가',F(P.order))}${k('전체 이익금'+(!P.profit&&P.profitEst?' (추정)':''),F(prof))}
+   ${k('목표가(목표원가)',F(P.target))}${op('+')}${k('관리비(수주가'+pc+')',mgT)}${op('=')}${k('목표 합계',F(t.goal),'sum')}</div>
+  <div class="g act" title="실적 합계 = 발생 총원가 + 관리비(실적)"><span class="h">실적</span>
+   ${k('발생 총원가',F(cost))}${op('+')}${k('관리비(총원가'+pc+')',t.mp?F(t.mgA):'-')}${op('=')}${k('실적 합계',F(t.act),'sum')}</div>
+  <div class="g res"><span class="h">결과</span>
+   <span class="k" title="실적 합계 ÷ 목표 합계"><small>달성률</small><b class="${cls}">${t.pct.toFixed(1)}%<span class="bar"><i class="${t.over?'over':''}" style="width:${bar}%"></i></span></b></span>
+   ${t.over?k('목표 초과',F(-t.remain),'overk'):k('잔여 (목표 − 실적)',F(t.remain))}
+   ${k('현재 이익 (수주가 − 실적)',F(t.cur)+(P.order?` <span class="na">(${(t.cur/P.order*100).toFixed(1)}%)</span>`:''))}
+   ${P.n>1?`<span class="k"><small>공정 제번</small><b>${P.n}건 합산</b></span>`:''}</div>
+ </div></td></tr>`}
+/* v340: tfoot 줄들이 서로 겹치지 않게 아래쪽 줄 높이만큼 띄운다 */
+function stackFoot(){const trs=[...tfoot.querySelectorAll('tr')];let b=0;for(let i=trs.length-1;i>=0;i--){trs[i].style.setProperty('--sb',b+'px');b+=trs[i].offsetHeight||27}}
 function render(){
  const v=view(), showJob=BASEMODE||MOLDMODE||ALLMODE;
  const jtag=x=>{if(ALLMODE)return `<span title="${esc(CU(x.job))}">${esc(x.job)}</span>`;if(!MOLDMODE)return esc(x.seq);const k=JOBKIND.get(x.job)||{};const cls=k.kind==='수리'?'rep':k.kind==='개조'?'mod':'new';return `<span class="jk ${cls}" title="${esc(x.job)} · ${esc(k.kind||'')}">${esc(k.tag||'')}${x.seq?'·'+esc(x.seq):''}</span>`};
@@ -419,8 +478,9 @@ function render(){
   tfoot.innerHTML=v.length||CT?`<tr><td class="c" colspan="${showJob?9:8}">부품 합계 (${v.length}건)</td><td class="num">${F(S('rawTot'))}</td><td class="num">${F(S('buyTot'))}</td>
    ${COLS.map(c=>{const o=v.reduce((a,x)=>a+(x.proc[c]?x.proc[c].out+x.proc[c].cost:0),0);return `<td class="num">${o?F(o):''}</td>`}).join('')||'<td></td>'}
    <td class="num">${F(S('procTot'))}</td><td class="num">${F(S('total'))}</td></tr>
-   <tr class="grand"><td class="c" colspan="${(showJob?11:10)+(COLS.length||1)+1}">금형 총원가 = 부품 합계 ${F(S('total'))||0} + 금형 공통비 ${F(CT)||0}</td><td class="num">${F(S('total')+CT)}</td></tr>`+moldSub(v):'';
-  sumLine.innerHTML=v.length||CT?`원재료비 <b>${F(S('rawTot'))}</b> · 구매품비 <b>${F(S('buyTot'))}</b> · 가공비 <b>${F(S('procTot'))}</b> (사내 ${H(S('minTot'))}h 포함) · 금형 공통비 <b>${F(CT)}</b> · <b>금형 총원가 ${F(S('total')+CT)}</b>원`:'';
+   <tr class="grand"><td class="c" colspan="${(showJob?11:10)+(COLS.length||1)+1}">금형 총원가 = 부품 합계 ${F(S('total'))||0} + 금형 공통비 ${F(CT)||0}</td><td class="num">${F(S('total')+CT)}</td></tr>`+moldSub(v)+targetHtml(S('total')+CT,(showJob?11:10)+(COLS.length||1)+2):'';
+  stackFoot();
+  sumLine.innerHTML=v.length||CT?`원재료비 <b>${F(S('rawTot'))}</b> · 구매품비 <b>${F(S('buyTot'))}</b> · 가공비 <b>${F(S('procTot'))}</b> (사내 ${H(S('minTot'))}h 포함) · 금형 공통비 <b>${F(CT)}</b> · <b>금형 총원가 ${F(S('total')+CT)}</b>원${(t=>t?` · 관리비(실적) <b>${F(t.mgA)}</b> · 실적 <b>${F(t.act)}</b> / 목표 <b>${F(t.goal)}</b> · 달성률 <b>${t.pct.toFixed(1)}%</b> · 잔여 <b>${F(t.remain)}</b>`:'')(tgtCalc(S('total')+CT))}`:'';
  }else{
   thead.innerHTML=`<tr>
     <th class="grp" colspan="${showJob?7:6}">부품</th>
@@ -465,7 +525,11 @@ function csv(){
   if(COMMON){const w=h.length,row=(l,a)=>{const r=Array(w).fill('');r[0]=l;r[w-1]=Math.round(a)||0;return r};
    rows.push(Array(w).fill(''),row('금형 공통비 · 외주설계',COMMON.dex.amt),row('금형 공통비 · SET외주',COMMON.sex.amt),row('금형 공통비 · 사내설계',COMMON.din.amt),row('금형 공통비 · 조립(금형 전체)',COMMON.asm.amt),
     row('금형 공통비 · 검사(금형 전체)',COMMON.insp.amt),row('금형 공통비 · 경비',COMMON.exp.amt),...(COMMON.etc.n?[row('금형 공통비 · 기타(부품 미지정)',COMMON.etc.amt)]:[]),
-    row('금형 총원가',v.reduce((a,x)=>a+N(x.total),0)+COMMON.total))}
+    row('금형 총원가',v.reduce((a,x)=>a+N(x.total),0)+COMMON.total));
+   {const t=tgtCalc(v.reduce((a,x)=>a+N(x.total),0)+COMMON.total);if(t)   /* v340: 목표 대비 (관리비 실적 포함) */
+    rows.push(Array(w).fill(''),row('목표 · 수주가',t.P.order),row('목표 · 목표가(목표원가)',t.P.target),row('목표 · 전체 이익금',t.P.profit||t.P.profitEst||0),row('목표 · 관리비',t.mgT),row('목표 합계(목표가 + 관리비)',t.goal),
+     row('실적 · 관리비(총원가 × '+(+t.mp.toFixed(2))+'%)',t.mgA),row('실적 합계(총원가 + 관리비)',t.act),
+     row('달성률(%) = 실적 합계 ÷ 목표 합계',Math.round(t.pct*10)/10),row('잔여(목표 합계 − 실적 합계)',t.remain),row('현재 이익(수주가 − 실적 합계)',t.cur))}}
  }else{
   h=[...(showJob?[ALLMODE?'제번':'공정']:[]),'품번','부품명','재질','형태','규격','수량',...COLS.map(c=>pn(c)),'완료','전체','진행률'];
   rows=v.map(x=>[...(showJob?[ALLMODE?x.job:x.seq]:[]),x.part,x.name,x.mat,x.shape||'',x.spec,x.qty??'',
